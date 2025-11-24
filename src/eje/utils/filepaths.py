@@ -1,1 +1,6 @@
-def ensure_dir(p): pass
+import os
+
+
+def ensure_dir(path):
+    os.makedirs(path, exist_ok=True)
+    return path
