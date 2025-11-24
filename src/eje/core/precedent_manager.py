@@ -1,0 +1,2 @@
+class PrecedentManager:
+    pass

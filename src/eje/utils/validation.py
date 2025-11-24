@@ -1,0 +1,1 @@
+def validate_case(c): pass

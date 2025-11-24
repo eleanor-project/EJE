@@ -1,0 +1,23 @@
+data_path: "./eleanor_data"
+block_threshold: 0.50
+ambiguity_threshold: 0.25
+max_parallel_calls: 5
+retrain_batch_size: 25
+critic_weights:
+  Rights: 1.0
+  Equity: 0.9
+  Utilitarian: 1.2
+critic_priorities:
+  Security: "override"
+  Human: "override"
+plugin_critics:
+  - "./plugins/custom_rule.py"
+llm:
+  critic_model_name: "gpt-4-1106-preview"
+  security_model_name: "gemini-pro"
+  api_keys:
+    openai: "YOUR_OPENAI_API_KEY"
+    gemini: "YOUR_GEMINI_API_KEY"
+    anthropic: "YOUR_ANTHROPIC_API_KEY"
+dashboard_port: 8049
+db_uri: "sqlite:///eleanor_data/eleanor.db"
