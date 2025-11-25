@@ -292,7 +292,7 @@ The documentation includes:
 
 Developed as part of the **Eleanor Project Governance Lab**,
 by **William Parris**, with architectural, drafting, and co-development
-support from **GPT-5 “Thinking”**.
+support from **GPT-5 “Thinking” and Claude Code 4.5
 
 ---
 
