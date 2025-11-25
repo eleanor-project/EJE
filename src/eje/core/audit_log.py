@@ -24,6 +24,7 @@ class AuditLogger:
         self.engine = get_engine(db_uri)
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
+
     def log_event(self, prompt, agg, details):
         session = self.Session()
         event = AuditEvent(
@@ -37,9 +38,22 @@ class AuditLogger:
         session.add(event)
         session.commit()
         session.close()
+
+    def log_decision(self, bundle):
+        """
+        Log a decision bundle from the DecisionEngine.
+        Wrapper around log_event that extracts the appropriate fields.
+        """
+        self.log_event(
+            prompt=json.dumps(bundle['input']),
+            agg=bundle['final_decision'],
+            details=bundle['critic_outputs']
+        )
+
     def append_feedback(self, event_id, feedback):
         session = self.Session()
         event = session.query(AuditEvent).filter_by(id=event_id).first()
-        event.feedback = feedback
-        session.commit()
+        if event:
+            event.feedback = feedback
+            session.commit()
         session.close()

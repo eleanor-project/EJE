@@ -1,1 +1,94 @@
-{}
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://eleanorproject.org/schemas/decision_bundle.schema.json",
+  "title": "Decision Bundle",
+  "description": "Complete decision evaluation bundle from the EJE",
+  "type": "object",
+  "required": ["request_id", "timestamp", "input", "critic_outputs", "final_decision"],
+  "properties": {
+    "request_id": {
+      "type": "string",
+      "description": "Unique identifier for this decision request",
+      "format": "uuid"
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "ISO 8601 timestamp when evaluation started",
+      "format": "date-time"
+    },
+    "input": {
+      "type": "object",
+      "description": "The case input that was evaluated",
+      "required": ["text"],
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Main text content of the case"
+        },
+        "context": {
+          "type": "object",
+          "description": "Additional context information"
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Metadata about the case"
+        }
+      }
+    },
+    "critic_outputs": {
+      "type": "array",
+      "description": "Array of outputs from all critics",
+      "items": {
+        "$ref": "critic_bundle.schema.json"
+      },
+      "minItems": 1
+    },
+    "final_decision": {
+      "type": "object",
+      "description": "Aggregated final decision",
+      "required": ["overall_verdict", "reason"],
+      "properties": {
+        "overall_verdict": {
+          "type": "string",
+          "enum": ["ALLOW", "DENY", "REVIEW", "BLOCK"],
+          "description": "Final aggregated verdict"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Explanation for the final verdict"
+        },
+        "verdict_scores": {
+          "type": "object",
+          "description": "Weighted scores for each verdict type",
+          "properties": {
+            "ALLOW": {"type": "number"},
+            "BLOCK": {"type": "number"},
+            "REVIEW": {"type": "number"}
+          }
+        },
+        "avg_confidence": {
+          "type": "number",
+          "description": "Average confidence across all critics",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "ambiguity": {
+          "type": "number",
+          "description": "Measure of disagreement between critics",
+          "minimum": 0.0
+        },
+        "details": {
+          "type": "array",
+          "description": "Details from critic evaluations"
+        }
+      }
+    },
+    "precedent_refs": {
+      "type": "array",
+      "description": "References to similar precedent cases",
+      "items": {
+        "type": "object"
+      }
+    }
+  }
+}
