@@ -4,7 +4,7 @@ import sqlite3
 from typing import Optional
 from ..utils.logging import get_logger
 
-logger = get_logger("EJE.PrecedentSchema")
+logger = get_logger("EJC.PrecedentSchema")
 
 
 def create_precedent_tables(db_path: str) -> None:

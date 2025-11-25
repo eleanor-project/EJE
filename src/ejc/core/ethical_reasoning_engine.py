@@ -7,7 +7,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 from .critic_loader import load_all_plugins
 from .aggregator import Aggregator
 from .config_loader import load_global_config
-from .precedent_manager import PrecedentManager
+from .jurisprudence_repository import JurisprudenceRepository
 from .audit_log import AuditLogger
 from .retraining_manager import Retrainer
 from .plugin_security import get_security_manager, PluginSecurityManager, TimeoutException
@@ -26,23 +26,26 @@ from ..constants import (
 )
 
 
-class DecisionEngine:
+class EthicalReasoningEngine:
     """
-    Core orchestrator of the Ethics Jurisprudence Engine (EJE).
-    Executes multiple critics in parallel, aggregates their results,
-    applies precedence + policy logic, and logs decisions.
+    Ethical Jurisprudence Core (EJC)
+    Part of the Mutual Intelligence Framework (MIF)
+
+    Core orchestrator implementing the Rights-Based Jurisprudence Architecture (RBJA).
+    Executes ethical deliberation system in parallel, aggregates results,
+    applies jurisprudence precedent + rights-based safeguards, and logs decisions.
     """
 
     def __init__(self, config_path: str = "config/global.yaml") -> None:
-        self.logger = get_logger("EJE.DecisionEngine")
+        self.logger = get_logger("EJC.EthicalReasoningEngine")
 
         self.logger.info("Loading global configuration...")
         self.config: Dict[str, Any] = load_global_config(config_path)
 
-        self.logger.info("Loading critics...")
+        self.logger.info("Loading ethical deliberation system...")
         self.critics: List[Any] = load_all_plugins(self.config.get("plugin_critics", []))
 
-        self.pm: PrecedentManager = PrecedentManager(self.config.get("data_path", "./eleanor_data"))
+        self.pm: JurisprudenceRepository = JurisprudenceRepository(self.config.get("data_path", "./eleanor_data"))
         self.audit: AuditLogger = AuditLogger(self.config.get("db_uri"))
 
         self.weights: Dict[str, float] = self.config.get("critic_weights", {})

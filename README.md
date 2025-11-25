@@ -1,5 +1,6 @@
 
-# Ethics Jurisprudence Engine (EJE)
+# Ethical Jurisprudence Core (EJC)
+    Part of the Mutual Intelligence Framework (MIF)
 ### A Multi-Critic, Precedent-Driven Oversight Layer for Responsible AI Systems  
 **By William Parris — Eleanor Project**
 
@@ -7,7 +8,8 @@
 
 ## 🌐 Overview
 
-The **Ethics Jurisprudence Engine (EJE)** is a governance-layer system designed to provide  
+The **Ethical Jurisprudence Core (EJC)
+    Part of the Mutual Intelligence Framework (MIF)** is a governance-layer system designed to provide  
 **transparent, multi-critic, rights-respecting, precedent-driven oversight** for AI models  
 at decision-time.
 
@@ -49,7 +51,7 @@ jurisprudence framework based on multi-critic deliberation and structured preced
 
 src/eje/
 core/
-decision_engine.py
+ethical_reasoning_engine.py
 precedent_manager.py
 critic_loader.py
 base_critic.py
@@ -155,7 +157,7 @@ Your critic will automatically load at runtime.
 
 ---
 
-## 🗄 Precedent System
+## 🗄 Jurisprudence Repository
 
 EJE stores every decision as a **precedent bundle**, including:
 
@@ -259,7 +261,7 @@ The documentation includes:
 
 * Architecture
 * Critics
-* Precedent system
+* Jurisprudence repository
 * API reference
 * Developer onboarding
 

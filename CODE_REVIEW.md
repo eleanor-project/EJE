@@ -1,4 +1,5 @@
-# Code Review: Ethics Jurisprudence Engine (EJE)
+# Code Review: Ethical Jurisprudence Core (EJC)
+    Part of the Mutual Intelligence Framework (MIF)
 
 ## Executive Summary
 
@@ -12,11 +13,11 @@ The EJE project presents a well-conceived ethical AI governance framework with s
 
 ## 1. CRITICAL ISSUES (Must Fix Immediately)
 
-### 1.1 Import Function Mismatch in DecisionEngine
-**File**: `src/eje/core/decision_engine.py:4,63`
+### 1.1 Import Function Mismatch in EthicalReasoningEngine
+**File**: `src/eje/core/ethical_reasoning_engine.py:4,63`
 **Severity**: CRITICAL - Code will not run
 
-The DecisionEngine imports and calls `aggregate_scores()` function, but the aggregator module only provides an `Aggregator` class with an `aggregate()` method.
+The EthicalReasoningEngine imports and calls `aggregate_scores()` function, but the aggregator module only provides an `Aggregator` class with an `aggregate()` method.
 
 ```python
 # Current (broken):
@@ -34,7 +35,7 @@ final = aggregator.aggregate(critic_outputs)
 ---
 
 ### 1.2 Import Function Mismatch in CriticLoader
-**File**: `src/eje/core/decision_engine.py:3,26`
+**File**: `src/eje/core/ethical_reasoning_engine.py:3,26`
 **Severity**: CRITICAL - Code will not run
 
 Similar issue with critic loading:
@@ -52,7 +53,7 @@ self.critics = load_all_plugins(...)
 ---
 
 ### 1.3 Async/Sync Inconsistency
-**Files**: `src/eje/core/base_critic.py`, `src/eje/critics/official/*.py`, `src/eje/core/decision_engine.py`
+**Files**: `src/eje/core/base_critic.py`, `src/eje/critics/official/*.py`, `src/eje/core/ethical_reasoning_engine.py`
 **Severity**: CRITICAL - Code will not run correctly
 
 The codebase has a fundamental async/sync mismatch:
@@ -60,14 +61,14 @@ The codebase has a fundamental async/sync mismatch:
 - `CriticBase.evaluate()` is declared as `async` (line 10)
 - `AnthropicCritic.Supplier.run()` is `async` (line 8)
 - `OpenAICritic.Supplier.run()` is `async` (line 8)
-- But `DecisionEngine.evaluate()` calls critics synchronously (line 47)
+- But `EthicalReasoningEngine.evaluate()` calls critics synchronously (line 47)
 - `CustomRuleCritic.evaluate()` is synchronous
 
 **Fix Required**: Choose one approach:
 
 **Option A: Make everything async**
 ```python
-# In DecisionEngine
+# In EthicalReasoningEngine
 async def evaluate(self, case: dict) -> dict:
     critic_outputs = []
     for critic in self.critics:
@@ -107,10 +108,10 @@ if not critic_class:
 ---
 
 ### 1.5 Missing AuditLogger Method
-**File**: `src/eje/core/decision_engine.py:86`, `src/eje/core/audit_log.py`
+**File**: `src/eje/core/ethical_reasoning_engine.py:86`, `src/eje/core/audit_log.py`
 **Severity**: HIGH - Runtime error
 
-DecisionEngine calls `self.audit.log_decision(bundle)` but AuditLogger only has `log_event()` method.
+EthicalReasoningEngine calls `self.audit.log_decision(bundle)` but AuditLogger only has `log_event()` method.
 
 **Fix**: Rename method or add wrapper:
 ```python
@@ -127,7 +128,7 @@ def log_decision(self, bundle):
 ## 2. ARCHITECTURE & DESIGN ISSUES
 
 ### 2.1 No True Parallelization
-**File**: `src/eje/core/decision_engine.py:44-60`
+**File**: `src/eje/core/ethical_reasoning_engine.py:44-60`
 **Severity**: MEDIUM - Performance impact
 
 Despite `max_parallel_calls: 5` in config, critics execute sequentially in a for loop.
@@ -150,15 +151,15 @@ with ThreadPoolExecutor(max_workers=self.config.get('max_parallel_calls', 5)) as
 ---
 
 ### 2.2 Data Format Mismatch in Aggregator
-**File**: `src/eje/core/aggregator.py:9-16`, `src/eje/core/decision_engine.py:48-53`
+**File**: `src/eje/core/aggregator.py:9-16`, `src/eje/core/ethical_reasoning_engine.py:48-53`
 **Severity**: MEDIUM - Logic error
 
-DecisionEngine creates results with keys: `critic`, `verdict`, `confidence`, `justification`
+EthicalReasoningEngine creates results with keys: `critic`, `verdict`, `confidence`, `justification`
 But Aggregator expects results with keys: `weight`, `priority`
 
-**Fix**: Either add weights/priorities in DecisionEngine, or change Aggregator to look them up:
+**Fix**: Either add weights/priorities in EthicalReasoningEngine, or change Aggregator to look them up:
 ```python
-# In DecisionEngine:
+# In EthicalReasoningEngine:
 critic_outputs.append({
     "critic": critic.__class__.__name__,
     "verdict": out["verdict"],
@@ -171,7 +172,7 @@ critic_outputs.append({
 
 ---
 
-### 2.3 Inefficient File I/O in PrecedentManager
+### 2.3 Inefficient File I/O in JurisprudenceRepository
 **File**: `src/eje/core/precedent_manager.py:29-44`
 **Severity**: MEDIUM - Performance/scalability issue
 
@@ -209,7 +210,7 @@ SHA-256 hashing only finds exact matches. This defeats the purpose of precedent 
 # Use embedding-based similarity
 from sentence_transformers import SentenceTransformer
 
-class PrecedentManager:
+class JurisprudenceRepository:
     def __init__(self, data_path):
         self.embedder = SentenceTransformer('all-MiniLM-L6-v2')
 
@@ -221,7 +222,7 @@ class PrecedentManager:
 ---
 
 ### 2.5 Missing Error Recovery
-**File**: `src/eje/core/decision_engine.py:54-60`
+**File**: `src/eje/core/ethical_reasoning_engine.py:54-60`
 **Severity**: MEDIUM - Reliability issue
 
 When a critic fails, it's recorded as "ERROR" but evaluation continues. However:
@@ -274,7 +275,7 @@ def load_global_config(config_path):
 ---
 
 ### 3.2 Missing Input Validation
-**File**: `src/eje/utils/validation.py`, `src/eje/core/decision_engine.py:37`
+**File**: `src/eje/utils/validation.py`, `src/eje/core/ethical_reasoning_engine.py:37`
 **Severity**: MEDIUM - Security/reliability
 
 The `validate_case()` function exists but implementation is unknown. Ensure it validates:
@@ -361,7 +362,7 @@ Despite `pytest` in requirements, there are zero test files.
 
 **Required tests**:
 1. Unit tests for each critic
-2. Integration tests for DecisionEngine
+2. Integration tests for EthicalReasoningEngine
 3. Edge case tests (empty input, all critics fail, tie verdicts)
 4. Mock tests for external APIs
 
@@ -373,7 +374,7 @@ tests/
 │   ├── test_precedent_manager.py
 │   └── test_critics.py
 ├── integration/
-│   └── test_decision_engine.py
+│   └── test_ethical_reasoning_engine.py
 └── fixtures/
     └── test_cases.json
 ```
@@ -577,7 +578,7 @@ response = await client.messages.create(
 ---
 
 ### 5.3 No Caching for Identical Cases
-**File**: `src/eje/core/decision_engine.py`
+**File**: `src/eje/core/ethical_reasoning_engine.py`
 **Severity**: LOW - Performance
 
 Same input evaluated multiple times without caching.
@@ -607,11 +608,11 @@ def evaluate(self, case: dict) -> dict:
 **File**: `src/eje/core/retraining_manager.py`
 **Severity**: MEDIUM
 
-RetrainingManager exists but is never instantiated or used in DecisionEngine.
+RetrainingManager exists but is never instantiated or used in EthicalReasoningEngine.
 
 **Fix**: Integrate it:
 ```python
-class DecisionEngine:
+class EthicalReasoningEngine:
     def __init__(self, config_path="config/global.yaml"):
         # ... existing code ...
         self.retrainer = RetrainingManager(
@@ -707,7 +708,7 @@ Despite the issues identified, the project has many strengths:
 5. ✨ **Audit Trail**: SQLAlchemy logging provides good traceability
 6. ✨ **Configurability**: YAML configuration is flexible and clear
 7. ✨ **Multi-Critic Design**: Supporting multiple AI models is forward-thinking
-8. ✨ **Precedent System**: Novel approach to AI decision consistency
+8. ✨ **Jurisprudence Repository**: Novel approach to AI decision consistency
 
 ---
 
@@ -718,7 +719,7 @@ Create comprehensive test suite:
 ```python
 # tests/unit/test_aggregator.py
 import pytest
-from eje.core.aggregator import Aggregator
+from ejc.core.aggregator import Aggregator
 
 def test_aggregator_simple_allow():
     config = {'block_threshold': 0.5, 'ambiguity_threshold': 0.25}
@@ -741,9 +742,9 @@ def test_aggregator_override():
     assert output['overall_verdict'] == 'BLOCK'
     assert 'Override' in output['reason']
 
-# tests/integration/test_decision_engine.py
+# tests/integration/test_ethical_reasoning_engine.py
 def test_full_evaluation_flow(mock_critics):
-    engine = DecisionEngine(config_path='tests/fixtures/test_config.yaml')
+    engine = EthicalReasoningEngine(config_path='tests/fixtures/test_config.yaml')
     result = engine.evaluate({'text': 'test case'})
     assert 'request_id' in result
     assert 'final_decision' in result
@@ -788,10 +789,10 @@ For existing users, provide upgrade guide:
 3. **Import Changes**: If you imported internal APIs, update:
    ```python
    # Before:
-   from eje.core.aggregator import aggregate_scores
+   from ejc.core.aggregator import aggregate_scores
 
    # After:
-   from eje.core.aggregator import Aggregator
+   from ejc.core.aggregator import Aggregator
    ```
 ```
 

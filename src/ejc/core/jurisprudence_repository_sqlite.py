@@ -14,9 +14,12 @@ from ..constants import PRECEDENT_SIMILARITY_THRESHOLD
 from .precedent_schema import create_precedent_tables
 
 
-class PrecedentManagerSQLite:
+class JurisprudenceRepositorySQLite:
     """
-    SQLite-based precedent manager.
+    Ethical Jurisprudence Core (EJC)
+    Part of the Mutual Intelligence Framework (MIF)
+
+    SQLite-based jurisprudence repository implementing RBJA precedent requirements.
     Stores and retrieves precedent bundles with semantic similarity support.
     """
 
@@ -25,7 +28,7 @@ class PrecedentManagerSQLite:
         db_path: str = "./eleanor_data/precedents.db",
         use_embeddings: bool = True
     ) -> None:
-        self.logger = get_logger("EJE.PrecedentManagerSQLite")
+        self.logger = get_logger("EJC.JurisprudenceRepositorySQLite")
         self.db_path: str = db_path
         self.use_embeddings: bool = use_embeddings
 

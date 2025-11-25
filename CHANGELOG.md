@@ -1,6 +1,7 @@
 # Changelog
 
-All notable changes to the Ethics Jurisprudence Engine (EJE) will be documented in this file.
+All notable changes to the Ethical Jurisprudence Core (EJC)
+    Part of the Mutual Intelligence Framework (MIF) will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -11,8 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Type Hints Infrastructure
 - ✅ Added comprehensive type hints to all core modules
-  - `decision_engine.py`: Full type annotations for DecisionEngine class
-  - `precedent_manager.py`: Type hints for PrecedentManager
+  - `ethical_reasoning_engine.py`: Full type annotations for EthicalReasoningEngine class
+  - `precedent_manager.py`: Type hints for JurisprudenceRepository
   - `precedent_manager_sqlite.py`: Type hints for SQLite implementation
   - `aggregator.py`: Type annotations for aggregation logic
   - `base_critic.py`: Type hints for critic base class
@@ -164,7 +165,7 @@ precedent_references (
 
 3. (Optional) Update code to use SQLite manager:
    ```python
-   from eje.core.precedent_manager_sqlite import PrecedentManagerSQLite
+   from ejc.core.precedent_manager_sqlite import PrecedentManagerSQLite
    pm = PrecedentManagerSQLite("./eleanor_data/precedents.db")
    ```
 
@@ -180,7 +181,7 @@ precedent_references (
 
 ### Backward Compatibility
 
-- JSON-based PrecedentManager still available
+- JSON-based JurisprudenceRepository still available
 - Migration is optional but recommended
 - All existing APIs remain unchanged
 - Configuration format unchanged

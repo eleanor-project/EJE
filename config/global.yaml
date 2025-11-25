@@ -65,7 +65,7 @@ secrets:
   # vault_url: "https://vault.example.com:8200"
   # vault_mount_point: "secret"
 
-# Precedent System
+# Jurisprudence Repository
 precedent_backend: "sqlite"  # "sqlite" or "json"
 precedent_similarity_threshold: 0.8  # Minimum similarity for precedent matching
 max_precedent_results: 5  # Maximum precedents to return

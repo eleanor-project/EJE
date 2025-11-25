@@ -7,11 +7,11 @@ import json
 import sqlite3
 from datetime import datetime, timedelta
 
-from ..core.precedent_manager_sqlite import PrecedentManagerSQLite
+from ..core.jurisprudence_repository_sqlite import JurisprudenceRepositorySQLite
 from ..utils.logging import get_logger
 from ..constants import DEFAULT_DASHBOARD_PORT, DEFAULT_DB_URI
 
-logger = get_logger("EJE.Dashboard")
+logger = get_logger("EJC.Dashboard")
 
 app = Flask(__name__)
 
@@ -298,7 +298,7 @@ def index():
 def get_statistics():
     """Get overall statistics."""
     try:
-        pm = PrecedentManagerSQLite(PRECEDENT_DB_PATH)
+        pm = JurisprudenceRepositorySQLite(PRECEDENT_DB_PATH)
         stats = pm.get_statistics()
 
         # Get additional stats from database
@@ -421,7 +421,7 @@ def get_critic_stats():
 def get_precedent(case_hash: str):
     """Get a specific precedent by hash."""
     try:
-        pm = PrecedentManagerSQLite(PRECEDENT_DB_PATH)
+        pm = JurisprudenceRepositorySQLite(PRECEDENT_DB_PATH)
         conn = pm._get_connection()
         cursor = conn.cursor()
 

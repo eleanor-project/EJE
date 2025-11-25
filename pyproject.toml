@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ethics-jurisprudence-engine"
+name = "ethical-jurisprudence-core"
 version = "1.3.0"
-description = "A Multi-Critic, Precedent-Driven Oversight Layer for Responsible AI Systems"
+description = "Ethical Jurisprudence Core (EJC) - Rights-Based Jurisprudence Architecture for the Mutual Intelligence Framework"
 readme = "README.md"
 authors = [
     {name = "William Parris", email = "will@eleanorproject.org"}
@@ -63,7 +63,7 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["eje*"]
+include = ["ejc*"]
 
 [tool.black]
 line-length = 100

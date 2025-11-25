@@ -1,6 +1,7 @@
 # Governance Directory
 
-This directory contains governance artifacts for the Ethics Jurisprudence Engine (EJE), implementing the Governance Change Request (GCR) process specified in ELEANOR Specification v2.1.
+This directory contains governance artifacts for the Ethical Jurisprudence Core (EJC)
+    Part of the Mutual Intelligence Framework (MIF), implementing the Governance Change Request (GCR) process specified in ELEANOR Specification v2.1.
 
 ---
 
@@ -42,7 +43,7 @@ GCRs ensure that all changes to EJE's governance layer are:
 Create a GCR when making changes to:
 
 ✅ **Requires GCR**:
-- Decision engine logic or flow
+- Ethical reasoning engine logic or flow
 - Precedent storage schema or retrieval algorithms
 - Critic evaluation contracts or outputs
 - Aggregation formulas or weights
