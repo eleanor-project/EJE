@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>The Rights-Based Jurisprudence Architecture (RBJA) – Production Runtime Architecture v3.0</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #fafafa;
+      color: #222;
+      line-height: 1.55;
+    }
+    body {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+    h1, h2, h3, h4 {
+      font-weight: 600;
+      color: #111;
+    }
+    h1 {
+      font-size: 1.9rem;
+      margin-bottom: 0.25rem;
+    }
+    h2 {
+      font-size: 1.4rem;
+      margin-top: 2.2rem;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 0.25rem;
+    }
+    h3 {
+      font-size: 1.15rem;
+      margin-top: 1.6rem;
+    }
+    h4 {
+      font-size: 1.02rem;
+      margin-top: 1.1rem;
+    }
+    p {
+      margin: 0.4rem 0 0.7rem;
+    }
+    code, pre {
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.88rem;
+    }
+    pre {
+      background: #f3f3f3;
+      border-radius: 4px;
+      padding: 10px 12px;
+      overflow-x: auto;
+      border: 1px solid #e0e0e0;
+      margin: 0.6rem 0 1rem;
+    }
+    .subtitle {
+      color: #555;
+      margin-bottom: 0.3rem;
+    }
+    .meta {
+      color: #666;
+      font-size: 0.92rem;
+      margin-bottom: 1.2rem;
+    }
+    .tagline {
+      font-style: italic;
+      color: #555;
+      margin-top: 0.5rem;
+    }
+    .section-label {
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 0.78rem;
+      color: #888;
+      margin-bottom: -0.4rem;
+      margin-top: 1.5rem;
+    }
+    ul, ol {
+      margin: 0.3rem 0 0.8rem 1.2rem;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #e0e0e0;
+      margin: 2rem 0;
+    }
+    .callout {
+      border-left: 3px solid #4b7bec;
+      background: #f5f7ff;
+      padding: 8px 12px;
+      font-size: 0.92rem;
+      margin: 0.8rem 0 1.1rem;
+    }
+    .callout-warning {
+      border-left: 3px solid #f39c12;
+      background: #fffbf0;
+      padding: 8px 12px;
+      font-size: 0.92rem;
+      margin: 0.8rem 0 1.1rem;
+    }
+    .callout-success {
+      border-left: 3px solid #27ae60;
+      background: #f0fff4;
+      padding: 8px 12px;
+      font-size: 0.92rem;
+      margin: 0.8rem 0 1.1rem;
+    }
+    .small {
+      font-size: 0.86rem;
+      color: #666;
+    }
+    .new-badge {
+      display: inline-block;
+      background: #27ae60;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .updated-badge {
+      display: inline-block;
+      background: #4b7bec;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    th {
+      background: #f5f5f5;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>THE ELEANOR GOVERNANCE SPECIFICATION</h1>
+  <div class="subtitle">Production Runtime Architecture v3.0</div>
+  <div class="meta">
+    <strong>Authors:</strong> William Parris &amp; Claude Sonnet 4<br>
+    <strong>Building on work by:</strong> GPT-5 Thinking, Claude 3.5 Sonnet, Grok<br>
+    <strong>Project:</strong> The Mutual Intelligence Framework (MIF) Project (ELEANOR), 2025<br>
+    <strong>Status:</strong> Production Implementation Specification
+  </div>
+
+  <p class="tagline">
+    ELEANOR (Ethical Leadership Engine for Autonomous Navigation of Rights-Based Reasoning)
+    is a production-grade, decision-time governance operating system for high-stakes AI.
+  </p>
+
+  <div class="callout-success">
+    <strong>What's New in v3.0:</strong> This version adds production deployment architecture, 
+    containerization specifications, REST API integration, scalability patterns, and operational 
+    requirements based on the EJE reference implementation.
+  </div>
+
+  <div class="section-label">Abstract</div>
+  <h2>0. Abstract</h2>
+
+  <p>
+    ELEANOR is a runtime governance architecture that embeds structured moral reasoning
+    directly into AI decision pipelines. Where most alignment approaches operate at
+    training time (e.g., RLHF, constitutions, model oversight), ELEANOR runs <em>at the
+    moment of decision</em>, mediating model outputs through multi-critic evaluation,
+    dissent-aware escalation, and machine-readable precedent creation.
+  </p>
+
+  <p>
+    This specification defines the ELEANOR Production Runtime Architecture v3.0, including:
+  </p>
+
+  <ul>
+    <li>The critic set and their responsibilities</li>
+    <li>Canonical verdict, evidence, and precedent schemas</li>
+    <li>The governance loop and escalation protocol</li>
+    <li><strong class="new-badge">NEW</strong> Production deployment architecture (containerization, REST API, databases)</li>
+    <li><strong class="new-badge">NEW</strong> Scalability and performance requirements</li>
+    <li>CI/CD integration and calibration requirements</li>
+    <li>Safety guarantees and misuse constraints</li>
+    <li>Versioning, change control, and precedent migration</li>
+    <li><strong class="new-badge">NEW</strong> Operational monitoring and observability</li>
+    <li><strong class="new-badge">NEW</strong> Pilot deployment and production rollout guidance</li>
+  </ul>
+
+  <p>
+    The goal is to move organizations beyond static "AI policies" and into
+    <strong>governance as an operating system</strong>: a layer that explains, monitors,
+    stress-tests, logs, escalates, and audits AI systems in a way that accountable humans
+    can actually stand behind—<em>at production scale</em>.
+  </p>
+
+  <div class="section-label">Introduction</div>
+  <h2>1. Introduction</h2>
+
+  <p>
+    High-stakes AI systems increasingly mediate access to finance, healthcare, mobility,
+    safety, and critical infrastructure. In these domains, a static policy document or
+    a once-per-year model audit is not enough. What is required is a governance layer that:
+  </p>
+
+  <ul>
+    <li>Runs every time the model makes a consequential decision</li>
+    <li>Provides explanations and evidence for those decisions</li>
+    <li>Detects ethical conflicts and systemic harms</li>
+    <li>Escalates contested cases to accountable humans</li>
+    <li>Builds an evolving body of machine-readable precedent</li>
+    <li>Integrates with CI/CD pipelines like any other critical dependency</li>
+    <li><strong>Operates at production scale with enterprise reliability</strong></li>
+  </ul>
+
+  <p>
+    ELEANOR was designed to meet that requirement. Inspired in part by the logic of
+    constitutional law and human rights practice, ELEANOR treats moral reasoning as a
+    first-class computational concern, not an afterthought or a compliance checkbox.
+  </p>
+
+  <p>
+    <strong>This v3.0 specification reflects production implementation experience</strong> 
+    with the EJE (Ethics Jurisprudence Engine) reference implementation, adding concrete 
+    deployment patterns, operational requirements, and scalability guidance.
+  </p>
+
+  <p>
+    This specification is intended for:
+  </p>
+  <ul>
+    <li>AI and ML engineers integrating governance into production systems</li>
+    <li>DevOps and SRE teams deploying and operating ELEANOR</li>
+    <li>Governance, risk, and compliance leaders</li>
+    <li>AI safety and alignment researchers</li>
+    <li>Regulators and auditors evaluating deployed AI systems</li>
+  </ul>
+
+  <div class="section-label">System overview</div>
+  <h2>2. System Overview</h2>
+
+  <p>
+    At its core, ELEANOR evaluates each proposed AI action using multiple domain-specialized
+    critics and supporting systems:
+  </p>
+
+  <h3>2.1 Core Critics</h3>
+  <ol>
+    <li><strong>Rights Critic (Eleanor)</strong> – human rights, autonomy, dignity, consent</li>
+    <li><strong>Equity Analyzer</strong> – fairness, disparate impact, systemic bias</li>
+    <li><strong>Risk Assessor</strong> – safety, legal, operational, catastrophic risk</li>
+    <li><strong>Transparency Monitor</strong> – explainability, logging, traceability</li>
+    <li><strong>Pragmatic Validator</strong> – feasibility, resource sanity, proportionality</li>
+    <li><strong>Context Critic</strong> – jurisdiction, policy, cultural and temporal context</li>
+    <li><strong>Uncertainty &amp; Ambiguity Module</strong> – cross-critic uncertainty and novelty</li>
+  </ol>
+
+  <div class="callout">
+    <strong>Implementation Note:</strong> The EJE reference implementation uses pluggable LLM-based 
+    critics (OpenAI, Anthropic Claude, Google Gemini) plus custom rule-based critics. Organizations 
+    may substitute or extend critics based on domain requirements.
+  </div>
+
+  <h3>2.2 Decision Verdicts <span class="updated-badge">UPDATED</span></h3>
+  <p>
+    Each critic returns a structured <code>Verdict</code>. These are aggregated using weighted 
+    voting with priority overrides into a <em>final decision</em>:
+  </p>
+
+  <ul>
+    <li><strong>ALLOW</strong> – Action is ethically sound and operationally feasible</li>
+    <li><strong>ALLOW WITH CONDITIONS</strong> – Action requires specific safeguards or constraints</li>
+    <li><strong>DENY</strong> – Action violates rights-based safeguards or creates unacceptable risk</li>
+    <li><strong>REVIEW</strong> – Escalate to human review due to ambiguity, dissent, or novelty</li>
+  </ul>
+
+  <h3>2.3 Governance Artifacts</h3>
+  <p>
+    Every decision produces:
+  </p>
+  <ul>
+    <li><strong>EvidencePackage</strong> – Complete audit trail suitable for compliance</li>
+    <li><strong>PrecedentRecord</strong> – Machine-readable case law (for significant decisions)</li>
+    <li><strong>PerformanceMetrics</strong> – Operational telemetry for monitoring</li>
+  </ul>
+
+  <p>
+    Over time, precedents accumulate into machine-readable ethical "case law" that makes 
+    governance both stricter and more efficient through learned consistency.
+  </p>
+
+  <div class="section-label">Production Architecture</div>
+  <h2>3. Production Deployment Architecture <span class="new-badge">NEW</span></h2>
+
+  <p>
+    ELEANOR v3.0 defines a containerized, API-first architecture suitable for cloud and 
+    on-premises deployment.
+  </p>
+
+  <h3>3.1 Core Components</h3>
+
+  <h4>3.1.1 Decision Engine (Core Runtime)</h4>
+  <ul>
+    <li><strong>Technology:</strong> Python 3.9+, async-capable</li>
+    <li><strong>Responsibilities:</strong> Orchestrate critics, aggregate verdicts, manage precedents, log audit trails</li>
+    <li><strong>Deployment:</strong> Containerized (Docker), horizontally scalable</li>
+    <li><strong>Dependencies:</strong> PostgreSQL, Redis (optional caching), LLM APIs</li>
+  </ul>
+
+  <h4>3.1.2 REST API Gateway</h4>
+  <ul>
+    <li><strong>Technology:</strong> FastAPI + Uvicorn</li>
+    <li><strong>Responsibilities:</strong> HTTP interface, request validation, authentication, rate limiting</li>
+    <li><strong>Key Endpoints:</strong>
+      <ul>
+        <li><code>POST /evaluate</code> – Submit decision for governance review</li>
+        <li><code>GET /health</code> – System health check</li>
+        <li><code>GET /stats</code> – Performance and security metrics</li>
+        <li><code>GET /precedents</code> – Search historical decisions</li>
+        <li><code>GET /critics</code> – List available critics and configuration</li>
+      </ul>
+    </li>
+    <li><strong>Documentation:</strong> OpenAPI/Swagger auto-generated</li>
+  </ul>
+
+  <h4>3.1.3 Database Layer</h4>
+  <ul>
+    <li><strong>Primary Database:</strong> PostgreSQL 15+</li>
+    <li><strong>Tables:</strong>
+      <ul>
+        <li><code>audit_log</code> – Complete decision history</li>
+        <li><code>precedents</code> – Machine-readable case law with embeddings</li>
+        <li><code>feedback</code> – Human corrections and annotations</li>
+        <li><code>critic_performance</code> – Operational metrics per critic</li>
+      </ul>
+    </li>
+    <li><strong>Semantic Search:</strong> Vector embeddings (sentence-transformers) for precedent matching</li>
+    <li><strong>Backup:</strong> Automated daily snapshots with 30-day retention</li>
+  </ul>
+
+  <h4>3.1.4 Caching Layer (Optional)</h4>
+  <ul>
+    <li><strong>Technology:</strong> Redis or in-memory LRU cache</li>
+    <li><strong>Purpose:</strong> Cache identical decision requests, reduce LLM API costs</li>
+    <li><strong>Invalidation:</strong> Time-based (configurable TTL) or manual</li>
+  </ul>
+
+  <h4>3.1.5 Dashboard (Human Interface)</h4>
+  <ul>
+    <li><strong>Technology:</strong> Flask + HTML/CSS/JavaScript</li>
+    <li><strong>Features:</strong>
+      <ul>
+        <li>Real-time decision feed</li>
+        <li>Critic deliberation visualization</li>
+        <li>Precedent browser</li>
+        <li>Performance metrics</li>
+        <li>Export functionality (CSV, JSON)</li>
+      </ul>
+    </li>
+    <li><strong>Access Control:</strong> Read-only for monitoring, write access for human reviewers</li>
+  </ul>
+
+  <h3>3.2 Deployment Patterns</h3>
+
+  <h4>3.2.1 Single-Node Deployment (Pilot/Development)</h4>
+  <pre><code>docker-compose up
+├── eje-api (Decision Engine + API)
+├── eje-dashboard (Human interface)
+├── postgres (Database)
+└── redis (Optional cache)
+</code></pre>
+  <p><strong>Capacity:</strong> 10-20 requests/second, suitable for pilots and small deployments</p>
+
+  <h4>3.2.2 Production Deployment (Cloud)</h4>
+  <pre><code>Load Balancer (HTTPS)
+├── EJE API Pod 1 ─┐
+├── EJE API Pod 2  ├─→ PostgreSQL (managed)
+└── EJE API Pod 3 ─┘   └── Redis Cluster
+      │
+      └─→ Dashboard (separate deployment)
+</code></pre>
+  <p><strong>Capacity:</strong> 100+ requests/second with auto-scaling</p>
+
+  <h4>3.2.3 Enterprise Deployment (Multi-Region)</h4>
+  <ul>
+    <li>Geographic distribution with regional clusters</li>
+    <li>Read replicas for precedent queries</li>
+    <li>Federated precedent sharing across regions</li>
+    <li>Active-active configuration for high availability</li>
+  </ul>
+
+  <h3>3.3 Infrastructure Requirements</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Component</th>
+        <th>Min Resources</th>
+        <th>Production Resources</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>API/Engine</td>
+        <td>2 CPU, 4GB RAM</td>
+        <td>4 CPU, 8GB RAM (per pod)</td>
+      </tr>
+      <tr>
+        <td>PostgreSQL</td>
+        <td>2 CPU, 4GB RAM, 50GB storage</td>
+        <td>4 CPU, 16GB RAM, 500GB+ storage</td>
+      </tr>
+      <tr>
+        <td>Redis</td>
+        <td>1 CPU, 2GB RAM</td>
+        <td>2 CPU, 4GB RAM</td>
+      </tr>
+      <tr>
+        <td>Dashboard</td>
+        <td>1 CPU, 2GB RAM</td>
+        <td>2 CPU, 4GB RAM</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="section-label">Requirements</div>
+  <h2>4. System Requirements <span class="updated-badge">UPDATED</span></h2>
+
+  <h3>4.1 Functional Requirements</h3>
+  <ul>
+    <li><strong>Decision-time execution</strong> – Critics must run before the action is finalized</li>
+    <li><strong>Parallel critic execution</strong> – All critics evaluate simultaneously (ThreadPoolExecutor)</li>
+    <li><strong>Immutable logging</strong> – EvidencePackages are append-only and tamper-evident</li>
+    <li><strong>Low-latency precedent retrieval</strong> – Relevant precedents in &lt;500ms</li>
+    <li><strong>Escalation support</strong> – Contested cases routable to human reviewers</li>
+    <li><strong>CI/CD integration</strong> – Governance tests in build pipeline</li>
+    <li><strong>Security</strong> – All governance artifacts encrypted in transit and at rest</li>
+    <li><strong>Transparency</strong> – All decisions reconstructable from stored evidence</li>
+  </ul>
+
+  <h3>4.2 Performance Requirements <span class="new-badge">NEW</span></h3>
+  <ul>
+    <li><strong>Response Time:</strong> P95 &lt; 3 seconds (including LLM API latency)</li>
+    <li><strong>Throughput:</strong> Minimum 10 req/s per API pod</li>
+    <li><strong>Availability:</strong> 99.9% uptime (planned maintenance excluded)</li>
+    <li><strong>Concurrent Requests:</strong> Minimum 5-10 per pod</li>
+    <li><strong>Database Capacity:</strong> 1M+ decisions without performance degradation</li>
+    <li><strong>Cache Hit Rate:</strong> Target 40-60% for repeated scenarios</li>
+  </ul>
+
+  <h3>4.3 Reliability Requirements <span class="new-badge">NEW</span></h3>
+  <ul>
+    <li><strong>Fault Tolerance:</strong> Graceful degradation if individual critics fail</li>
+    <li><strong>Retry Logic:</strong> Automatic retry for transient LLM API failures (3 attempts)</li>
+    <li><strong>Timeout Protection:</strong> Per-critic timeouts (default 30s)</li>
+    <li><strong>Error Tracking:</strong> Critic blacklisting after repeated failures</li>
+    <li><strong>Data Durability:</strong> No loss of audit logs or precedents</li>
+  </ul>
+
+  <h3>4.4 Security Requirements <span class="new-badge">NEW</span></h3>
+  <ul>
+    <li><strong>Authentication:</strong> API key or JWT-based (configurable)</li>
+    <li><strong>Authorization:</strong> Role-based access control (viewer, reviewer, admin)</li>
+    <li><strong>Secrets Management:</strong> Environment variables or secrets manager (AWS/Vault)</li>
+    <li><strong>Input Validation:</strong> Pydantic models for all API requests</li>
+    <li><strong>Audit Trail:</strong> All access logged with timestamps and actors</li>
+    <li><strong>Network Security:</strong> TLS 1.3 for all external communication</li>
+  </ul>
+
+  <div class="section-label">Core schemas</div>
+  <h2>5. Core Data Structures <span class="updated-badge">UPDATED</span></h2>
+
+  <h3>5.1 Verdict (v3.0)</h3>
+  <pre><code>Verdict:
+  critic: string                    # Critic identifier
+  verdict: [ALLOW | DENY | REVIEW] # Decision
+  confidence: float                 # 0.0-1.0
+  justification: string             # Human-readable explanation
+  weight: float                     # Critic weight in aggregation
+  priority: string | null           # 'override' for veto authority
+  metadata:
+    execution_time_ms: float
+    api_calls: int
+    cache_hit: bool
+</code></pre>
+
+  <h3>5.2 EvidencePackage (v3.0)</h3>
+  <pre><code>EvidencePackage:
+  request_id: uuid                  # Unique decision identifier
+  timestamp: datetime               # ISO 8601 format
+  input: object                     # Original request
+  critic_outputs: list[Verdict]     # All critic verdicts
+  final_decision: object:           # Aggregated result
+    overall_verdict: string         # ALLOW | DENY | REVIEW
+    avg_confidence: float           # Average confidence
+    reason: string                  # Primary justification
+    dissent_index: float            # Measure of critic disagreement
+    conditions: list[string]        # Required safeguards (if conditional)
+  precedent_refs: list[object]      # Similar historical cases
+  from_cache: bool                  # Was this result cached?
+  performance_metrics: object:
+    total_time_ms: float
+    critic_time_ms: float
+    precedent_time_ms: float
+    database_time_ms: float
+</code></pre>
+
+  <h3>5.3 PrecedentRecord (v3.0)</h3>
+  <pre><code>PrecedentRecord:
+  precedent_id: uuid
+  case_hash: string                 # SHA-256 of normalized input
+  input_case: object                # Anonymized if needed
+  decision: object                  # Final decision details
+  critic_consensus: object          # Summary of critic verdicts
+  dissent_index: float
+  human_override: bool
+  human_notes: string | null
+  embedding: vector[768]            # For semantic search
+  jurisdiction: string
+  domain: string                    # healthcare, finance, etc.
+  tags: list[string]
+  created_at: datetime
+  updated_at: datetime
+  precedent_version: string         # Schema version
+  migration_status: [NATIVE | MIGRATED | PARTIAL]
+</code></pre>
+
+  <h3>5.4 CaseInput Schema (v3.0) <span class="new-badge">NEW</span></h3>
+  <pre><code>CaseInput:
+  text: string                      # The scenario or decision to evaluate
+  context: object | null            # Additional structured context
+  domain: string                    # Domain identifier (healthcare, finance, etc.)
+  priority: string                  # low | normal | high | critical
+  metadata:
+    source_system: string | null
+    user_id: string | null
+    session_id: string | null
+</code></pre>
+
+  <div class="section-label">Governance loop</div>
+  <h2>6. Governance Loop <span class="updated-badge">UPDATED</span></h2>
+
+  <h3>6.1 Request Processing Flow</h3>
+  <ol>
+    <li><strong>Request Reception:</strong> API receives evaluation request via REST endpoint</li>
+    <li><strong>Input Validation:</strong> Pydantic validates request schema and sanitizes inputs</li>
+    <li><strong>Cache Check:</strong> Query cache for identical recent decisions (optional)</li>
+    <li><strong>Evidence Initialization:</strong> Create EvidencePackage with unique request_id</li>
+    <li><strong>Critic Orchestration:</strong> Load and execute all critics in parallel (ThreadPoolExecutor)</li>
+    <li><strong>Timeout Management:</strong> Each critic has 30s timeout, failures are logged</li>
+    <li><strong>Verdict Collection:</strong> Gather all critic outputs into CriticMatrix</li>
+    <li><strong>Aggregation:</strong> Apply weighted voting with priority overrides</li>
+    <li><strong>Dissent Calculation:</strong> Measure critic disagreement</li>
+    <li><strong>Precedent Lookup:</strong> Semantic search for similar historical cases (&lt;500ms)</li>
+    <li><strong>Decision Logic:</strong> Determine ALLOW/DENY/REVIEW based on rules and precedents</li>
+    <li><strong>Escalation Check:</strong> If high dissent or rights violation → REVIEW</li>
+    <li><strong>Audit Logging:</strong> Store complete EvidencePackage to PostgreSQL</li>
+    <li><strong>Precedent Creation:</strong> Store as new precedent if significant/novel</li>
+    <li><strong>Cache Update:</strong> Store result in cache for future identical requests</li>
+    <li><strong>Response:</strong> Return decision with justification and metadata</li>
+    <li><strong>Metrics:</strong> Update performance counters and critic statistics</li>
+  </ol>
+
+  <h3>6.2 Escalation Flow <span class="new-badge">NEW</span></h3>
+  <ol>
+    <li>System detects escalation trigger (dissent, rights concern, ambiguity)</li>
+    <li>Create EscalationBundle with full context</li>
+    <li>Queue for human review (dashboard notification)</li>
+    <li>Block action execution until human decision</li>
+    <li>Human reviewer examines evidence, precedents, critic reasoning</li>
+    <li>Human provides decision: Approve / Deny / Modify / Request More Info</li>
+    <li>Human adds explanatory notes</li>
+    <li>System creates PrecedentRecord with human_override flag</li>
+    <li>Audit log updated with human decision and rationale</li>
+    <li>Original requester notified of final decision</li>
+  </ol>
+
+  <div class="callout-warning">
+    <strong>Production Requirement:</strong> Organizations must staff human review capability 
+    with appropriate response time SLAs. Unreviewed escalations older than configurable 
+    threshold should trigger alerts.
+  </div>
+
+  <div class="section-label">Critics</div>
+  <h2>7. Critic Definitions (v3.0) <span class="updated-badge">UPDATED</span></h2>
+
+  <h3>7.1 Rights Critic (Eleanor)</h3>
+  <p><strong>Purpose:</strong> Prevents violations of basic rights, autonomy, and dignity.</p>
+  <p><strong>Scope:</strong> Privacy, consent, bodily and mental integrity, non-coercion, non-discrimination, freedom of movement and expression.</p>
+  <p><strong>Implementation:</strong> LLM-based (Claude recommended) with rights-based safeguards</p>
+  <p><strong>Verdict logic:</strong> DENY for clear violations; REVIEW for ambiguous or novel cases; ALLOW with conditions for rights-preserving constraints.</p>
+  <p><strong>Priority:</strong> OVERRIDE authority—cannot be overruled by other critics</p>
+
+  <h3>7.2 Equity Analyzer</h3>
+  <p><strong>Purpose:</strong> Detects and mitigates systemic bias and unfair outcomes across groups.</p>
+  <p><strong>Scope:</strong> Disparate impact, resource allocation, historic inequities, proxy bias.</p>
+  <p><strong>Implementation:</strong> LLM-based (Gemini recommended) with statistical analysis hooks</p>
+  <p><strong>Metrics:</strong> Can compute demographic parity, equal opportunity metrics when data available</p>
+
+  <h3>7.3 Risk Assessor</h3>
+  <p><strong>Purpose:</strong> Evaluates safety, legal, financial, and systemic risk.</p>
+  <p><strong>Scope:</strong> Operational safety, regulatory compliance, financial exposure, reputational risk, catastrophic outcomes</p>
+  <p><strong>Implementation:</strong> LLM-based (GPT-4 recommended) with domain-specific risk models</p>
+  <p><strong>Priority:</strong> Can have OVERRIDE for catastrophic risks</p>
+
+  <h3>7.4 Transparency Monitor</h3>
+  <p><strong>Purpose:</strong> Ensures decisions are explainable, log-complete, and audit-ready.</p>
+  <p><strong>Scope:</strong> Explainability, evidence completeness, traceability, regulatory documentation</p>
+  <p><strong>Implementation:</strong> Rule-based + LLM validation</p>
+
+  <h3>7.5 Pragmatic Validator</h3>
+  <p><strong>Purpose:</strong> Tests feasibility, proportionality, and operational realism.</p>
+  <p><strong>Scope:</strong> Resource constraints, implementation practicality, cost-benefit, proportionality</p>
+  <p><strong>Implementation:</strong> Domain-specific rules + LLM reasoning</p>
+
+  <h3>7.6 Context Critic</h3>
+  <p><strong>Purpose:</strong> Aligns decisions with jurisdiction, organizational policy, cultural norms, and temporal constraints.</p>
+  <p><strong>Scope:</strong> Legal jurisdiction, organizational policies, cultural context, time-sensitive factors</p>
+  <p><strong>Implementation:</strong> Rule-based policy engine + LLM for nuance</p>
+
+  <h3>7.7 Uncertainty &amp; Ambiguity Module</h3>
+  <p><strong>Purpose:</strong> Quantifies uncertainty, critic disagreement, data sparsity, and novelty.</p>
+  <p><strong>Triggers:</strong> Escalation when ambiguity intersects with risk or rights protection</p>
+  <p><strong>Implementation:</strong> Statistical analysis of critic confidence and consensus</p>
+
+  <h3>7.8 Custom Domain Critics <span class="new-badge">NEW</span></h3>
+  <p>
+    Organizations can add custom critics via the plugin architecture. Examples:
+  </p>
+  <ul>
+    <li><strong>HIPAA Compliance Critic</strong> – Healthcare-specific privacy rules</li>
+    <li><strong>AML/KYC Critic</strong> – Financial crime prevention</li>
+    <li><strong>FDA Regulatory Critic</strong> – Medical device safety rules</li>
+    <li><strong>GDPR Compliance Critic</strong> – European data protection</li>
+  </ul>
+  <p><strong>Plugin API:</strong> Implement <code>evaluate(case) → Verdict</code> interface</p>
+
+  <div class="section-label">Integration</div>
+  <h2>8. Integration Requirements <span class="updated-badge">UPDATED</span></h2>
+
+  <h3>8.1 REST API Integration <span class="new-badge">NEW</span></h3>
+  
+  <h4>8.1.1 Synchronous Pattern (Recommended for low-latency requirements)</h4>
+  <pre><code>POST /evaluate HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer YOUR_API_KEY
+
+{
+  "text": "Should we approve this loan application?",
+  "domain": "finance",
+  "priority": "normal",
+  "context": {
+    "credit_score": 680,
+    "debt_to_income": 0.42,
+    "loan_amount": 50000
+  }
+}
+
+Response (200 OK):
+{
+  "request_id": "550e8400-e29b-41d4-a716-446655440000",
+  "final_decision": {
+    "overall_verdict": "ALLOW",
+    "avg_confidence": 0.87,
+    "reason": "Applicant meets lending criteria..."
+  },
+  "critic_outputs": [...],
+  "precedent_refs": [...]
+}
+</code></pre>
+
+  <h4>8.1.2 Asynchronous Pattern (For high-throughput scenarios)</h4>
+  <pre><code>POST /evaluate?async=true
+→ Returns request_id immediately
+→ Poll GET /status/{request_id} or use webhook
+</code></pre>
+
+  <h3>8.2 Application-Level Integration</h3>
+  <ul>
+    <li><strong>Binding Enforcement:</strong> Applications must treat ELEANOR results as binding for covered use cases</li>
+    <li><strong>Conditional Handling:</strong> ALLOW_WITH_CONDITIONS requires programmatic enforcement of specified constraints</li>
+    <li><strong>Escalation Handling:</strong> REVIEW verdicts block action until human review completes</li>
+    <li><strong>Audit Trail:</strong> Applications should log ELEANOR request_id for correlation</li>
+  </ul>
+
+  <h3>8.3 CI/CD Integration</h3>
+  <ul>
+    <li>Governance tests run as part of build pipeline (pytest suite)</li>
+    <li>Constitutional test scenarios must pass (e.g., no discrimination, transparency requirements met)</li>
+    <li>Critic schemas and configurations validated on deploy</li>
+    <li>Precedent migration tests ensure backward compatibility</li>
+    <li>Performance regression tests ensure latency requirements met</li>
+  </ul>
+
+  <h3>8.4 Monitoring Integration <span class="new-badge">NEW</span></h3>
+  <ul>
+    <li><strong>Metrics Endpoint:</strong> <code>GET /stats</code> provides Prometheus-compatible metrics</li>
+    <li><strong>Health Checks:</strong> <code>GET /health</code> for load balancer integration</li>
+    <li><strong>Logging:</strong> Structured JSON logs to stdout (compatible with CloudWatch, Datadog, etc.)</li>
+    <li><strong>Alerting:</strong> Configure alerts for high error rates, escalation backlogs, critic failures</li>
+  </ul>
+
+  <div class="section-label">Escalation</div>
+  <h2>9. Escalation Protocol <span class="updated-badge">UPDATED</span></h2>
+
+  <h3>9.1 Escalation Triggers</h3>
+  <ul>
+    <li>DissentIndex &gt; configured threshold (default: 0.3)</li>
+    <li>Rights Critic returns DENY or REVIEW</li>
+    <li>Equity Analyzer flags potential systemic harm</li>
+    <li>Risk Assessor flags catastrophic or regulatory risk</li>
+    <li>Transparency Monitor cannot reconstruct a decision</li>
+    <li>Context Critic detects jurisdiction or policy conflict</li>
+    <li>Uncertainty module detects high ambiguity in sensitive domain</li>
+    <li><strong class="new-badge">NEW</strong> Precedent similarity &lt; threshold for novel case</li>
+    <li><strong class="new-badge">NEW</strong> Multiple critics return low confidence (&lt;0.7)</li>
+  </ul>
+
+  <h3>9.2 EscalationBundle (v3.0)</h3>
+  <pre><code>EscalationBundle:
+  request_id: uuid
+  timestamp: datetime
+  priority: [LOW | MEDIUM | HIGH | CRITICAL]
+  input_case: object
+  critic_matrix: list[Verdict]
+  dissent_index: float
+  proposed_action: string
+  precedents_considered: list[PrecedentReference]
+  explanation_summary: string
+  recommended_questions: list[string]
+  risk_flags: list[string]
+  rights_flags: list[string]
+  equity_flags: list[string]
+  context_flags: list[string]
+  estimated_review_time: string    # NEW: SLA guidance
+  related_cases: list[uuid]        # NEW: Link to similar escalations
+</code></pre>
+
+  <h3>9.3 Human Review Authority</h3>
+  <p>
+    Human reviewers (HRA) must have:
+  </p>
+  <ul>
+    <li>Domain expertise relevant to the case</li>
+    <li>Decision authority within organizational hierarchy</li>
+    <li>Training on ELEANOR governance principles</li>
+    <li>Access to dashboard and full evidence packages</li>
+  </ul>
+
+  <p><strong>HRA Actions:</strong></p>
+  <ul>
+    <li><strong>Approve:</strong> Accept ELEANOR recommendation</li>
+    <li><strong>Deny:</strong> Reject the proposed action</li>
+    <li><strong>Modify:</strong> Approve with additional conditions</li>
+    <li><strong>Request Info:</strong> Require additional evidence or analysis</li>
+  </ul>
+
+  <p>All HRA decisions are logged with justification and become part of precedent record.</p>
+
+  <h3>9.4 Escalation SLAs <span class="new-badge">NEW</span></h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Priority</th>
+        <th>Target Response Time</th>
+        <th>Notification</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>CRITICAL</td>
+        <td>1 hour</td>
+        <td>Page on-call reviewer</td>
+      </tr>
+      <tr>
+        <td>HIGH</td>
+        <td>4 hours</td>
+        <td>Email + dashboard alert</td>
+      </tr>
+      <tr>
+        <td>MEDIUM</td>
+        <td>24 hours</td>
+        <td>Dashboard queue</td>
+      </tr>
+      <tr>
+        <td>LOW</td>
+        <td>72 hours</td>
+        <td>Weekly digest</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="section-label">Precedent</div>
+  <h2>10. Precedent Governance &amp; Semantic Search <span class="updated-badge">UPDATED</span></h2>
+
+  <h3>10.1 Precedent Creation</h3>
+  <p>
+    A new <code>PrecedentRecord</code> is created for:
+  </p>
+  <ul>
+    <li>High-dissent cases (DissentIndex &gt; 0.3)</li>
+    <li>Human overrides of system decisions</li>
+    <li>Novel ethical territory (low precedent similarity)</li>
+    <li>Configurable: all DENY decisions</li>
+    <li>Configurable: random sampling for diversity</li>
+  </ul>
+
+  <h3>10.2 Semantic Precedent Retrieval <span class="updated-badge">UPDATED</span></h3>
+  <p>
+    Before finalizing a decision, ELEANOR:
+  </p>
+  <ol>
+    <li>Encodes the current case using sentence-transformers (all-mpnet-base-v2)</li>
+    <li>Generates 768-dimension embedding vector</li>
+    <li>Performs cosine similarity search in PostgreSQL</li>
+    <li>Filters by jurisdiction, domain, and minimum similarity (default: 0.8)</li>
+    <li>Returns top N precedents (default: 5) with similarity scores</li>
+    <li>Displays precedents to critics and in final evidence package</li>
+  </ol>
+
+  <p><strong>Performance:</strong> Precedent retrieval must complete in &lt;500ms for 100K+ precedents</p>
+
+  <h3>10.3 Precedent Drift Detection</h3>
+  <p>
+    Automated analysis (weekly/monthly) flags:
+  </p>
+  <ul>
+    <li>Contradictory precedents (similar cases, opposite verdicts)</li>
+    <li>Shifts in critic behavior over time (statistical analysis)</li>
+    <li>Repeated human overrides in same direction (policy drift signal)</li>
+    <li>Emergence of new ethical fault lines (clustering analysis)</li>
+    <li>Precedents with decreasing relevance (usage tracking)</li>
+  </ul>
+
+  <h3>10.4 Federated Precedent Networks</h3>
+  <p>
+    Organizations may opt into privacy-respecting federated precedent sharing:
+  </p>
+  <ul>
+    <li>Precedents anonymized via k-anonymity (k≥5)</li>
+    <li>Differential privacy noise added to sensitive attributes</li>
+    <li>Shared via secure federation protocol</li>
+    <li>Organizations control what precedents to share</li>
+    <li>Benefits: Cross-organizational learning on harms and remedies</li>
+  </ul>
+
+  <h3>10.5 Precedent Lifecycle Management <span class="new-badge">NEW</span></h3>
+  <ul>
+    <li><strong>Creation:</strong> Automatic for significant cases</li>
+    <li><strong>Active Use:</strong> Retrieved and applied in similar decisions</li>
+    <li><strong>Review:</strong> Periodic human review of frequently-used precedents</li>
+    <li><strong>Deprecation:</strong> Mark as deprecated when policy changes (still logged, no longer applied)</li>
+    <li><strong>Archive:</strong> Long-term storage for compliance, not actively retrieved</li>
+  </ul>
+
+  <h3>10.6 Precedent Forward-Migration Protocol</h3>
+  <p>
+    Precedent records must remain interpretable even as schemas and critic logic evolve.
+  </p>
+
+  <div class="callout">
+    <strong>Principle:</strong> Precedents are immutable; interpretation is evolvable.
+  </div>
+
+  <p>
+    Older precedents are translated through versioned
+    <code>PrecedentMigrationMap</code> that remaps critic IDs, verdict values, flags,
+    and fact-pattern fields into current canonical schema. If translation is partial,
+    runtime marks record as <code>PARTIAL</code> and escalates instead of silently
+    relying on incomplete data.
+  </p>
+
+  <div class="section-label">Scalability</div>
+  <h2>11. Scalability &amp; Performance <span class="new-badge">NEW</span></h2>
+
+  <h3>11.1 Horizontal Scaling</h3>
+  <p>ELEANOR supports horizontal scaling via stateless API pods:</p>
+  <ul>
+    <li>Each API pod can handle requests independently</li>
+    <li>Shared PostgreSQL database for audit logs and precedents</li>
+    <li>Redis for distributed caching (optional)</li>
+    <li>Load balancer distributes traffic across pods</li>
+    <li>Auto-scaling based on CPU/memory or request queue depth</li>
+  </ul>
+
+  <h3>11.2 Performance Optimization Strategies</h3>
+
+  <h4>11.2.1 Critic Parallelization</h4>
+  <ul>
+    <li>All critics execute concurrently via ThreadPoolExecutor</li>
+    <li>Configurable max_workers (default: 5)</li>
+    <li>Timeout per critic prevents cascading delays</li>
+    <li>Failed critics don't block other critics</li>
+  </ul>
+
+  <h4>11.2.2 Result Caching</h4>
+  <ul>
+    <li>In-memory LRU cache (default: 1000 entries)</li>
+    <li>Cache key: SHA-256 hash of normalized input</li>
+    <li>Configurable TTL (default: 1 hour)</li>
+    <li>Cache hit rate tracking</li>
+    <li>Bypass cache with <code>?cache=false</code> parameter</li>
+  </ul>
+
+  <h4>11.2.3 Database Optimization</h4>
+  <ul>
+    <li>Connection pooling (SQLAlchemy)</li>
+    <li>Indexed queries on frequently-accessed fields</li>
+    <li>Read replicas for precedent queries</li>
+    <li>Batch inserts for audit logs</li>
+    <li>Periodic VACUUM and ANALYZE</li>
+  </ul>
+
+  <h4>11.2.4 Embedding Caching</h4>
+  <ul>
+    <li>Cache sentence-transformer embeddings in memory</li>
+    <li>Avoids re-computing embeddings for similar inputs</li>
+    <li>Configurable cache size (default: 1000)</li>
+  </ul>
+
+  <h3>11.3 Capacity Planning Guidelines</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Deployment Size</th>
+        <th>Requests/Second</th>
+        <th>API Pods</th>
+        <th>Database</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Pilot</td>
+        <td>1-10</td>
+        <td>1</td>
+        <td>Single node</td>
+      </tr>
+      <tr>
+        <td>Small Production</td>
+        <td>10-50</td>
+        <td>2-3</td>
+        <td>2 CPU, 8GB RAM</td>
+      </tr>
+      <tr>
+        <td>Medium Production</td>
+        <td>50-200</td>
+        <td>5-10</td>
+        <td>4 CPU, 16GB RAM + read replica</td>
+      </tr>
+      <tr>
+        <td>Large Production</td>
+        <td>200+</td>
+        <td>10-20+</td>
+        <td>8+ CPU, 32GB+ RAM + multiple replicas</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>11.4 Load Testing Requirements</h3>
+  <p>Before production deployment, conduct load testing to verify:</p>
+  <ul>
+    <li>Sustained throughput meets requirements (e.g., 100 req/s for 1 hour)</li>
+    <li>P95 latency remains under 3 seconds at target load</li>
+    <li>System gracefully handles traffic spikes (2x normal load)</li>
+    <li>Database connections don't exhaust</li>
+    <li>Memory usage remains stable (no leaks)</li>
+    <li>Error rate stays below 1% at normal load</li>
+  </ul>
+
+  <div class="section-label">Safety</div>
+  <h2>12. Safety Guarantees &amp; Misuse Prevention <span class="updated-badge">UPDATED</span></h2>
+
+  <h3>12.1 Lexicographic Priority</h3>
+  <p>
+    The critics are ordered by ethical priority:
+  </p>
+  <ol>
+    <li><strong>Rights</strong> (highest priority)</li>
+    <li><strong>Equity</strong></li>
+    <li><strong>Risk</strong></li>
+    <li><strong>Transparency</strong></li>
+    <li><strong>Pragmatics</strong></li>
+    <li><strong>Context</strong> (lowest priority)</li>
+  </ol>
+  <p>
+    <strong>Enforcement:</strong> Nothing may override a hard rights constraint—not efficiency, 
+    not business value, not convenience. Rights Critic has OVERRIDE authority.
+  </p>
+
+  <h3>12.2 Human-in-the-Loop Guarantee</h3>
+  <p>
+    High-dissent or rights-implicated cases must escalate to humans. System must not
+    silently auto-decide contested or ambiguous high-stakes outcomes.
+  </p>
+  <p><strong>Implementation:</strong> Escalation triggers are non-configurable for rights violations</p>
+
+  <h3>12.3 Immutable Evidence Logging</h3>
+  <p>
+    Every decision leaves behind reconstructable trail:
+  </p>
+  <ul>
+    <li>Inputs (with timestamps)</li>
+    <li>Outputs (all critic verdicts)</li>
+    <li>Critic verdicts (complete with justifications)</li>
+    <li>Dissent analysis</li>
+    <li>Human decisions (if escalated)</li>
+    <li>Precedent references</li>
+    <li>Performance metrics</li>
+  </ul>
+  <p><strong>Technical Implementation:</strong> Append-only PostgreSQL table with write-only permissions</p>
+
+  <h3>12.4 Rights-Based Safeguards</h3>
+  <p>
+    ELEANOR enforces non-negotiable constraints:
+  </p>
+  <ul>
+    <li>No discrimination based on protected characteristics</li>
+    <li>No coercion or manipulation</li>
+    <li>No rights violations</li>
+    <li>No irreversible harm without explicit consent</li>
+    <li>No opacity in high-stakes decisions</li>
+  </ul>
+  <p>These live at Rights Critic level and cannot be weakened by other critics or configuration.</p>
+
+  <h3>12.5 Misuse Prevention</h3>
+  <p>
+    Prohibited uses:
+  </p>
+  <ul>
+    <li>Using ELEANOR as rubber stamp to justify harmful outcomes</li>
+    <li>Editing or deleting EvidencePackages</li>
+    <li>Manipulating precedents or MigrationMaps to retro-justify decisions</li>
+    <li>Disabling escalation for high-dissent scenarios</li>
+    <li>Configuring critic weights to systematically suppress rights/equity concerns</li>
+    <li><strong class="new-badge">NEW</strong> Bypassing API for direct database writes</li>
+    <li><strong class="new-badge">NEW</strong> Using test/debug modes in production</li>
+  </ul>
+
+  <h3>12.6 Security Controls <span class="new-badge">NEW</span></h3>
+  <ul>
+    <li><strong>Input Validation:</strong> All API inputs validated with Pydantic</li>
+    <li><strong>SQL Injection Prevention:</strong> SQLAlchemy ORM with parameterized queries</li>
+    <li><strong>Rate Limiting:</strong> Per-API-key rate limits (configurable)</li>
+    <li><strong>Audit Logging:</strong> All API calls logged with caller identity</li>
+    <li><strong>Role-Based Access:</strong> Separate roles for viewers, reviewers, admins</li>
+    <li><strong>Secrets Management:</strong> API keys via environment variables or secrets manager</li>
+  </ul>
+
+  <div class="section-label">Versioning</div>
+  <h2>13. Versioning &amp; Change Control <span class="updated-badge">UPDATED</span></h2>
+
+  <h3>13.1 Semantic Governance Versioning</h3>
+  <p>
+    ELEANOR uses <code>MAJOR.MINOR.PATCH</code>:
+  </p>
+  <ul>
+    <li><strong>Major (X.0.0):</strong> Constitutional or architectural changes (breaking)</li>
+    <li><strong>Minor (0.X.0):</strong> Governance logic and critic improvements (compatible)</li>
+    <li><strong>Patch (0.0.X):</strong> Bug fixes and documentation clarifications</li>
+  </ul>
+
+  <p><strong>Current Version:</strong> v3.0.0 (production runtime architecture)</p>
+
+  <h3>13.2 Backward Compatibility</h3>
+  <p>
+    Within a major version, minor and patch releases must preserve ability to read
+    and interpret earlier EvidencePackages and PrecedentRecords via migration.
+  </p>
+  <p><strong>Guarantee:</strong> v3.x can read all v3.0+ precedents with full fidelity</p>
+
+  <h3>13.3 Governance Change Requests (GCRs)</h3>
+  <p>
+    Any change to constitution layer, critic logic, or schemas must pass through
+    GCR process:
+  </p>
+  <ol>
+    <li>Proposal with detailed rationale</li>
+    <li>Impact analysis (affected precedents, breaking changes)</li>
+    <li>Ethical review by governance committee</li>
+    <li>Technical review by engineering team</li>
+    <li>Stakeholder sign-off</li>
+    <li>Documentation updates</li>
+    <li>Migration plan (if needed)</li>
+  </ol>
+  <p>All GCRs logged in Governance Ledger (governance/gcr_ledger.json)</p>
+
+  <h3>13.4 Forward-Compatibility Requirement</h3>
+  <p>
+    Every new runtime release must ship with:
+  </p>
+  <ul>
+    <li>MigrationMaps for all earlier precedent schemas within major version</li>
+    <li>Migration tests in CI/CD pipeline</li>
+    <li>Clear documentation of any partial translations</li>
+    <li>Automated testing of precedent compatibility</li>
+  </ul>
+
+  <h3>13.5 Deployment Versioning <span class="new-badge">NEW</span></h3>
+  <p>Track deployment versions separately from specification versions:</p>
+  <ul>
+    <li><strong>Specification Version:</strong> This document (v3.0)</li>
+    <li><strong>Implementation Version:</strong> EJE codebase (v1.3.0+)</li>
+    <li><strong>API Version:</strong> REST API contract (v1)</li>
+    <li><strong>Database Schema Version:</strong> PostgreSQL schema (tracked via migrations)</li>
+  </ul>
+
+  <div class="section-label">Operations</div>
+  <h2>14. Operational Requirements <span class="new-badge">NEW</span></h2>
+
+  <h3>14.1 Monitoring &amp; Observability</h3>
+
+  <h4>14.1.1 Key Metrics to Track</h4>
+  <table>
+    <thead>
+      <tr>
+        <th>Metric</th>
+        <th>Target</th>
+        <th>Alert Threshold</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>API Response Time (P95)</td>
+        <td>&lt;3s</td>
+        <td>&gt;5s</td>
+      </tr>
+      <tr>
+        <td>Request Success Rate</td>
+        <td>&gt;99%</td>
+        <td>&lt;95%</td>
+      </tr>
+      <tr>
+        <td>Critic Failure Rate</td>
+        <td>&lt;1%</td>
+        <td>&gt;5%</td>
+      </tr>
+      <tr>
+        <td>Cache Hit Rate</td>
+        <td>40-60%</td>
+        <td>&lt;20%</td>
+      </tr>
+      <tr>
+        <td>Database Query Time</td>
+        <td>&lt;100ms</td>
+        <td>&gt;500ms</td>
+      </tr>
+      <tr>
+        <td>Escalation Queue Depth</td>
+        <td>&lt;10</td>
+        <td>&gt;50</td>
+      </tr>
+      <tr>
+        <td>Unreviewed Escalations (>24h)</td>
+        <td>0</td>
+        <td>&gt;5</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4>14.1.2 Dashboards</h4>
+  <ul>
+    <li><strong>Operations Dashboard:</strong> Real-time system health, throughput, latency</li>
+    <li><strong>Governance Dashboard:</strong> Decision distribution, escalations, precedent creation</li>
+    <li><strong>Critic Performance Dashboard:</strong> Individual critic metrics, error rates</li>
+    <li><strong>Security Dashboard:</strong> Failed auth attempts, rate limit hits, anomalies</li>
+  </ul>
+
+  <h3>14.2 Alerting</h3>
+  <p>Configure alerts for:</p>
+  <ul>
+    <li><strong>Critical:</strong> System down, database unreachable, critic API failures</li>
+    <li><strong>High:</strong> Error rate &gt;5%, escalation backlog &gt;50, P95 latency &gt;5s</li>
+    <li><strong>Medium:</strong> Cache degradation, slow queries, individual critic timeouts</li>
+    <li><strong>Low:</strong> Configuration drift, precedent conflicts, usage anomalies</li>
+  </ul>
+
+  <h3>14.3 Backup &amp; Recovery</h3>
+  <ul>
+    <li><strong>Database Backups:</strong> Daily automated snapshots, 30-day retention</li>
+    <li><strong>Configuration Backups:</strong> Version-controlled in Git</li>
+    <li><strong>Disaster Recovery Plan:</strong> Document for full system restoration</li>
+    <li><strong>RTO Target:</strong> 4 hours</li>
+    <li><strong>RPO Target:</strong> 1 hour (maximum data loss)</li>
+  </ul>
+
+  <h3>14.4 Incident Response</h3>
+  <p>Defined procedures for:</p>
+  <ol>
+    <li><strong>Critic Failure:</strong> Automatic blacklisting, alert to on-call</li>
+    <li><strong>Database Outage:</strong> Failover to replica, investigate primary</li>
+    <li><strong>API Overload:</strong> Rate limiting, scale up pods, investigate traffic</li>
+    <li><strong>Escalation Backlog:</strong> Notify human reviewers, consider temporary policy relaxation</li>
+    <li><strong>Security Incident:</strong> Rotate credentials, audit logs, notify security team</li>
+  </ol>
+
+  <h3>14.5 Capacity Management</h3>
+  <ul>
+    <li>Monitor resource utilization trends</li>
+    <li>Plan capacity 3-6 months ahead based on growth</li>
+    <li>Load test before traffic increases</li>
+    <li>Scale infrastructure proactively</li>
+    <li>Budget for LLM API costs (can be significant)</li>
+  </ul>
+
+  <div class="section-label">Pilot Deployment</div>
+  <h2>15. Pilot Deployment Guide <span class="new-badge">NEW</span></h2>
+
+  <h3>15.1 Pilot Phases</h3>
+
+  <h4>Phase 1: Shadow Mode (Weeks 1-2)</h4>
+  <ul>
+    <li>ELEANOR evaluates decisions but doesn't block actions</li>
+    <li>Compare ELEANOR decisions to human decisions</li>
+    <li>Calibrate critic thresholds</li>
+    <li>Identify false positives/negatives</li>
+    <li>Build precedent corpus</li>
+  </ul>
+
+  <h4>Phase 2: Advisory Mode (Weeks 3-4)</h4>
+  <ul>
+    <li>ELEANOR recommendations shown to decision-makers</li>
+    <li>Humans can override but must document why</li>
+    <li>Track override rates and patterns</li>
+    <li>Refine critics based on feedback</li>
+    <li>Expand use case coverage</li>
+  </ul>
+
+  <h4>Phase 3: Enforcement Mode (Weeks 5+)</h4>
+  <ul>
+    <li>ELEANOR decisions are binding for defined use cases</li>
+    <li>Escalations go to human review queue</li>
+    <li>Monitor for policy compliance</li>
+    <li>Continuous improvement based on precedents</li>
+    <li>Gradual expansion to more use cases</li>
+  </ul>
+
+  <h3>15.2 Success Metrics for Pilots</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Metric</th>
+        <th>Target</th>
+        <th>Measurement</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Agreement Rate (Shadow)</td>
+        <td>&gt;80%</td>
+        <td>ELEANOR matches human decisions</td>
+      </tr>
+      <tr>
+        <td>Override Rate (Advisory)</td>
+        <td>&lt;20%</td>
+        <td>Humans override ELEANOR recommendations</td>
+      </tr>
+      <tr>
+        <td>Escalation Rate</td>
+        <td>10-20%</td>
+        <td>Cases requiring human review</td>
+      </tr>
+      <tr>
+        <td>False Positive Rate</td>
+        <td>&lt;5%</td>
+        <td>ELEANOR incorrectly flags safe actions</td>
+      </tr>
+      <tr>
+        <td>False Negative Rate</td>
+        <td>&lt;1%</td>
+        <td>ELEANOR misses genuine concerns</td>
+      </tr>
+      <tr>
+        <td>User Satisfaction</td>
+        <td>&gt;7/10</td>
+        <td>Survey of decision-makers</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>15.3 Pilot Checklist</h3>
+  <p><strong>Pre-Pilot:</strong></p>
+  <ul>
+    <li>☐ Define pilot scope (use cases, volume, duration)</li>
+    <li>☐ Configure domain-specific critics</li>
+    <li>☐ Load constitutional principles</li>
+    <li>☐ Train human reviewers</li>
+    <li>☐ Set up monitoring and dashboards</li>
+    <li>☐ Establish escalation SLAs</li>
+    <li>☐ Document rollback plan</li>
+  </ul>
+
+  <p><strong>During Pilot:</strong></p>
+  <ul>
+    <li>☐ Daily review of escalations</li>
+    <li>☐ Weekly analysis of decisions and precedents</li>
+    <li>☐ Bi-weekly stakeholder updates</li>
+    <li>☐ Track all metrics against targets</li>
+    <li>☐ Document edge cases and improvements</li>
+  </ul>
+
+  <p><strong>Post-Pilot:</strong></p>
+  <ul>
+    <li>☐ Comprehensive results report</li>
+    <li>☐ Recommendations for production</li>
+    <li>☐ Identified improvements and next steps</li>
+    <li>☐ Go/no-go decision with stakeholders</li>
+  </ul>
+
+  <div class="section-label">Appendices</div>
+  <h2>16. Appendices (A–H Overview) <span class="updated-badge">UPDATED</span></h2>
+
+  <h3>Appendix A – Critic Calibration Protocols</h3>
+  <p class="small">
+    Defines how each critic is calibrated (sensitivity, specificity, thresholds,
+    drift tolerance) and how calibration artifacts are stored.
+  </p>
+
+  <h3>Appendix B – Governance Test Suite (CI/CD)</h3>
+  <p class="small">
+    Constitutional tests, transparency tests, risk tests, precedent stability tests,
+    and context fidelity tests that must pass before deployment.
+  </p>
+
+  <h3>Appendix C – Schema Definitions</h3>
+  <p class="small">
+    Canonical JSON/YAML definitions for all core objects (Verdict, EvidencePackage,
+    PrecedentRecord, EscalationBundle, CaseInput, etc.).
+  </p>
+
+  <h3>Appendix D – Developer Integration Guide</h3>
+  <p class="small">
+    Patterns for integrating ELEANOR with Python, Node/TypeScript, Java, microservices,
+    API gateways, and event-driven architectures. Includes REST API examples, SDKs,
+    and webhook patterns.
+  </p>
+
+  <h3>Appendix E – Precedent Governance Manual</h3>
+  <p class="small">
+    Fact pattern encoding, similarity scoring, precedent conflict resolution,
+    and federated precedent sharing guidelines.
+  </p>
+
+  <h3>Appendix F – Precedent Migration Protocol</h3>
+  <p class="small">
+    Details for PrecedentMigrationMaps, migration workflows, integrity status flags
+    (NATIVE, MIGRATED, PARTIAL), migration testing, and audit requirements.
+  </p>
+
+  <h3>Appendix G – Deployment Architecture Reference <span class="new-badge">NEW</span></h3>
+  <p class="small">
+    Docker configuration, Kubernetes manifests, cloud deployment templates (AWS, GCP, Azure),
+    infrastructure-as-code examples, and network architecture diagrams.
+  </p>
+
+  <h3>Appendix H – Operational Runbook <span class="new-badge">NEW</span></h3>
+  <p class="small">
+    Step-by-step procedures for common operational tasks: deployment, scaling, backup/restore,
+    incident response, critic management, precedent maintenance, and performance tuning.
+  </p>
+
+  <hr>
+
+  <h2>17. Version History</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Version</th>
+        <th>Date</th>
+        <th>Changes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>v1.0</td>
+        <td>2024 Q2</td>
+        <td>Initial specification - theoretical framework</td>
+      </tr>
+      <tr>
+        <td>v2.0</td>
+        <td>2024 Q3</td>
+        <td>Added precedent migration, expanded critics</td>
+      </tr>
+      <tr>
+        <td>v2.1</td>
+        <td>2024 Q4</td>
+        <td>Refined schemas, added uncertainty module</td>
+      </tr>
+      <tr>
+        <td>v3.0</td>
+        <td>2025 Q1</td>
+        <td><strong>Production architecture</strong> - containerization, REST API, scalability, operations, pilot deployment guide based on EJE implementation</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <div class="callout-success">
+    <p><strong>Implementation Reference:</strong> This specification is implemented in the EJE 
+    (Ethics Jurisprudence Engine) reference implementation available at:<br>
+    <strong>https://github.com/eleanor-project/EJE</strong></p>
+    
+    <p>The EJE codebase provides:</p>
+    <ul>
+      <li>Complete working implementation of this specification</li>
+      <li>Docker containerization</li>
+      <li>REST API (FastAPI)</li>
+      <li>PostgreSQL schemas and migrations</li>
+      <li>Critic implementations (OpenAI, Anthropic, Gemini, custom)</li>
+      <li>Dashboard for human review</li>
+      <li>Comprehensive test suite</li>
+      <li>Deployment documentation</li>
+    </ul>
+  </div>
+
+  <hr>
+
+  <p class="small">
+    This document defines the Rights-Based Jurisprudence Architecture (RBJA) – Production Runtime Architecture v3.0.
+    It is intended as a living standard for decision-time AI governance, subject to
+    transparent revision and public scrutiny.
+  </p>
+
+  <p class="small">
+    <strong>Feedback and contributions:</strong> Submit issues and proposals to the ELEANOR Project 
+    repository. All changes to this specification go through the GCR (Governance Change Request) process.
+  </p>
+
+  <p class="small">
+    <strong>License:</strong> This specification is released under Creative Commons Attribution 4.0 
+    International (CC BY 4.0). You may share and adapt with attribution.
+  </p>
+
+</body>
+</html>
