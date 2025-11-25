@@ -1,12 +1,13 @@
 from statistics import mean, variance
+from typing import Dict, List, Any
 
 class Aggregator:
-    def __init__(self, config):
-        self.block_threshold = config.get('block_threshold', 0.5)
-        self.ambiguity_threshold = config.get('ambiguity_threshold', 0.25)
-        self.critic_priorities = config.get('critic_priorities', {})
+    def __init__(self, config: Dict[str, Any]) -> None:
+        self.block_threshold: float = config.get('block_threshold', 0.5)
+        self.ambiguity_threshold: float = config.get('ambiguity_threshold', 0.25)
+        self.critic_priorities: Dict[str, Any] = config.get('critic_priorities', {})
 
-    def aggregate(self, results):
+    def aggregate(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
         verdict_scores = {'ALLOW': 0, 'BLOCK': 0, 'REVIEW': 0}
         confidences = []
         overall, reason = None, ""

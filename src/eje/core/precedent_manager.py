@@ -1,6 +1,7 @@
 import os
 import json
 import hashlib
+from typing import Dict, List, Any, Optional
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -15,20 +16,20 @@ class PrecedentManager:
     Supports both exact hash matching and semantic similarity via embeddings.
     """
 
-    def __init__(self, data_path="./eleanor_data", use_embeddings=True):
+    def __init__(self, data_path: str = "./eleanor_data", use_embeddings: bool = True) -> None:
         self.logger = get_logger("EJE.PrecedentManager")
         ensure_dir(data_path)
 
-        self.store_path = os.path.join(data_path, "precedent_store.json")
-        self.embeddings_path = os.path.join(data_path, "precedent_embeddings.npy")
-        self.use_embeddings = use_embeddings
+        self.store_path: str = os.path.join(data_path, "precedent_store.json")
+        self.embeddings_path: str = os.path.join(data_path, "precedent_embeddings.npy")
+        self.use_embeddings: bool = use_embeddings
 
         # Initialize embedding model (lightweight, fast model)
         if self.use_embeddings:
             try:
                 self.logger.info("Loading sentence transformer model...")
-                self.embedder = SentenceTransformer('all-MiniLM-L6-v2')
-                self.embeddings_cache = self._load_embeddings()
+                self.embedder: Optional[SentenceTransformer] = SentenceTransformer('all-MiniLM-L6-v2')
+                self.embeddings_cache: List[Any] = self._load_embeddings()
                 self.logger.info("Semantic similarity enabled")
             except Exception as e:
                 self.logger.warning(f"Failed to load embeddings model: {e}. Falling back to hash-only matching.")
@@ -43,7 +44,7 @@ class PrecedentManager:
             with open(self.store_path, "w") as f:
                 json.dump([], f)
 
-    def _load_embeddings(self):
+    def _load_embeddings(self) -> List[Any]:
         """Load cached embeddings from disk."""
         if os.path.exists(self.embeddings_path):
             try:
@@ -52,20 +53,20 @@ class PrecedentManager:
                 self.logger.warning(f"Failed to load embeddings cache: {e}")
         return []
 
-    def _save_embeddings(self):
+    def _save_embeddings(self) -> None:
         """Save embeddings cache to disk."""
         try:
             np.save(self.embeddings_path, np.array(self.embeddings_cache))
         except Exception as e:
             self.logger.error(f"Failed to save embeddings cache: {e}")
 
-    def _hash_case(self, case):
+    def _hash_case(self, case: Dict[str, Any]) -> str:
         """Generate SHA-256 hash of case for exact matching."""
         return hashlib.sha256(
             json.dumps(case, sort_keys=True).encode()
         ).hexdigest()
 
-    def _embed_case(self, case):
+    def _embed_case(self, case: Dict[str, Any]) -> Optional[Any]:
         """Generate embedding vector for semantic similarity."""
         if not self.use_embeddings or not self.embedder:
             return None
@@ -83,7 +84,12 @@ class PrecedentManager:
             self.logger.error(f"Failed to generate embedding: {e}")
             return None
 
-    def lookup(self, case, similarity_threshold=PRECEDENT_SIMILARITY_THRESHOLD, max_results=10):
+    def lookup(
+        self,
+        case: Dict[str, Any],
+        similarity_threshold: float = PRECEDENT_SIMILARITY_THRESHOLD,
+        max_results: int = 10
+    ) -> List[Dict[str, Any]]:
         """
         Return precedents similar to the given case.
 
@@ -116,7 +122,13 @@ class PrecedentManager:
         # No matches
         return []
 
-    def _semantic_lookup(self, case, database, threshold, max_results):
+    def _semantic_lookup(
+        self,
+        case: Dict[str, Any],
+        database: List[Dict[str, Any]],
+        threshold: float,
+        max_results: int
+    ) -> List[Dict[str, Any]]:
         """
         Find similar precedents using semantic similarity.
 
@@ -173,7 +185,7 @@ class PrecedentManager:
             self.logger.error(f"Semantic lookup failed: {e}")
             return []
 
-    def _rebuild_embeddings_cache(self, database):
+    def _rebuild_embeddings_cache(self, database: List[Dict[str, Any]]) -> None:
         """Rebuild the entire embeddings cache from database."""
         self.embeddings_cache = []
 
@@ -189,7 +201,7 @@ class PrecedentManager:
 
         self._save_embeddings()
 
-    def store_precedent(self, bundle):
+    def store_precedent(self, bundle: Dict[str, Any]) -> None:
         """
         Store a new precedent with its hash and embedding.
 
@@ -216,7 +228,7 @@ class PrecedentManager:
 
         self.logger.debug(f"Stored precedent with hash {bundle['case_hash'][:8]}...")
 
-    def get_statistics(self):
+    def get_statistics(self) -> Dict[str, Any]:
         """Get statistics about the precedent database."""
         with open(self.store_path, "r") as f:
             database = json.load(f)

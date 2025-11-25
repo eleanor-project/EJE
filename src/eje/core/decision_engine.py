@@ -1,6 +1,7 @@
 import uuid
 import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Dict, List, Any, Optional
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from .critic_loader import load_all_plugins
@@ -31,32 +32,32 @@ class DecisionEngine:
     applies precedence + policy logic, and logs decisions.
     """
 
-    def __init__(self, config_path="config/global.yaml"):
+    def __init__(self, config_path: str = "config/global.yaml") -> None:
         self.logger = get_logger("EJE.DecisionEngine")
 
         self.logger.info("Loading global configuration...")
-        self.config = load_global_config(config_path)
+        self.config: Dict[str, Any] = load_global_config(config_path)
 
         self.logger.info("Loading critics...")
-        self.critics = load_all_plugins(self.config.get("plugin_critics", []))
+        self.critics: List[Any] = load_all_plugins(self.config.get("plugin_critics", []))
 
-        self.pm = PrecedentManager(self.config.get("data_path", "./eleanor_data"))
-        self.audit = AuditLogger(self.config.get("db_uri"))
+        self.pm: PrecedentManager = PrecedentManager(self.config.get("data_path", "./eleanor_data"))
+        self.audit: AuditLogger = AuditLogger(self.config.get("db_uri"))
 
-        self.weights = self.config.get("critic_weights", {})
-        self.priorities = self.config.get("critic_priorities", {})
-        self.aggregator = Aggregator(self.config)
+        self.weights: Dict[str, float] = self.config.get("critic_weights", {})
+        self.priorities: Dict[str, Optional[str]] = self.config.get("critic_priorities", {})
+        self.aggregator: Aggregator = Aggregator(self.config)
 
         # Initialize retraining manager
-        self.retrainer = Retrainer(self.config, self.audit)
+        self.retrainer: Retrainer = Retrainer(self.config, self.audit)
 
         # Get max parallel workers from config
-        self.max_workers = self.config.get("max_parallel_calls", DEFAULT_MAX_PARALLEL_CALLS)
+        self.max_workers: int = self.config.get("max_parallel_calls", DEFAULT_MAX_PARALLEL_CALLS)
 
         # Initialize decision cache
-        cache_size = self.config.get("cache_size", 1000)
-        self.cache = DecisionCache(maxsize=cache_size)
-        self.cache_enabled = self.config.get("enable_cache", True)
+        cache_size: int = self.config.get("cache_size", 1000)
+        self.cache: DecisionCache = DecisionCache(maxsize=cache_size)
+        self.cache_enabled: bool = self.config.get("enable_cache", True)
 
         self.logger.info(f"{len(self.critics)} critics loaded.")
         if self.cache_enabled:
@@ -72,7 +73,7 @@ class DecisionEngine:
         retry=retry_if_exception_type((APIException, ConnectionError, TimeoutError)),
         reraise=True
     )
-    def _evaluate_critic_with_retry(self, critic, case):
+    def _evaluate_critic_with_retry(self, critic: Any, case: Dict[str, Any]) -> Dict[str, Any]:
         """
         Evaluate a single critic with automatic retry logic.
 
@@ -95,7 +96,7 @@ class DecisionEngine:
             self.logger.error(f"Non-retryable error in {critic.__class__.__name__}: {str(e)}")
             raise CriticException(f"Critic evaluation failed: {str(e)}") from e
 
-    def _evaluate_single_critic(self, critic, case):
+    def _evaluate_single_critic(self, critic: Any, case: Dict[str, Any]) -> Dict[str, Any]:
         """
         Evaluate a single critic and format the output.
 
@@ -242,6 +243,6 @@ class DecisionEngine:
 
         return bundle
 
-    def get_cache_stats(self):
+    def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache statistics."""
         return self.cache.get_stats() if self.cache_enabled else {"enabled": False}
