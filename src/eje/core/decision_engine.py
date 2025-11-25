@@ -11,6 +11,7 @@ from .audit_log import AuditLogger
 from .retraining_manager import Retrainer
 from ..utils.logging import get_logger
 from ..utils.validation import validate_case
+from ..utils.caching import DecisionCache
 from ..exceptions import CriticException, APIException
 from ..constants import (
     MAX_RETRY_ATTEMPTS,
@@ -52,7 +53,14 @@ class DecisionEngine:
         # Get max parallel workers from config
         self.max_workers = self.config.get("max_parallel_calls", DEFAULT_MAX_PARALLEL_CALLS)
 
+        # Initialize decision cache
+        cache_size = self.config.get("cache_size", 1000)
+        self.cache = DecisionCache(maxsize=cache_size)
+        self.cache_enabled = self.config.get("enable_cache", True)
+
         self.logger.info(f"{len(self.critics)} critics loaded.")
+        if self.cache_enabled:
+            self.logger.info(f"Result caching enabled (max size: {cache_size})")
 
     @retry(
         stop=stop_after_attempt(MAX_RETRY_ATTEMPTS),
@@ -134,6 +142,7 @@ class DecisionEngine:
     def evaluate(self, case: dict) -> dict:
         """
         Evaluate a case using all configured critics in parallel.
+        Checks cache first to avoid redundant evaluations.
 
         Args:
             case: Dictionary containing the case to evaluate
@@ -145,6 +154,17 @@ class DecisionEngine:
             ValidationException: If case validation fails
         """
         validate_case(case)
+
+        # Check cache first
+        if self.cache_enabled:
+            cached_result = self.cache.get(case)
+            if cached_result is not None:
+                self.logger.info(f"✨ Cache hit! Returning cached decision")
+                # Update request_id and timestamp for cached result
+                cached_result['request_id'] = str(uuid.uuid4())
+                cached_result['timestamp'] = datetime.datetime.utcnow().isoformat()
+                cached_result['from_cache'] = True
+                return cached_result
 
         request_id = str(uuid.uuid4())
         timestamp = datetime.datetime.utcnow().isoformat()
@@ -214,6 +234,14 @@ class DecisionEngine:
             if final.get('avg_confidence', 0) >= MIN_CONFIDENCE_FOR_RETRAINING:
                 self.retrainer.maybe_retrain(final, critic_outputs)
 
+        # Cache the result
+        if self.cache_enabled:
+            self.cache.put(case, bundle)
+
         self.logger.info(f"Case {request_id} evaluated: {final['overall_verdict']}")
 
         return bundle
+
+    def get_cache_stats(self):
+        """Get cache statistics."""
+        return self.cache.get_stats() if self.cache_enabled else {"enabled": False}

@@ -1,44 +1,229 @@
 import os
 import json
 import hashlib
+import numpy as np
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
 from ..utils.filepaths import ensure_dir
 from ..utils.logging import get_logger
+from ..constants import PRECEDENT_SIMILARITY_THRESHOLD
 
 
 class PrecedentManager:
     """
     Stores and retrieves precedent bundles.
-    Provides basic structural similarity via hashed input.
+    Supports both exact hash matching and semantic similarity via embeddings.
     """
 
-    def __init__(self, data_path="./eleanor_data"):
+    def __init__(self, data_path="./eleanor_data", use_embeddings=True):
         self.logger = get_logger("EJE.PrecedentManager")
         ensure_dir(data_path)
 
         self.store_path = os.path.join(data_path, "precedent_store.json")
+        self.embeddings_path = os.path.join(data_path, "precedent_embeddings.npy")
+        self.use_embeddings = use_embeddings
+
+        # Initialize embedding model (lightweight, fast model)
+        if self.use_embeddings:
+            try:
+                self.logger.info("Loading sentence transformer model...")
+                self.embedder = SentenceTransformer('all-MiniLM-L6-v2')
+                self.embeddings_cache = self._load_embeddings()
+                self.logger.info("Semantic similarity enabled")
+            except Exception as e:
+                self.logger.warning(f"Failed to load embeddings model: {e}. Falling back to hash-only matching.")
+                self.use_embeddings = False
+                self.embedder = None
+                self.embeddings_cache = []
+        else:
+            self.embedder = None
+            self.embeddings_cache = []
 
         if not os.path.exists(self.store_path):
             with open(self.store_path, "w") as f:
                 json.dump([], f)
 
+    def _load_embeddings(self):
+        """Load cached embeddings from disk."""
+        if os.path.exists(self.embeddings_path):
+            try:
+                return np.load(self.embeddings_path).tolist()
+            except Exception as e:
+                self.logger.warning(f"Failed to load embeddings cache: {e}")
+        return []
+
+    def _save_embeddings(self):
+        """Save embeddings cache to disk."""
+        try:
+            np.save(self.embeddings_path, np.array(self.embeddings_cache))
+        except Exception as e:
+            self.logger.error(f"Failed to save embeddings cache: {e}")
+
     def _hash_case(self, case):
+        """Generate SHA-256 hash of case for exact matching."""
         return hashlib.sha256(
             json.dumps(case, sort_keys=True).encode()
         ).hexdigest()
 
-    def lookup(self, case):
-        """Return all precedents with the same hashed structure."""
+    def _embed_case(self, case):
+        """Generate embedding vector for semantic similarity."""
+        if not self.use_embeddings or not self.embedder:
+            return None
+
+        try:
+            # Create a text representation of the case
+            text = case.get('text', '')
+            if 'context' in case:
+                text += f" {json.dumps(case['context'])}"
+
+            # Generate embedding
+            embedding = self.embedder.encode(text, convert_to_numpy=True)
+            return embedding
+        except Exception as e:
+            self.logger.error(f"Failed to generate embedding: {e}")
+            return None
+
+    def lookup(self, case, similarity_threshold=PRECEDENT_SIMILARITY_THRESHOLD, max_results=10):
+        """
+        Return precedents similar to the given case.
+
+        Args:
+            case: The case dictionary to find precedents for
+            similarity_threshold: Minimum cosine similarity (0-1) for semantic matches
+            max_results: Maximum number of results to return
+
+        Returns:
+            List of precedent bundles, sorted by similarity (most similar first)
+        """
         with open(self.store_path, "r") as f:
             database = json.load(f)
+
+        if len(database) == 0:
+            return []
+
+        # First, try exact hash matching (fastest)
         target_hash = self._hash_case(case)
-        return [p for p in database if p.get("case_hash") == target_hash]
+        exact_matches = [p for p in database if p.get("case_hash") == target_hash]
+
+        if exact_matches:
+            self.logger.info(f"Found {len(exact_matches)} exact hash matches")
+            return exact_matches[:max_results]
+
+        # If no exact matches and embeddings enabled, use semantic similarity
+        if self.use_embeddings and self.embedder:
+            return self._semantic_lookup(case, database, similarity_threshold, max_results)
+
+        # No matches
+        return []
+
+    def _semantic_lookup(self, case, database, threshold, max_results):
+        """
+        Find similar precedents using semantic similarity.
+
+        Args:
+            case: The case to match
+            database: List of all precedents
+            threshold: Minimum similarity threshold
+            max_results: Maximum results to return
+
+        Returns:
+            List of similar precedents with similarity scores
+        """
+        # Generate embedding for query case
+        query_embedding = self._embed_case(case)
+        if query_embedding is None:
+            return []
+
+        # Ensure embeddings cache is synchronized with database
+        if len(self.embeddings_cache) != len(database):
+            self.logger.info("Rebuilding embeddings cache...")
+            self._rebuild_embeddings_cache(database)
+
+        if len(self.embeddings_cache) == 0:
+            return []
+
+        # Calculate cosine similarities
+        try:
+            similarities = cosine_similarity(
+                [query_embedding],
+                self.embeddings_cache
+            )[0]
+
+            # Find precedents above threshold
+            similar_indices = np.where(similarities >= threshold)[0]
+
+            if len(similar_indices) == 0:
+                self.logger.info("No semantically similar precedents found")
+                return []
+
+            # Sort by similarity (descending)
+            sorted_indices = similar_indices[np.argsort(-similarities[similar_indices])]
+
+            # Build result list with similarity scores
+            results = []
+            for idx in sorted_indices[:max_results]:
+                precedent = database[idx].copy()
+                precedent['similarity_score'] = float(similarities[idx])
+                results.append(precedent)
+
+            self.logger.info(f"Found {len(results)} semantically similar precedents")
+            return results
+
+        except Exception as e:
+            self.logger.error(f"Semantic lookup failed: {e}")
+            return []
+
+    def _rebuild_embeddings_cache(self, database):
+        """Rebuild the entire embeddings cache from database."""
+        self.embeddings_cache = []
+
+        for precedent in database:
+            case = precedent.get('input', {})
+            embedding = self._embed_case(case)
+
+            if embedding is not None:
+                self.embeddings_cache.append(embedding)
+            else:
+                # Add zero vector as placeholder
+                self.embeddings_cache.append(np.zeros(384))  # MiniLM dimension
+
+        self._save_embeddings()
 
     def store_precedent(self, bundle):
+        """
+        Store a new precedent with its hash and embedding.
+
+        Args:
+            bundle: The decision bundle to store as precedent
+        """
         with open(self.store_path, "r") as f:
             database = json.load(f)
 
+        # Add hash
         bundle["case_hash"] = self._hash_case(bundle["input"])
+
+        # Generate and cache embedding
+        if self.use_embeddings and self.embedder:
+            embedding = self._embed_case(bundle["input"])
+            if embedding is not None:
+                self.embeddings_cache.append(embedding)
+                self._save_embeddings()
+
         database.append(bundle)
 
         with open(self.store_path, "w") as f:
             json.dump(database, f, indent=2)
+
+        self.logger.debug(f"Stored precedent with hash {bundle['case_hash'][:8]}...")
+
+    def get_statistics(self):
+        """Get statistics about the precedent database."""
+        with open(self.store_path, "r") as f:
+            database = json.load(f)
+
+        return {
+            "total_precedents": len(database),
+            "embeddings_cached": len(self.embeddings_cache),
+            "embeddings_enabled": self.use_embeddings,
+            "storage_path": self.store_path
+        }
