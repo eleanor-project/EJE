@@ -1,4 +1,6 @@
-def validate_case(case):
+from typing import Dict, Any
+
+def validate_case(case: Dict[str, Any]) -> bool:
     """
     Validate case input to prevent injection attacks and ensure data integrity.
 
