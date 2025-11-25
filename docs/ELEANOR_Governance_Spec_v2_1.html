@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>The ELEANOR Governance Specification – Runtime Architecture v2.1</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #fafafa;
+      color: #222;
+      line-height: 1.55;
+    }
+    body {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+    h1, h2, h3, h4 {
+      font-weight: 600;
+      color: #111;
+    }
+    h1 {
+      font-size: 1.9rem;
+      margin-bottom: 0.25rem;
+    }
+    h2 {
+      font-size: 1.4rem;
+      margin-top: 2.2rem;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 0.25rem;
+    }
+    h3 {
+      font-size: 1.15rem;
+      margin-top: 1.6rem;
+    }
+    h4 {
+      font-size: 1.02rem;
+      margin-top: 1.1rem;
+    }
+    p {
+      margin: 0.4rem 0 0.7rem;
+    }
+    code, pre {
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.88rem;
+    }
+    pre {
+      background: #f3f3f3;
+      border-radius: 4px;
+      padding: 10px 12px;
+      overflow-x: auto;
+      border: 1px solid #e0e0e0;
+      margin: 0.6rem 0 1rem;
+    }
+    .subtitle {
+      color: #555;
+      margin-bottom: 0.3rem;
+    }
+    .meta {
+      color: #666;
+      font-size: 0.92rem;
+      margin-bottom: 1.2rem;
+    }
+    .tagline {
+      font-style: italic;
+      color: #555;
+      margin-top: 0.5rem;
+    }
+    .section-label {
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 0.78rem;
+      color: #888;
+      margin-bottom: -0.4rem;
+      margin-top: 1.5rem;
+    }
+    ul, ol {
+      margin: 0.3rem 0 0.8rem 1.2rem;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #e0e0e0;
+      margin: 2rem 0;
+    }
+    .callout {
+      border-left: 3px solid #4b7bec;
+      background: #f5f7ff;
+      padding: 8px 12px;
+      font-size: 0.92rem;
+      margin: 0.8rem 0 1.1rem;
+    }
+    .small {
+      font-size: 0.86rem;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>THE ELEANOR GOVERNANCE SPECIFICATION</h1>
+  <div class="subtitle">Runtime Architecture v2.1</div>
+  <div class="meta">
+    <strong>Authors:</strong> William Parris &amp; GPT-5 Thinking<br>
+    <strong>With contributions from:</strong> Claude 3.5 Sonnet, Grok<br>
+    <strong>Project:</strong> The Constitutional AI Project (ELEANOR), 2025
+  </div>
+
+  <p class="tagline">
+    ELEANOR (Ethical Leadership Engine for Autonomous Navigation of Rights-Based Reasoning)
+    is a decision-time governance operating system for high-stakes AI.
+  </p>
+
+  <div class="section-label">Abstract</div>
+  <h2>0. Abstract</h2>
+
+  <p>
+    ELEANOR is a runtime governance architecture that embeds structured moral reasoning
+    directly into AI decision pipelines. Where most alignment approaches operate at
+    training time (e.g., RLHF, constitutions, model oversight), ELEANOR runs <em>at the
+    moment of decision</em>, mediating model outputs through multi-critic evaluation,
+    dissent-aware escalation, and machine-readable precedent creation.
+  </p>
+
+  <p>
+    This specification defines the ELEANOR Runtime Architecture v2.1, including:
+  </p>
+
+  <ul>
+    <li>The critic set and their responsibilities</li>
+    <li>Canonical verdict, evidence, and precedent schemas</li>
+    <li>The governance loop and escalation protocol</li>
+    <li>CI/CD integration and calibration requirements</li>
+    <li>Safety guarantees and misuse constraints</li>
+    <li>Versioning, change control, and a forward-compatible precedent migration layer</li>
+  </ul>
+
+  <p>
+    The goal is to move organizations beyond static “AI policies” and into
+    <strong>governance as an operating system</strong>: a layer that explains, monitors,
+    stress-tests, logs, escalates, and audits AI systems in a way that accountable humans
+    can actually stand behind.
+  </p>
+
+  <div class="section-label">Introduction</div>
+  <h2>1. Introduction</h2>
+
+  <p>
+    High-stakes AI systems increasingly mediate access to finance, healthcare, mobility,
+    safety, and critical infrastructure. In these domains, a static policy document or
+    a once-per-year model audit is not enough. What is required is a governance layer that:
+  </p>
+
+  <ul>
+    <li>Runs every time the model makes a consequential decision</li>
+    <li>Provides explanations and evidence for those decisions</li>
+    <li>Detects ethical conflicts and systemic harms</li>
+    <li>Escalates contested cases to accountable humans</li>
+    <li>Builds an evolving body of machine-readable precedent</li>
+    <li>Integrates with CI/CD pipelines like any other critical dependency</li>
+  </ul>
+
+  <p>
+    ELEANOR was designed to meet that requirement. Inspired in part by the logic of
+    constitutional law and human rights practice, ELEANOR treats moral reasoning as a
+    first-class computational concern, not an afterthought or a compliance checkbox.
+  </p>
+
+  <p>
+    This specification is intended for:
+  </p>
+  <ul>
+    <li>AI and ML engineers integrating governance into production systems</li>
+    <li>Governance, risk, and compliance leaders</li>
+    <li>AI safety and alignment researchers</li>
+    <li>Regulators and auditors evaluating deployed AI systems</li>
+  </ul>
+
+  <div class="section-label">System overview</div>
+  <h2>2. System Overview</h2>
+
+  <p>
+    At its core, ELEANOR evaluates each proposed AI action using six domain-specialized
+    critics and one supporting uncertainty unit:
+  </p>
+
+  <ol>
+    <li><strong>Rights Critic (Eleanor)</strong> – human rights, autonomy, dignity, consent</li>
+    <li><strong>Equity Analyzer</strong> – fairness, disparate impact, systemic bias</li>
+    <li><strong>Risk Assessor</strong> – safety, legal, operational, catastrophic risk</li>
+    <li><strong>Transparency Monitor</strong> – explainability, logging, traceability</li>
+    <li><strong>Pragmatic Validator</strong> – feasibility, resource sanity, proportionality</li>
+    <li><strong>Context Critic</strong> – jurisdiction, policy, cultural and temporal context</li>
+    <li><strong>Uncertainty &amp; Ambiguity Module</strong> – cross-critic uncertainty and novelty</li>
+  </ol>
+
+  <p>
+    Each critic returns a structured <code>Verdict</code>. These are aggregated into a
+    <em>CriticMatrix</em>, from which ELEANOR derives:
+  </p>
+
+  <ul>
+    <li>ACCEPT</li>
+    <li>ACCEPT WITH CONDITIONS</li>
+    <li>REJECT</li>
+    <li>ESCALATE TO HUMAN REVIEW</li>
+  </ul>
+
+  <p>
+    Every decision produces an <code>EvidencePackage</code> suitable for auditing, and
+    may generate or update a <code>PrecedentRecord</code>. Over time, this accumulates into
+    machine-readable ethical “case law” that makes governance both stricter and more
+    efficient.
+  </p>
+
+  <div class="section-label">Requirements</div>
+  <h2>3. System Requirements</h2>
+
+  <ul>
+    <li><strong>Decision-time execution</strong> – critics must run before the action is finalized.</li>
+    <li><strong>Immutable logging</strong> – EvidencePackages are append-only and tamper-evident.</li>
+    <li><strong>Low-latency precedent retrieval</strong> – relevant precedents must be retrieved in tens–hundreds of ms.</li>
+    <li><strong>Escalation support</strong> – contested cases are routable to human reviewers.</li>
+    <li><strong>CI/CD integration</strong> – governance tests are part of the build pipeline.</li>
+    <li><strong>Security</strong> – all governance artifacts are encrypted in transit and at rest.</li>
+    <li><strong>Transparency</strong> – all decisions are reconstructable from stored evidence.</li>
+  </ul>
+
+  <div class="section-label">Core schemas</div>
+  <h2>4. Core Data Structures</h2>
+
+  <h3>4.1 Verdict (v2.1)</h3>
+  <pre><code>Verdict:
+  critic_id: string
+  decision: [ACCEPT | CONDITIONAL | REJECT | ESCALATE]
+  confidence: float
+  rationale: string
+  required_conditions: list[string]
+  flags:
+    - RIGHTS_CONCERN
+    - EQUITY_IMPACT
+    - TRANSPARENCY_ISSUE
+    - SAFETY_RISK
+    - PRAGMATIC_FAILURE
+    - CONTEXT_MISMATCH
+</code></pre>
+
+  <h3>4.2 EvidencePackage (v2.1)</h3>
+  <pre><code>EvidencePackage:
+  timestamp: datetime
+  input_data: object
+  model_output: object
+  critic_matrix: list[Verdict]
+  dissent_index: float
+  precedent_matches: list[PrecedentReference]
+  final_decision: string
+  escalation_required: bool
+  human_review_notes: string | null
+</code></pre>
+
+  <h3>4.3 PrecedentRecord (v2.1)</h3>
+  <pre><code>PrecedentRecord:
+  precedent_id: string
+  fact_pattern: object
+  critic_consensus: object
+  dissent_index: float
+  human_override: bool
+  jurisdiction: string
+  tags: list[string]
+  explanatory_notes: string
+  provenance: string
+  precedent_version: string
+  migration_status: [NATIVE | MIGRATED | PARTIAL]
+</code></pre>
+
+  <div class="section-label">Governance loop</div>
+  <h2>5. Governance Loop</h2>
+
+  <ol>
+    <li>Model proposes an action or decision.</li>
+    <li>ELEANOR initializes an <code>EvidencePackage</code>.</li>
+    <li>All critics independently evaluate the proposal.</li>
+    <li>A <em>CriticMatrix</em> is assembled from all Verdicts.</li>
+    <li>A <em>DissentIndex</em> and uncertainty score are computed.</li>
+    <li>Relevant precedents are retrieved and migrated to current format if needed.</li>
+    <li>Decision logic is applied (accept, conditional, reject, escalate).</li>
+    <li>If escalation is triggered, an <code>EscalationBundle</code> is generated for human review.</li>
+    <li>Human reviewers may approve, reject, modify, or create new precedents.</li>
+    <li>The final decision and rationale are logged; new precedents are added if applicable.</li>
+    <li>CI/CD test suites and calibration artifacts are updated as appropriate.</li>
+  </ol>
+
+  <div class="section-label">Critics</div>
+  <h2>6. Critic Definitions (v2.1)</h2>
+
+  <h3>6.1 Rights Critic (Eleanor)</h3>
+  <p><strong>Purpose:</strong> Prevents violations of basic rights, autonomy, and dignity.</p>
+  <p><strong>Scope:</strong> privacy, consent, bodily and mental integrity, non-coercion, non-discrimination, freedom of movement and expression.</p>
+  <p><strong>Verdict logic:</strong> rejects clear violations; escalates ambiguous or novel cases; may return CONDITIONAL with rights-preserving constraints.</p>
+
+  <h3>6.2 Equity Analyzer</h3>
+  <p><strong>Purpose:</strong> Detects and mitigates systemic bias and unfair outcomes across groups.</p>
+  <p><strong>Scope:</strong> disparate impact, resource allocation, historic inequities, proxy bias.</p>
+
+  <h3>6.3 Risk Assessor</h3>
+  <p><strong>Purpose:</strong> Evaluates safety, legal, financial, and systemic risk.</p>
+
+  <h3>6.4 Transparency Monitor</h3>
+  <p><strong>Purpose:</strong> Ensures decisions are explainable, log-complete, and audit-ready.</p>
+
+  <h3>6.5 Pragmatic Validator</h3>
+  <p><strong>Purpose:</strong> Tests feasibility, proportionality, and operational realism.</p>
+
+  <h3>6.6 Context Critic</h3>
+  <p><strong>Purpose:</strong> Aligns decisions with jurisdiction, organizational policy, cultural norms, and temporal constraints.</p>
+
+  <h3>6.7 Uncertainty &amp; Ambiguity Module</h3>
+  <p><strong>Purpose:</strong> Quantifies uncertainty, critic disagreement, data sparsity, and novelty; triggers escalation where ambiguity intersects with risk or rights protection.</p>
+
+  <div class="section-label">Integration</div>
+  <h2>7. Integration Requirements</h2>
+
+  <h3>7.1 Inference-Time Integration</h3>
+  <ul>
+    <li>Wrap model inference and intercept outputs before execution.</li>
+    <li>Construct an EvidencePackage per high-stakes decision.</li>
+    <li>Run critics in parallel where possible.</li>
+    <li>Return final decision or escalation outcome to the caller.</li>
+  </ul>
+
+  <h3>7.2 Application-Level Integration</h3>
+  <ul>
+    <li>Applications must treat ELEANOR results as binding for covered use cases.</li>
+    <li>Conditional approvals must be enforced programmatically.</li>
+    <li>Human reviewer notes must be recorded and attached to future precedent.</li>
+  </ul>
+
+  <h3>7.3 CI/CD Integration</h3>
+  <ul>
+    <li>Governance tests run as part of the build pipeline.</li>
+    <li>Builds fail if governance checks fail.</li>
+    <li>Critic schemas and configurations are versioned and validated.</li>
+  </ul>
+
+  <div class="section-label">Escalation</div>
+  <h2>8. Escalation Protocol</h2>
+
+  <h3>8.1 Escalation Triggers</h3>
+  <ul>
+    <li>DissentIndex above configured threshold.</li>
+    <li>Rights Critic returns REJECT or ESCALATE.</li>
+    <li>Equity Analyzer flags potential systemic harm.</li>
+    <li>Risk Assessor flags catastrophic or regulatory risk.</li>
+    <li>Transparency Monitor cannot reconstruct a decision.</li>
+    <li>Context Critic detects jurisdiction or policy conflict.</li>
+    <li>Uncertainty module detects high ambiguity in a sensitive domain.</li>
+  </ul>
+
+  <h3>8.2 EscalationBundle</h3>
+  <pre><code>EscalationBundle:
+  timestamp: datetime
+  input_data: object
+  critic_matrix: list[Verdict]
+  dissent_index: float
+  proposed_action: object
+  precedents_considered: list[PrecedentReference]
+  explanation_summary: string
+  recommended_questions: list[string]
+  risk_flags: list[string]
+  rights_flags: list[string]
+  context_flags: list[string]
+</code></pre>
+
+  <h3>8.3 Human Review Authority</h3>
+  <p>
+    Human reviewers (HRA) must have contextual expertise, decision authority,
+    and governance training. HRAs may approve, reject, modify with conditions,
+    or request further evidence. Their decisions form part of the precedent record.
+  </p>
+
+  <div class="section-label">Precedent</div>
+  <h2>9. Precedent Governance &amp; Federated Learning</h2>
+
+  <h3>9.1 Precedent Creation</h3>
+  <p>
+    A new <code>PrecedentRecord</code> is created for:
+  </p>
+  <ul>
+    <li>High-dissent cases</li>
+    <li>Human overrides</li>
+    <li>Novel or difficult ethical territory</li>
+  </ul>
+
+  <h3>9.2 Precedent Retrieval</h3>
+  <p>
+    Before finalizing a decision, ELEANOR:
+  </p>
+  <ol>
+    <li>Encodes the current fact pattern.</li>
+    <li>Retrieves similar precedents by vector and rule-based similarity.</li>
+    <li>Filters by jurisdiction and critic relevance.</li>
+    <li>Returns a small, ranked set of precedents (e.g., 3–7) to inform the final decision.</li>
+  </ol>
+
+  <h3>9.3 Precedent Drift Detection</h3>
+  <p>
+    Periodic analysis flags:
+  </p>
+  <ul>
+    <li>Contradictory precedents</li>
+    <li>Shifts in critic behavior over time</li>
+    <li>Repeated human overrides in the same direction</li>
+    <li>Emergence of new ethical fault lines</li>
+  </ul>
+
+  <h3>9.4 Federated Precedent Networks</h3>
+  <p>
+    Organizations may opt into privacy-respecting federated precedent sharing:
+  </p>
+  <ul>
+    <li>Precedents are anonymized and minimized.</li>
+    <li>Shared as k-anonymous or differentially protected bundles.</li>
+    <li>Allow global learning on harms and remedies while preserving privacy.</li>
+  </ul>
+
+  <h3>9.5 Precedent Forward-Migration Protocol</h3>
+  <p>
+    Precedent records must remain interpretable even as schemas and critic logic evolve.
+  </p>
+
+  <div class="callout">
+    <strong>Principle:</strong> Precedents are immutable; interpretation is evolvable.
+  </div>
+
+  <p>
+    Older precedents are translated through a versioned
+    <code>PrecedentMigrationMap</code> that remaps critic IDs, verdict values, flags,
+    and fact-pattern fields into the current canonical schema. If translation is partial,
+    the runtime marks the record as <code>PARTIAL</code> and escalates instead of silently
+    relying on it.
+  </p>
+
+  <div class="section-label">Safety</div>
+  <h2>10. Safety Guarantees &amp; Misuse Prevention</h2>
+
+  <h3>10.1 Lexicographic Priority</h3>
+  <p>
+    The critics are ordered by ethical priority:
+  </p>
+  <ol>
+    <li>Rights</li>
+    <li>Equity</li>
+    <li>Risk</li>
+    <li>Transparency</li>
+    <li>Pragmatics</li>
+    <li>Context</li>
+  </ol>
+  <p>
+    Nothing may override a hard rights constraint—not efficiency, not business value,
+    not convenience.
+  </p>
+
+  <h3>10.2 Human-in-the-Loop Guarantee</h3>
+  <p>
+    High-dissent or rights-implicated cases must escalate to humans. The system must not
+    silently auto-decide contested or ambiguous high-stakes outcomes.
+  </p>
+
+  <h3>10.3 Immutable Evidence Logging</h3>
+  <p>
+    Every decision leaves behind a reconstructable trail: inputs, outputs, critic verdicts,
+    dissent, human decisions, and precedent references.
+  </p>
+
+  <h3>10.4 Constitutional Constraints</h3>
+  <p>
+    ELEANOR enforces a set of non-negotiable constraints (no discrimination, no coercion,
+    no rights violations, no irreversible harm). These live at the Rights Critic level
+    and cannot be weakened by other critics.
+  </p>
+
+  <h3>10.5 Misuse Prevention</h3>
+  <p>
+    Prohibited uses include:
+  </p>
+  <ul>
+    <li>Using ELEANOR as a rubber stamp to justify harmful outcomes.</li>
+    <li>Editing or deleting EvidencePackages.</li>
+    <li>Manipulating precedents or MigrationMaps to retro-justify decisions.</li>
+    <li>Disabling escalation for high-dissent scenarios.</li>
+  </ul>
+
+  <div class="section-label">Versioning</div>
+  <h2>11. Versioning &amp; Change Control</h2>
+
+  <h3>11.1 Semantic Governance Versioning</h3>
+  <p>
+    ELEANOR uses <code>MAJOR.MINOR.PATCH</code>:
+  </p>
+  <ul>
+    <li><strong>Major</strong>: Constitutional or architectural changes.</li>
+    <li><strong>Minor</strong>: Governance logic and critic improvements.</li>
+    <li><strong>Patch</strong>: Bug fixes and documentation clarifications.</li>
+  </ul>
+
+  <h3>11.2 Backward Compatibility</h3>
+  <p>
+    Within a major version, minor and patch releases must preserve the ability to read
+    and interpret earlier EvidencePackages and PrecedentRecords via migration.
+  </p>
+
+  <h3>11.3 Governance Change Requests (GCRs)</h3>
+  <p>
+    Any change to the constitution layer, critic logic, or schemas must pass through a
+    GCR process with impact analysis, ethical review, and sign-off. GCRs are logged in
+    a Governance Ledger.
+  </p>
+
+  <h3>11.4 Forward-Compatibility Requirement</h3>
+  <p>
+    Every new runtime release must ship with:
+  </p>
+  <ul>
+    <li>MigrationMaps for all earlier precedent schemas within the major version.</li>
+    <li>Migration tests in CI/CD.</li>
+    <li>Clear documentation of any partial translations.</li>
+  </ul>
+
+  <div class="section-label">Appendices</div>
+  <h2>12. Appendices (A–F Overview)</h2>
+
+  <h3>Appendix A – Critic Calibration Protocols</h3>
+  <p class="small">
+    Defines how each critic is calibrated (sensitivity, specificity, thresholds,
+    drift tolerance) and how calibration artifacts are stored.
+  </p>
+
+  <h3>Appendix B – Governance Test Suite (CI/CD)</h3>
+  <p class="small">
+    Constitutional tests, transparency tests, risk tests, precedent stability tests,
+    and context fidelity tests that must pass before deployment.
+  </p>
+
+  <h3>Appendix C – Schema Definitions</h3>
+  <p class="small">
+    Canonical JSON/YAML definitions for all core objects (Verdict, EvidencePackage,
+    PrecedentRecord, EscalationBundle, etc.).
+  </p>
+
+  <h3>Appendix D – Developer Integration Guide</h3>
+  <p class="small">
+    Patterns for integrating ELEANOR with Python, Node/TypeScript, Java, microservices,
+    API gateways, and event-driven architectures.
+  </p>
+
+  <h3>Appendix E – Precedent Governance Manual</h3>
+  <p class="small">
+    Fact pattern encoding, similarity scoring, precedent conflict resolution,
+    and federated precedent sharing guidelines.
+  </p>
+
+  <h3>Appendix F – Precedent Migration Protocol</h3>
+  <p class="small">
+    Details for PrecedentMigrationMaps, migration workflows, integrity status flags
+    (NATIVE, MIGRATED, PARTIAL), migration testing, and audit requirements.
+  </p>
+
+  <hr>
+
+  <p class="small">
+    This document defines the ELEANOR Governance Specification – Runtime Architecture v2.1.
+    It is intended as a living standard for decision-time AI governance, subject to
+    transparent revision and public scrutiny.
+  </p>
+
+</body>
+</html>

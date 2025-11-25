@@ -1,0 +1,159 @@
+# COPY THIS MESSAGE FOR CLAUDE CODE
+
+---
+
+## Message to Claude Code:
+
+Hi Claude Code! We've rebranded the ELEANOR project. Please apply this new nomenclature to ALL code in this repository:
+
+### Critical Terminology Changes
+
+**ALWAYS use these NEW terms (never use the old ones):**
+
+1. **EJE** → **EJC** (Ethical Jurisprudence Core)
+2. **Constitutional AI** → **Mutual Intelligence Framework (MIF)**
+3. **ELEANOR Governance Specification** → **Rights-Based Jurisprudence Architecture (RBJA)**
+4. **Constitutional Constraints** → **Rights-Based Safeguards**
+5. **Decision Engine** → **Ethical Reasoning Engine**
+6. **Critic System** → **Ethical Deliberation System**
+7. **Precedent System** → **Jurisprudence Repository**
+
+### What to Rename
+
+#### Files and Directories:
+```
+eje/ → ejc/
+eje_api_main.py → ejc_api_main.py
+eje_core.py → ejc_core.py
+test_eje.py → test_ejc.py
+eje_config.yaml → ejc_config.yaml
+```
+
+#### Python Classes:
+```python
+DecisionEngine → EthicalReasoningEngine
+CriticSystem → EthicalDeliberationSystem
+PrecedentSystem → JurisprudenceRepository
+ConstitutionalValidator → RightsBasedValidator
+```
+
+#### Functions and Variables:
+```python
+constitutional_check() → rights_based_validation()
+critic_system → ethical_deliberation_system
+decision_engine → ethical_reasoning_engine
+precedent_db → jurisprudence_repository
+```
+
+### Update All Docstrings
+
+**Every file should reference the new framework:**
+
+```python
+"""
+Ethical Jurisprudence Core (EJC)
+Part of the Mutual Intelligence Framework (MIF)
+
+This module implements [functionality] per the 
+Rights-Based Jurisprudence Architecture (RBJA) v3.0.
+
+Copyright (c) 2024 William Parris
+License: CC BY 4.0
+"""
+```
+
+### Update Comments
+
+Replace any mentions of:
+- "Constitutional AI" → "Mutual Intelligence Framework (MIF)"
+- "EJE" → "EJC"
+- "constitutional constraints" → "rights-based safeguards"
+- "critic system" → "ethical deliberation system"
+
+### Package Structure
+
+Update imports everywhere:
+```python
+# OLD
+from eje.core.decision_engine import DecisionEngine
+
+# NEW
+from ejc.core.ethical_reasoning_engine import EthicalReasoningEngine
+```
+
+### Environment Variables
+
+```bash
+# OLD
+CONSTITUTIONAL_MODE=strict
+EJE_API_KEY=...
+
+# NEW
+RBJA_MODE=strict
+EJC_API_KEY=...
+```
+
+### The Framework Hierarchy (Use in Comments)
+
+```
+MIF → ELEANOR → RBJA → EJC
+(Philosophy → System → Specification → Implementation)
+```
+
+### Example Before/After
+
+**BEFORE:**
+```python
+from eje.core.decision_engine import DecisionEngine
+
+class ConstitutionalValidator:
+    def __init__(self):
+        self.engine = DecisionEngine()
+    
+    def constitutional_check(self, decision):
+        """Check constitutional constraints."""
+        return self.engine.evaluate(decision)
+```
+
+**AFTER:**
+```python
+"""
+Ethical Jurisprudence Core (EJC)
+Part of the Mutual Intelligence Framework (MIF)
+"""
+from ejc.core.ethical_reasoning_engine import EthicalReasoningEngine
+
+class RightsBasedValidator:
+    """
+    Validates decisions against rights-based safeguards.
+    Part of the RBJA v3.0 specification.
+    """
+    def __init__(self):
+        self.engine = EthicalReasoningEngine()
+    
+    def rights_based_validation(self, decision):
+        """
+        Validate decision against rights-based safeguards.
+        Uses EJC ethical reasoning with MIF principles.
+        """
+        return self.engine.evaluate(decision)
+```
+
+### Summary
+
+Please refactor the entire codebase to use:
+- EJC (not EJE)
+- Mutual Intelligence Framework (not Constitutional AI)
+- Rights-Based Safeguards (not Constitutional Constraints)
+- Ethical Reasoning Engine (not Decision Engine)
+- Ethical Deliberation System (not Critic System)
+
+Rename all files, classes, functions, variables, and update all comments and docstrings to reflect the new MIF/RBJA/EJC framework.
+
+The complete documentation package with full details is available in CLAUDE_CODE_INSTRUCTIONS.md.
+
+Thank you!
+
+---
+
+**That's the complete message. Copy everything above this line.**
