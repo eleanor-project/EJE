@@ -15,9 +15,11 @@ plugin_critics:
 llm:
   critic_model_name: "gpt-4-1106-preview"
   security_model_name: "gemini-pro"
+  # API keys are loaded from environment variables (.env file)
+  # See .env.example for setup instructions
   api_keys:
-    openai: "YOUR_OPENAI_API_KEY"
-    gemini: "YOUR_GEMINI_API_KEY"
-    anthropic: "YOUR_ANTHROPIC_API_KEY"
+    openai: ""  # Set OPENAI_API_KEY in .env
+    gemini: ""  # Set GEMINI_API_KEY in .env
+    anthropic: ""  # Set ANTHROPIC_API_KEY in .env
 dashboard_port: 8049
 db_uri: "sqlite:///eleanor_data/eleanor.db"

@@ -1,7 +1,7 @@
 import uuid
 import datetime
-from .critic_loader import load_plugin_critics
-from .aggregator import aggregate_scores
+from .critic_loader import load_all_plugins
+from .aggregator import Aggregator
 from .config_loader import load_global_config
 from .precedent_manager import PrecedentManager
 from .audit_log import AuditLogger
@@ -23,13 +23,14 @@ class DecisionEngine:
         self.config = load_global_config(config_path)
 
         self.logger.info("Loading critics...")
-        self.critics = load_plugin_critics(self.config.get("plugin_critics", []))
+        self.critics = load_all_plugins(self.config.get("plugin_critics", []))
 
         self.pm = PrecedentManager(self.config.get("data_path", "./eleanor_data"))
         self.audit = AuditLogger(self.config.get("db_uri"))
 
         self.weights = self.config.get("critic_weights", {})
         self.priorities = self.config.get("critic_priorities", {})
+        self.aggregator = Aggregator(self.config)
 
         self.logger.info(f"{len(self.critics)} critics loaded.")
 
@@ -43,28 +44,29 @@ class DecisionEngine:
 
         critic_outputs = []
         for critic in self.critics:
+            critic_name = critic.__class__.__name__
             try:
                 out = critic.evaluate(case)
                 critic_outputs.append({
-                    "critic": critic.__class__.__name__,
+                    "critic": critic_name,
                     "verdict": out["verdict"],
                     "confidence": out["confidence"],
                     "justification": out["justification"],
+                    "weight": self.weights.get(critic_name, 1.0),
+                    "priority": self.priorities.get(critic_name)
                 })
             except Exception as e:
                 critic_outputs.append({
-                    "critic": critic.__class__.__name__,
+                    "critic": critic_name,
                     "verdict": "ERROR",
                     "confidence": 0,
                     "justification": f"Critic failed: {str(e)}",
+                    "weight": self.weights.get(critic_name, 1.0),
+                    "priority": self.priorities.get(critic_name)
                 })
 
         # Weighted aggregation
-        final = aggregate_scores(
-            critic_outputs,
-            weights=self.weights,
-            priorities=self.priorities
-        )
+        final = self.aggregator.aggregate(critic_outputs)
 
         # Retrieve similar precedent
         precedent_refs = self.pm.lookup(case)
