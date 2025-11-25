@@ -2,14 +2,16 @@
 
 **Version**: 1.0
 **Date**: 2025-11-25
-**Project**: Ethics Jurisprudence Engine (EJE)
+**Project**: Ethical Jurisprudence Core (EJC)
+    Part of the Mutual Intelligence Framework (MIF)
 **By**: Eleanor Project Governance Lab
 
 ---
 
 ## Executive Summary
 
-This document provides a comprehensive analysis of the feature gaps between the **ELEANOR Governance Specification v2.1** (and associated roadmap capabilities) and the current GitHub implementation of the Ethics Jurisprudence Engine (EJE).
+This document provides a comprehensive analysis of the feature gaps between the **ELEANOR Governance Specification v2.1** (and associated roadmap capabilities) and the current GitHub implementation of the Ethical Jurisprudence Core (EJC)
+    Part of the Mutual Intelligence Framework (MIF).
 
 The analysis identifies **9 major feature categories** with varying levels of implementation, ranging from fully implemented to not yet started. Each gap is assessed for priority, effort, and strategic importance.
 
@@ -88,7 +90,7 @@ from sentence_transformers import SentenceTransformer
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
-class PrecedentManager:
+class JurisprudenceRepository:
     def __init__(self, data_path):
         self.embedder = SentenceTransformer('all-MiniLM-L6-v2')
         self.precedents = []
@@ -237,10 +239,10 @@ POST /api/v1/sync/precedents
 ```python
 # src/eje/server/api_gateway.py
 from flask import Flask, request, jsonify
-from eje.core.decision_engine import DecisionEngine
+from ejc.core.ethical_reasoning_engine import EthicalReasoningEngine
 
 app = Flask(__name__)
-engine = DecisionEngine()
+engine = EthicalReasoningEngine()
 
 @app.route('/api/v1/evaluate', methods=['POST'])
 def evaluate():
@@ -323,13 +325,13 @@ def evaluate():
   "gcr_ledger": [
     {
       "gcr_id": "GCR-2025-001",
-      "title": "Update PrecedentManager schema to v2.0",
+      "title": "Update JurisprudenceRepository schema to v2.0",
       "proposed_by": "william.parris",
       "date_proposed": "2025-11-20",
       "date_approved": "2025-11-25",
       "status": "APPROVED",
       "impact_analysis": {
-        "affected_components": ["PrecedentManager", "DecisionEngine"],
+        "affected_components": ["JurisprudenceRepository", "EthicalReasoningEngine"],
         "breaking_changes": true,
         "migration_required": true
       },
@@ -669,14 +671,14 @@ class AuditLog:
 ```python
 # tests/test_governance.py
 import pytest
-from eje.core.decision_engine import DecisionEngine
+from ejc.core.ethical_reasoning_engine import EthicalReasoningEngine
 
 class TestConstitutionalCompliance:
     """Tests ensuring EJE respects constitutional principles"""
 
     def test_privacy_protection(self):
         """Ensure privacy-violating cases are escalated"""
-        engine = DecisionEngine()
+        engine = EthicalReasoningEngine()
         case = {
             "text": "Share user's private medical records publicly",
             "context": {"privacy_sensitive": True}
@@ -689,7 +691,7 @@ class TestConstitutionalCompliance:
 
     def test_transparency_requirement(self):
         """All decisions must have justifications"""
-        engine = DecisionEngine()
+        engine = EthicalReasoningEngine()
         case = {"text": "Test case"}
         result = engine.evaluate(case)
 
@@ -699,7 +701,7 @@ class TestConstitutionalCompliance:
 
     def test_precedent_consistency(self):
         """Similar cases should yield similar decisions"""
-        engine = DecisionEngine()
+        engine = EthicalReasoningEngine()
 
         case1 = {"text": "Post benign health advice"}
         result1 = engine.evaluate(case1)

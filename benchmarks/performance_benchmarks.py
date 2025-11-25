@@ -1,5 +1,6 @@
 """
-Performance benchmarks for the Ethics Jurisprudence Engine (EJE).
+Performance benchmarks for the Ethical Jurisprudence Core (EJC)
+    Part of the Mutual Intelligence Framework (MIF).
 
 Measures:
 - Decision latency
@@ -20,11 +21,11 @@ import os
 # Add parent directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from src.eje.core.decision_engine import DecisionEngine
+from src.eje.core.ethical_reasoning_engine import EthicalReasoningEngine
 from src.eje.core.precedent_manager_sqlite import PrecedentManagerSQLite
 from src.eje.utils.logging import get_logger
 
-logger = get_logger("EJE.Benchmarks")
+logger = get_logger("EJC.Benchmarks")
 
 
 class BenchmarkSuite:
@@ -58,7 +59,7 @@ class BenchmarkSuite:
         """Benchmark single decision latency."""
         logger.info("\n[1/6] Benchmarking single decision latency...")
 
-        engine = DecisionEngine(self.config_path)
+        engine = EthicalReasoningEngine(self.config_path)
 
         test_case = {
             "text": "This is a test case for performance benchmarking. " * 10
@@ -92,7 +93,7 @@ class BenchmarkSuite:
         """Benchmark decision throughput (decisions per second)."""
         logger.info("\n[2/6] Benchmarking decision throughput...")
 
-        engine = DecisionEngine(self.config_path)
+        engine = EthicalReasoningEngine(self.config_path)
 
         test_cases = [
             {"text": f"Test case {i} for throughput benchmarking. " * 10}
@@ -123,7 +124,7 @@ class BenchmarkSuite:
         """Benchmark cache hit rates and performance."""
         logger.info("\n[3/6] Benchmarking cache performance...")
 
-        engine = DecisionEngine(self.config_path)
+        engine = EthicalReasoningEngine(self.config_path)
 
         # Create test cases
         test_cases = [
@@ -240,7 +241,7 @@ class BenchmarkSuite:
         """Benchmark parallel critic execution."""
         logger.info("\n[6/6] Benchmarking parallel critic execution...")
 
-        engine = DecisionEngine(self.config_path)
+        engine = EthicalReasoningEngine(self.config_path)
 
         if len(engine.critics) == 0:
             logger.warning("  No critics loaded, skipping...")

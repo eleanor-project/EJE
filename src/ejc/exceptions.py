@@ -1,4 +1,5 @@
-"""Custom exception hierarchy for the Ethics Jurisprudence Engine (EJE)"""
+"""Custom exception hierarchy for the Ethical Jurisprudence Core (EJC)
+    Part of the Mutual Intelligence Framework (MIF)"""
 
 
 class EJEException(Exception):

@@ -1,4 +1,5 @@
-"""Constants for the Ethics Jurisprudence Engine (EJE)"""
+"""Constants for the Ethical Jurisprudence Core (EJC)
+    Part of the Mutual Intelligence Framework (MIF)"""
 
 # Validation Constants
 MAX_TEXT_LENGTH = 50000  # Maximum input text length (DoS protection)

@@ -44,7 +44,7 @@ def evaluate(self, case: Dict[str, Any]) -> Dict[str, Any]:
 For simple, deterministic logic:
 
 ```python
-from eje.core.base_critic import RuleBasedCritic
+from ejc.core.base_critic import RuleBasedCritic
 from typing import Dict, Any
 
 
@@ -81,7 +81,7 @@ class MyRuleCritic(RuleBasedCritic):
 For AI-powered evaluation:
 
 ```python
-from eje.core.base_critic import CriticBase
+from ejc.core.base_critic import CriticBase
 from typing import Dict, Any
 
 
@@ -120,7 +120,7 @@ def create_my_llm_critic(config):
 For complex logic with validation:
 
 ```python
-from eje.core.base_critic import BaseCritic
+from ejc.core.base_critic import BaseCritic
 from typing import Dict, Any
 import requests
 
@@ -193,11 +193,11 @@ class MyAPIBasedCritic(BaseCritic):
 ### Method 2: Programmatic Registration
 
 ```python
-from eje.core.decision_engine import DecisionEngine
+from ejc.core.ethical_reasoning_engine import EthicalReasoningEngine
 from my_module import MyCustomCritic
 
 # Initialize engine
-engine = DecisionEngine()
+engine = EthicalReasoningEngine()
 
 # Add critic
 my_critic = MyCustomCritic()
@@ -292,13 +292,13 @@ def test_critic_validates_input():
 ### Integration Testing
 
 ```python
-from eje.core.decision_engine import DecisionEngine
+from ejc.core.ethical_reasoning_engine import EthicalReasoningEngine
 from my_critic import MyRuleCritic
 
 
 def test_critic_integration():
-    """Test critic works with decision engine."""
-    engine = DecisionEngine()
+    """Test critic works with ethical reasoning engine."""
+    engine = EthicalReasoningEngine()
 
     # Add custom critic
     my_critic = MyRuleCritic()

@@ -1,8 +1,8 @@
-# Precedent System Explainer
+# Jurisprudence Repository Explainer
 
 ## Overview
 
-The EJE Precedent System provides consistency and traceability by storing and retrieving past decisions. It uses semantic similarity matching to find relevant historical cases and ensure consistent judgments.
+The EJE Jurisprudence Repository provides consistency and traceability by storing and retrieving past decisions. It uses semantic similarity matching to find relevant historical cases and ensure consistent judgments.
 
 ## How It Works
 
@@ -49,7 +49,7 @@ similar_precedents = precedent_manager.lookup(new_case)
 
 ### 3. Consistency Checking
 
-The precedent system helps detect:
+The jurisprudence repository helps detect:
 - **Drift**: Changes in decision patterns over time
 - **Inconsistencies**: Similar cases with different verdicts
 - **Pattern Recognition**: Emerging trends in decisions
@@ -159,9 +159,9 @@ embedding_cache_size: 1000
 ### Basic Lookup
 
 ```python
-from eje.core.precedent_manager import PrecedentManager
+from ejc.core.precedent_manager import JurisprudenceRepository
 
-pm = PrecedentManager(data_path="./eleanor_data")
+pm = JurisprudenceRepository(data_path="./eleanor_data")
 
 # Find similar cases
 case = {'text': 'User requests personal data deletion'}
@@ -179,7 +179,7 @@ for prec in precedents:
 # Detect drift over time
 from datetime import datetime, timedelta
 
-def detect_drift(pm: PrecedentManager, case_type: str, days: int = 30):
+def detect_drift(pm: JurisprudenceRepository, case_type: str, days: int = 30):
     """Check if decisions for similar cases have changed."""
     cutoff = datetime.now() - timedelta(days=days)
 
@@ -194,7 +194,7 @@ def detect_drift(pm: PrecedentManager, case_type: str, days: int = 30):
 ### Consistency Analysis
 
 ```python
-def find_inconsistencies(pm: PrecedentManager, threshold: float = 0.9):
+def find_inconsistencies(pm: JurisprudenceRepository, threshold: float = 0.9):
     """Find highly similar cases with different verdicts."""
     inconsistencies = []
 
@@ -283,7 +283,7 @@ similar_indices = index.get_nns_by_vector(query_embedding, 5)
 ```python
 from datetime import datetime, timedelta
 
-def prune_old_precedents(pm: PrecedentManager, days: int = 365):
+def prune_old_precedents(pm: JurisprudenceRepository, days: int = 365):
     """Remove precedents older than specified days."""
     cutoff = datetime.now() - timedelta(days=days)
 
@@ -298,7 +298,7 @@ def prune_old_precedents(pm: PrecedentManager, days: int = 365):
 #### Deduplication
 
 ```python
-def deduplicate_precedents(pm: PrecedentManager, threshold: float = 0.99):
+def deduplicate_precedents(pm: JurisprudenceRepository, threshold: float = 0.99):
     """Remove near-duplicate precedents."""
     seen_hashes = set()
     unique_precedents = []
@@ -333,7 +333,7 @@ def custom_similarity(embedding1, embedding2, case1, case2):
 ### Weighted Precedent Lookup
 
 ```python
-def weighted_lookup(pm: PrecedentManager, case: dict, weights: dict):
+def weighted_lookup(pm: JurisprudenceRepository, case: dict, weights: dict):
     """Lookup with time-based weighting."""
     precedents = pm.lookup(case)
 
@@ -386,10 +386,10 @@ def weighted_lookup(pm: PrecedentManager, case: dict, weights: dict):
 
 ## API Reference
 
-### PrecedentManager
+### JurisprudenceRepository
 
 ```python
-class PrecedentManager:
+class JurisprudenceRepository:
     def __init__(self, data_path: str):
         """Initialize precedent manager."""
 
@@ -414,4 +414,4 @@ class PrecedentManager:
 - [Semantic Similarity in NLP](https://example.com)
 - [Sentence Transformers Documentation](https://www.sbert.net)
 - [EJE Architecture Overview](./architecture.md)
-- [Decision Engine Guide](./decision_engine.md)
+- [Decision Engine Guide](./ethical_reasoning_engine.md)

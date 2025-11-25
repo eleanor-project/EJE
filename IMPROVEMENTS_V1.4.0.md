@@ -69,7 +69,7 @@ class MyCustomCritic(RuleBasedCritic):
 
 ### Test Coverage Improvements
 - **Aggregation**: Edge cases, ties, failures ✅
-- **Precedent System**: Similarity, drift detection ✅
+- **Jurisprudence Repository**: Similarity, drift detection ✅
 - **Plugin Security**: Validation, timeouts, blacklisting ✅
 - **Audit Log**: Feedback logging integration ✅
 
@@ -112,16 +112,16 @@ class PluginErrorStats:
     last_error_time: Optional[datetime]
 ```
 
-#### Integration with DecisionEngine
+#### Integration with EthicalReasoningEngine
 
-- Integrated into `decision_engine.py`
+- Integrated into `ethical_reasoning_engine.py`
 - All critic evaluations now wrapped with security manager
 - Automatic input validation before critic execution
 - Security statistics available via `engine.get_security_stats()`
 
 ---
 
-## 4. Precedent System Enhancements ✅
+## 4. Jurisprudence Repository Enhancements ✅
 
 ### Existing Strengths Documented
 - Already uses vector embeddings (`sentence-transformers/all-MiniLM-L6-v2`)
@@ -139,7 +139,7 @@ embedding_cache_size: 1000
 ```
 
 ### Documentation Created
-- Comprehensive precedent system guide: `docs/precedent_system.md`
+- Comprehensive jurisprudence repository guide: `docs/precedent_system.md`
 - Covers: architecture, usage, performance optimization, drift detection
 - Examples: similarity analysis, consistency checking, maintenance
 
@@ -300,7 +300,7 @@ dashboard_auto_refresh: 30  # seconds
 - Performance optimization
 - Publishing guidelines
 
-**2. Precedent System Explainer** (`docs/precedent_system.md`)
+**2. Jurisprudence Repository Explainer** (`docs/precedent_system.md`)
 - Architecture deep-dive
 - Similarity search mechanics
 - Drift detection techniques
@@ -339,7 +339,7 @@ tests/unit/test_aggregator_extended.py   # Extended aggregation tests
 tests/unit/test_plugin_security.py       # Security tests
 tests/unit/test_precedent_system.py      # Precedent tests
 docs/critic_marketplace.md                # Critic development guide
-docs/precedent_system.md                  # Precedent system guide
+docs/precedent_system.md                  # Jurisprudence repository guide
 CONTRIBUTING.md                           # Code style & contribution guide
 IMPROVEMENTS_V1.4.0.md                    # This document
 ```
@@ -348,7 +348,7 @@ IMPROVEMENTS_V1.4.0.md                    # This document
 ```
 src/eje/core/base_critic.py             # Added ABCs and validation
 src/eje/critics/community/custom_rule.py # Refactored to use ABC
-src/eje/core/decision_engine.py          # Integrated security manager
+src/eje/core/ethical_reasoning_engine.py          # Integrated security manager
 src/eje/core/audit_log.py                # Added feedback logging
 config/global.yaml                        # Added all new features
 ```
@@ -373,7 +373,7 @@ secrets:
   aws_region: "us-east-1"
   vault_url: "https://vault.example.com:8200"
 
-# Precedent System
+# Jurisprudence Repository
 precedent_backend: "sqlite"
 precedent_similarity_threshold: 0.8
 max_precedent_results: 5
@@ -445,7 +445,7 @@ class MyCritic:
         return {...}
 
 # New style (recommended)
-from eje.core.base_critic import RuleBasedCritic
+from ejc.core.base_critic import RuleBasedCritic
 
 class MyCritic(RuleBasedCritic):
     def apply_rules(self, case):

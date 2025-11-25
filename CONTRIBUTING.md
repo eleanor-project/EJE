@@ -60,8 +60,8 @@ from flask import Flask
 from sqlalchemy import create_engine
 
 # Local application
-from eje.core.base_critic import BaseCritic
-from eje.utils.logging import get_logger
+from ejc.core.base_critic import BaseCritic
+from ejc.utils.logging import get_logger
 ```
 
 #### 3. Type Hints
@@ -206,7 +206,7 @@ def calc_sim(t1: str, t2: str) -> float:
 class CriticSecurityManager:
     pass
 
-class PrecedentManager:
+class JurisprudenceRepository:
     pass
 
 # ❌ Bad
@@ -296,7 +296,7 @@ def evaluate(self, case):
 # tests/unit/test_my_module.py
 
 import pytest
-from eje.core.my_module import MyClass
+from ejc.core.my_module import MyClass
 
 
 class TestMyClass:
@@ -369,7 +369,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Or use utility
-from eje.utils.logging import get_logger
+from ejc.utils.logging import get_logger
 logger = get_logger("MyModule")
 ```
 
@@ -450,7 +450,7 @@ import os
 
 api_key = os.getenv('OPENAI_API_KEY')
 # Or
-from eje.core.secrets_manager import get_api_keys
+from ejc.core.secrets_manager import get_api_keys
 api_keys = get_api_keys(secrets_manager)
 
 # ❌ Bad - hardcoded secrets

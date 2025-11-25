@@ -41,7 +41,7 @@ class AuditLogger:
 
     def log_decision(self, bundle):
         """
-        Log a decision bundle from the DecisionEngine.
+        Log a decision bundle from the EthicalReasoningEngine.
         Wrapper around log_event that extracts the appropriate fields.
         """
         self.log_event(

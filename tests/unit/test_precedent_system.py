@@ -1,14 +1,14 @@
-"""Unit tests for Precedent System"""
+"""Unit tests for Jurisprudence Repository"""
 import pytest
 import os
 import tempfile
 import shutil
 import json
-from src.eje.core.precedent_manager import PrecedentManager
+from src.eje.core.precedent_manager import JurisprudenceRepository
 
 
 class TestPrecedentManager:
-    """Test suite for PrecedentManager"""
+    """Test suite for JurisprudenceRepository"""
 
     @pytest.fixture
     def temp_data_path(self):
@@ -19,12 +19,12 @@ class TestPrecedentManager:
 
     @pytest.fixture
     def precedent_manager(self, temp_data_path):
-        """Create PrecedentManager instance with temp directory"""
-        return PrecedentManager(data_path=temp_data_path)
+        """Create JurisprudenceRepository instance with temp directory"""
+        return JurisprudenceRepository(data_path=temp_data_path)
 
     def test_initialization(self, temp_data_path):
         """Test precedent manager initialization"""
-        pm = PrecedentManager(data_path=temp_data_path)
+        pm = JurisprudenceRepository(data_path=temp_data_path)
         assert pm.data_path == temp_data_path
         assert os.path.exists(temp_data_path)
 
@@ -147,7 +147,7 @@ class TestPrecedentManager:
     def test_precedent_persistence(self, temp_data_path):
         """Test that precedents persist across manager instances"""
         # Create first manager and store precedent
-        pm1 = PrecedentManager(data_path=temp_data_path)
+        pm1 = JurisprudenceRepository(data_path=temp_data_path)
 
         case = {'text': 'Persistence test case'}
         bundle = {
@@ -159,7 +159,7 @@ class TestPrecedentManager:
         pm1.store_precedent(bundle)
 
         # Create second manager instance
-        pm2 = PrecedentManager(data_path=temp_data_path)
+        pm2 = JurisprudenceRepository(data_path=temp_data_path)
 
         # Should load existing precedents
         assert len(pm2.precedent_store) == 1
@@ -256,9 +256,9 @@ class TestPrecedentSimilarity:
 
     @pytest.fixture
     def precedent_manager(self):
-        """Create PrecedentManager instance"""
+        """Create JurisprudenceRepository instance"""
         temp_dir = tempfile.mkdtemp()
-        pm = PrecedentManager(data_path=temp_dir)
+        pm = JurisprudenceRepository(data_path=temp_dir)
         yield pm
         shutil.rmtree(temp_dir)
 

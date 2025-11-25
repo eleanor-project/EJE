@@ -10,14 +10,18 @@ from ..utils.logging import get_logger
 from ..constants import PRECEDENT_SIMILARITY_THRESHOLD
 
 
-class PrecedentManager:
+class JurisprudenceRepository:
     """
-    Stores and retrieves precedent bundles.
-    Supports both exact hash matching and semantic similarity via embeddings.
+    Ethical Jurisprudence Core (EJC)
+    Part of the Mutual Intelligence Framework (MIF)
+
+    Jurisprudence Repository implementing RBJA precedent requirements.
+    Stores and retrieves precedent bundles with semantic similarity.
+    Supports both exact hash matching and embedding-based semantic retrieval.
     """
 
     def __init__(self, data_path: str = "./eleanor_data", use_embeddings: bool = True) -> None:
-        self.logger = get_logger("EJE.PrecedentManager")
+        self.logger = get_logger("EJC.JurisprudenceRepository")
         ensure_dir(data_path)
 
         self.store_path: str = os.path.join(data_path, "precedent_store.json")

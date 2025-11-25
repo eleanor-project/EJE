@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from src.eje.core.precedent_schema import migrate_json_to_sqlite, create_precedent_tables
 from src.eje.utils.logging import get_logger
 
-logger = get_logger("EJE.Migration")
+logger = get_logger("EJC.Migration")
 
 
 def main():

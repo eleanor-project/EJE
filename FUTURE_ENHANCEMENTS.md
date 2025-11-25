@@ -85,7 +85,7 @@ def evaluate_with_retry(self, critic, case):
 
 **Current State**: RetrainingManager exists but is never instantiated
 **Required Changes**:
-- Instantiate in DecisionEngine.__init__()
+- Instantiate in EthicalReasoningEngine.__init__()
 - Feed high-confidence decisions to retraining buffer
 - Implement weight adaptation logic
 
@@ -154,7 +154,7 @@ response = client.chat.completions.create(
 ```python
 from sentence_transformers import SentenceTransformer
 
-class PrecedentManager:
+class JurisprudenceRepository:
     def __init__(self, data_path):
         self.embedder = SentenceTransformer('all-MiniLM-L6-v2')
         self.precedents = []
@@ -230,7 +230,7 @@ eje stats --period week
 from functools import lru_cache
 import hashlib
 
-class DecisionEngine:
+class EthicalReasoningEngine:
     @lru_cache(maxsize=1000)
     def _evaluate_cached(self, case_hash: str):
         # Implementation
@@ -420,7 +420,7 @@ make html
 **Status**: Basic unit tests only
 
 **Required Tests**:
-- Full DecisionEngine evaluation flow
+- Full EthicalReasoningEngine evaluation flow
 - End-to-end with mocked LLM APIs
 - Precedent lookup and storage cycle
 - Multi-critic scenarios

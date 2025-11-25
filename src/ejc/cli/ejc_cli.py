@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Enhanced CLI for the Ethics Jurisprudence Engine (EJE)
+Enhanced CLI for the Ethical Jurisprudence Core (EJC)
+    Part of the Mutual Intelligence Framework (MIF)
 Provides multiple commands for evaluation, precedent management, and system inspection.
 """
 
@@ -13,16 +14,17 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from eje.core.decision_engine import DecisionEngine
-from eje.core.precedent_manager import PrecedentManager
-from eje.core.audit_log import AuditLogger, AuditEvent
-from eje.core.config_loader import load_global_config
+from ejc.core.ethical_reasoning_engine import EthicalReasoningEngine
+from ejc.core.jurisprudence_repository import JurisprudenceRepository
+from ejc.core.audit_log import AuditLogger, AuditEvent
+from ejc.core.config_loader import load_global_config
 
 
 @click.group()
 @click.version_option(version="1.2.0")
 def cli():
-    """Ethics Jurisprudence Engine (EJE) - Command Line Interface"""
+    """Ethical Jurisprudence Core (EJC)
+    Part of the Mutual Intelligence Framework (MIF) - Command Line Interface"""
     pass
 
 
@@ -42,8 +44,8 @@ def evaluate(case, config, pretty):
             case_data = json.loads(case)
 
         # Initialize engine
-        click.echo("🔧 Initializing Decision Engine...")
-        engine = DecisionEngine(config)
+        click.echo("🔧 Initializing Ethical Reasoning Engine...")
+        engine = EthicalReasoningEngine(config)
 
         # Evaluate
         click.echo(f"⚖️  Evaluating case...")
@@ -98,7 +100,7 @@ def list_precedents(limit, config):
     """List stored precedents"""
     try:
         cfg = load_global_config(config)
-        pm = PrecedentManager(cfg.get('data_path', './eleanor_data'))
+        pm = JurisprudenceRepository(cfg.get('data_path', './eleanor_data'))
 
         with open(pm.store_path, 'r') as f:
             precedents = json.load(f)
@@ -136,7 +138,7 @@ def search_precedents(query, threshold, config):
     """Search for similar precedents using semantic similarity"""
     try:
         cfg = load_global_config(config)
-        pm = PrecedentManager(cfg.get('data_path', './eleanor_data'))
+        pm = JurisprudenceRepository(cfg.get('data_path', './eleanor_data'))
 
         # Search
         click.echo(f"🔍 Searching for precedents similar to: '{query}'")
@@ -170,7 +172,7 @@ def precedent_stats(config):
     """Show precedent database statistics"""
     try:
         cfg = load_global_config(config)
-        pm = PrecedentManager(cfg.get('data_path', './eleanor_data'))
+        pm = JurisprudenceRepository(cfg.get('data_path', './eleanor_data'))
 
         stats = pm.get_statistics()
 
@@ -342,7 +344,7 @@ def stats(config):
         cfg = load_global_config(config)
 
         # Precedent stats
-        pm = PrecedentManager(cfg.get('data_path', './eleanor_data'))
+        pm = JurisprudenceRepository(cfg.get('data_path', './eleanor_data'))
         prec_stats = pm.get_statistics()
 
         click.echo("\n📚 Precedent Database:")
