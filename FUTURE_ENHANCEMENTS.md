@@ -2,6 +2,32 @@
 
 This document tracks improvements and features that should be implemented in future versions of the Ethics Jurisprudence Engine. Items are organized by priority and version target.
 
+> 📊 **NEW**: See **[FEATURE_GAP_ANALYSIS.md](FEATURE_GAP_ANALYSIS.md)** for comprehensive analysis of gaps between ELEANOR Specification v2.1 and current implementation. This document focuses on tactical enhancements; the gap analysis provides strategic alignment with the full ELEANOR vision.
+
+---
+
+## Cross-Reference: Gap Analysis Mapping
+
+This section maps enhancements in this document to the strategic gaps in FEATURE_GAP_ANALYSIS.md:
+
+| Enhancement # | Feature | Maps to Gap Analysis |
+|---------------|---------|----------------------|
+| 6 | Semantic Precedent Similarity | **Gap #1** - Precedent Vector Embeddings |
+| 7 | Complete Dashboard Implementation | Gap #5 - Escalation Bundles & Human Review |
+| 10 | Plugin Sandboxing | Gap #7 - Immutable Logging & Security |
+| 11 | Type Hints Throughout Codebase | Gap #4 - GCR & Versioning (supporting) |
+| 13 | Distributed Governance Nodes | **Gap #2** - Federated & Distributed Governance |
+| 14 | Multi-Region Precedent Sync | **Gap #2** - Federated & Distributed Governance |
+| 15 | Pluggable Legal Frameworks | **Gap #9** - Context/Domain Extensions |
+| 19 | Integration Tests | **Gap #8** - Governance Test Suites |
+
+**High Priority from Gap Analysis** (not yet in this document):
+- **Gap #3**: Multi-Language SDKs (JS/TS, Java)
+- **Gap #4**: Formal GCR Process & Migration Maps
+- **Gap #6**: Calibration Protocols & Self-Audit
+
+See FEATURE_GAP_ANALYSIS.md for detailed implementation roadmaps.
+
 ---
 
 ## v1.1.0 - Performance & Reliability (Short-term)
