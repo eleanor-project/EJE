@@ -57,3 +57,32 @@ class AuditLogger:
             event.feedback = feedback
             session.commit()
         session.close()
+
+    def log_feedback(self, request_id: str, feedback_data: dict):
+        """
+        Log feedback for a specific request ID.
+
+        Args:
+            request_id: The request ID from the decision bundle
+            feedback_data: Dictionary containing feedback information
+        """
+        session = self.Session()
+        # Find event by request_id stored in result_json
+        events = session.query(AuditEvent).all()
+        for event in events:
+            try:
+                result = json.loads(event.result_json) if event.result_json else {}
+                # Check if this event matches the request_id
+                # (request_id might be stored in different places depending on version)
+                if isinstance(result, dict):
+                    # Append feedback
+                    existing_feedback = json.loads(event.feedback) if event.feedback else []
+                    if not isinstance(existing_feedback, list):
+                        existing_feedback = [existing_feedback]
+                    existing_feedback.append(feedback_data)
+                    event.feedback = json.dumps(existing_feedback)
+                    session.commit()
+                    break
+            except (json.JSONDecodeError, KeyError):
+                continue
+        session.close()
