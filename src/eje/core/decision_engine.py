@@ -10,6 +10,7 @@ from .config_loader import load_global_config
 from .precedent_manager import PrecedentManager
 from .audit_log import AuditLogger
 from .retraining_manager import Retrainer
+from .plugin_security import get_security_manager, PluginSecurityManager, TimeoutException
 from ..utils.logging import get_logger
 from ..utils.validation import validate_case
 from ..utils.caching import DecisionCache
@@ -59,9 +60,19 @@ class DecisionEngine:
         self.cache: DecisionCache = DecisionCache(maxsize=cache_size)
         self.cache_enabled: bool = self.config.get("enable_cache", True)
 
+        # Initialize plugin security manager
+        default_timeout = self.config.get("critic_timeout", 30.0)
+        self.security_manager: PluginSecurityManager = get_security_manager(
+            default_timeout=default_timeout,
+            max_consecutive_failures=self.config.get("max_consecutive_failures", 3),
+            max_error_rate=self.config.get("max_error_rate", 50.0),
+            blacklist_duration=self.config.get("blacklist_duration", 300)
+        )
+
         self.logger.info(f"{len(self.critics)} critics loaded.")
         if self.cache_enabled:
             self.logger.info(f"Result caching enabled (max size: {cache_size})")
+        self.logger.info(f"Plugin security enabled (timeout: {default_timeout}s)")
 
     @retry(
         stop=stop_after_attempt(MAX_RETRY_ATTEMPTS),
@@ -70,12 +81,12 @@ class DecisionEngine:
             min=RETRY_MIN_WAIT,
             max=RETRY_MAX_WAIT
         ),
-        retry=retry_if_exception_type((APIException, ConnectionError, TimeoutError)),
+        retry=retry_if_exception_type((APIException, ConnectionError, TimeoutError, TimeoutException)),
         reraise=True
     )
     def _evaluate_critic_with_retry(self, critic: Any, case: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Evaluate a single critic with automatic retry logic.
+        Evaluate a single critic with automatic retry logic and timeout protection.
 
         Args:
             critic: The critic instance to evaluate
@@ -87,13 +98,38 @@ class DecisionEngine:
         Raises:
             CriticException: If critic evaluation fails after all retries
         """
+        critic_name = critic.__class__.__name__
+
         try:
-            return critic.evaluate(case)
+            # Validate input before passing to plugin
+            self.security_manager.validate_case_input(case)
+
+            # Execute with timeout protection
+            result = self.security_manager.execute_with_timeout(
+                func=critic.evaluate,
+                args=(case,),
+                timeout=getattr(critic, 'timeout', None),
+                plugin_name=critic_name
+            )
+            return result
+        except TimeoutException as e:
+            self.logger.warning(f"Timeout in {critic_name}: {str(e)}")
+            raise TimeoutError(str(e)) from e
         except (ConnectionError, TimeoutError) as e:
-            self.logger.warning(f"Retryable error in {critic.__class__.__name__}: {str(e)}")
+            self.logger.warning(f"Retryable error in {critic_name}: {str(e)}")
             raise APIException(f"API call failed: {str(e)}") from e
+        except ValueError as e:
+            # Input validation error
+            self.logger.error(f"Input validation failed for {critic_name}: {str(e)}")
+            raise CriticException(f"Invalid input: {str(e)}") from e
+        except RuntimeError as e:
+            # Blacklisted plugin
+            if "blacklisted" in str(e).lower():
+                self.logger.error(f"Plugin {critic_name} is blacklisted: {str(e)}")
+                raise CriticException(f"Plugin blacklisted: {str(e)}") from e
+            raise
         except Exception as e:
-            self.logger.error(f"Non-retryable error in {critic.__class__.__name__}: {str(e)}")
+            self.logger.error(f"Non-retryable error in {critic_name}: {str(e)}")
             raise CriticException(f"Critic evaluation failed: {str(e)}") from e
 
     def _evaluate_single_critic(self, critic: Any, case: Dict[str, Any]) -> Dict[str, Any]:
@@ -246,3 +282,29 @@ class DecisionEngine:
     def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache statistics."""
         return self.cache.get_stats() if self.cache_enabled else {"enabled": False}
+
+    def get_security_stats(self) -> Dict[str, Any]:
+        """
+        Get plugin security statistics including error rates and blacklisted plugins.
+
+        Returns:
+            dict: Security statistics for all plugins
+        """
+        stats = self.security_manager.get_all_stats()
+        blacklisted = self.security_manager.get_blacklisted_plugins()
+
+        return {
+            "plugin_stats": {
+                name: {
+                    "total_calls": stat.total_calls,
+                    "total_errors": stat.total_errors,
+                    "total_timeouts": stat.total_timeouts,
+                    "error_rate": round(stat.error_rate, 2),
+                    "consecutive_failures": stat.consecutive_failures,
+                    "last_error": stat.last_error,
+                    "last_error_time": stat.last_error_time.isoformat() if stat.last_error_time else None
+                }
+                for name, stat in stats.items()
+            },
+            "blacklisted_plugins": blacklisted
+        }

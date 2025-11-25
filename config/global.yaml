@@ -1,19 +1,40 @@
+# EJE Global Configuration (v1.4.0)
+# Enhanced with security, feedback, and secrets management features
+
+# Data Storage
 data_path: "./eleanor_data"
-block_threshold: 0.50
-ambiguity_threshold: 0.25
-max_parallel_calls: 5
-retrain_batch_size: 25
+db_uri: "sqlite:///eleanor_data/eleanor.db"
+
+# Decision Aggregation
+block_threshold: 0.50  # Threshold for BLOCK verdict
+ambiguity_threshold: 0.25  # Threshold for triggering REVIEW
+
+# Parallel Execution
+max_parallel_calls: 5  # Maximum concurrent critic evaluations
+
+# Retraining
+retrain_batch_size: 25  # Number of decisions before retraining trigger
+
+# Caching
 enable_cache: true
-cache_size: 1000
+cache_size: 1000  # Maximum cached decisions
+
+# Critic Configuration
 critic_weights:
   Rights: 1.0
   Equity: 0.9
   Utilitarian: 1.2
+  CustomRule: 1.0  # Custom rule-based critic
+
 critic_priorities:
-  Security: "override"
+  Security: "override"  # Can veto other critics
   Human: "override"
+
+# Plugin Critics
 plugin_critics:
   - "./plugins/custom_rule.py"
+
+# LLM Configuration
 llm:
   critic_model_name: "gpt-4-1106-preview"
   security_model_name: "gemini-pro"
@@ -23,5 +44,45 @@ llm:
     openai: ""  # Set OPENAI_API_KEY in .env
     gemini: ""  # Set GEMINI_API_KEY in .env
     anthropic: ""  # Set ANTHROPIC_API_KEY in .env
+
+# Security & Fault-Tolerance (NEW in v1.4.0)
+critic_timeout: 30.0  # Default timeout for critic execution (seconds)
+max_consecutive_failures: 3  # Max failures before blacklisting
+max_error_rate: 50.0  # Max error rate (%) before blacklisting
+blacklist_duration: 300  # Blacklist duration (seconds)
+
+# Secrets Management (NEW in v1.4.0)
+secrets:
+  backends:
+    - environment  # Try environment variables first
+    # - aws  # Uncomment to enable AWS Secrets Manager
+    # - vault  # Uncomment to enable HashiCorp Vault
+  cache_enabled: true  # Cache secrets in memory
+  env_prefix: ""  # Optional prefix for environment variables
+  # AWS Secrets Manager (if enabled)
+  # aws_region: "us-east-1"
+  # Vault (if enabled)
+  # vault_url: "https://vault.example.com:8200"
+  # vault_mount_point: "secret"
+
+# Precedent System
+precedent_backend: "sqlite"  # "sqlite" or "json"
+precedent_similarity_threshold: 0.8  # Minimum similarity for precedent matching
+max_precedent_results: 5  # Maximum precedents to return
+cache_embeddings: true  # Cache embeddings in memory
+embedding_cache_size: 1000
+
+# Feedback System (NEW in v1.4.0)
+feedback:
+  enabled: true
+  auto_retrain_on_corrections: true  # Trigger retraining on human corrections
+  feedback_buffer_size: 10  # Number of feedback signals before processing
+
+# Dashboard
 dashboard_port: 8049
-db_uri: "sqlite:///eleanor_data/eleanor.db"
+dashboard_auto_refresh: 30  # Auto-refresh interval (seconds)
+
+# Logging
+log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+log_file: "./eleanor_data/eje.log"
+audit_log_enabled: true
