@@ -7,3 +7,8 @@ sqlalchemy
 pytest
 python-dotenv
 tenacity
+sentence-transformers
+numpy
+scikit-learn
+click
+tabulate

@@ -3,6 +3,8 @@ block_threshold: 0.50
 ambiguity_threshold: 0.25
 max_parallel_calls: 5
 retrain_batch_size: 25
+enable_cache: true
+cache_size: 1000
 critic_weights:
   Rights: 1.0
   Equity: 0.9
