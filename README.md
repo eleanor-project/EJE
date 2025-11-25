@@ -267,24 +267,53 @@ The documentation includes:
 
 ## 🛰 Roadmap
 
-### v1.1.0
+> 📊 **See [FEATURE_GAP_ANALYSIS.md](FEATURE_GAP_ANALYSIS.md)** for detailed gap analysis between ELEANOR Spec v2.1 and current implementation.
 
+### v1.1.0 (Next 2 months) - Foundation
+
+**High Priority:**
+* ✅ Governance & constitutional test suites (CI/CD integration)
+* ✅ Formal GCR process & migration maps
+* ✅ Immutable audit logging with cryptographic signatures
+* ✅ Precedent vector embeddings (Phase 1 - semantic search)
+* ✅ REST API gateway & OpenAPI specification
+
+**Supporting Features:**
 * Expanded critic marketplace
-* Precedent vector embeddings
-* Reinforcement loops
-* Config profiles
+* Enhanced configuration profiles
+* Parallel critic execution
+* Retry logic & circuit breakers
 
-### v1.2.0
+### v1.2.0 (3-6 months) - Intelligence & Features
 
-* Distributed governance nodes
-* Multi-model advisory pipeline
+**Core Improvements:**
+* ✅ Precedent semantic similarity (production-grade)
+* ✅ Multi-language SDKs (JavaScript/TypeScript)
+* ✅ Escalation bundles & human review workflows
+* ✅ Calibration protocols & self-audit
+* ✅ Context/domain extension mechanisms
+
+**Additional Features:**
+* Enhanced dashboard with real-time streaming
+* Improved CLI tool with full command suite
+* Distributed governance nodes (prototype)
 * Enhanced drift detection
 
-### v2.0.0
+### v2.0.0 (6-12 months) - Distributed & Advanced
 
-* Pluggable legal frameworks
-* Domain-specific critic bundles
+**Major Capabilities:**
+* ✅ Federated governance & precedent sync
+* ✅ Multi-node consensus & distributed precedent sharing
+* ✅ Java/JVM SDK & gRPC services
+* ✅ Pluggable legal frameworks (GDPR, HIPAA, SOX)
+* ✅ Domain-specific critic bundles
+* ✅ Jurisdiction routing & cultural context modules
+
+**Security & Scale:**
 * Multi-region governance sync
+* Enhanced privacy-preserving precedent bundles (k-anonymity)
+* Advanced security isolation for plugins
+* Production-ready federation protocol
 
 ---
 

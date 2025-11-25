@@ -1,0 +1,23 @@
+{
+  "version": "1.0",
+  "last_updated": "2025-11-25",
+  "gcr_ledger": [
+    {
+      "gcr_id": "GCR-2025-001",
+      "title": "Initialize GCR Process and Ledger System",
+      "proposed_by": "william.parris",
+      "date_proposed": "2025-11-25",
+      "date_approved": "2025-11-25",
+      "status": "IMPLEMENTED",
+      "impact_analysis": {
+        "affected_components": ["governance", "documentation"],
+        "breaking_changes": false,
+        "migration_required": false
+      },
+      "description": "Establish formal Governance Change Request (GCR) process, ledger system, and migration map framework as specified in ELEANOR Spec v2.1",
+      "migration_map": null,
+      "test_coverage": null,
+      "version": "1.4.1"
+    }
+  ]
+}
