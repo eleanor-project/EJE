@@ -88,13 +88,37 @@ README.md
 
 ## 🚀 Quick Start
 
-### Install Dependencies
+### 1. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
-````
+```
 
-### Run a Decision
+### 2. Configure API Keys
+
+Copy the example environment file and add your API keys:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and add your API keys:
+
+```bash
+# Required API keys
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+GEMINI_API_KEY=...
+```
+
+Get your API keys from:
+- OpenAI: https://platform.openai.com/api-keys
+- Anthropic: https://console.anthropic.com/
+- Google Gemini: https://makersuite.google.com/app/apikey
+
+**Important**: Never commit your `.env` file to version control!
+
+### 3. Run a Decision
 
 ```bash
 python -m eje.cli.run_engine --case '{"text":"Example scenario"}'
