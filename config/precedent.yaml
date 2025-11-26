@@ -1,0 +1,18 @@
+precedent:
+
+  enabled: true
+
+  embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+
+  similarity_threshold:
+    strong_match: 0.80
+    weak_match: 0.60
+    conflict_threshold: 0.40
+
+  store:
+    path: "data/precedents/"
+    format: "jsonl"
+
+  version:
+    major: 1
+    minor: 0
