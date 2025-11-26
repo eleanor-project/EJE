@@ -22,11 +22,24 @@ class Aggregator:
             top = max(verdict_scores, key=verdict_scores.get)
             ambiguity = variance(confidences) if len(confidences) > 1 else 0
             overall = top
-            if ambiguity > self.ambiguity_threshold or len(set([r['verdict'] for r in results])) > 1:
-                overall = 'REVIEW'
+
+            # Check for meaningful disagreement (not just any disagreement)
+            # Only trigger REVIEW if disagreement is significant AND ambiguity is high
+            non_zero_scores = [s for s in verdict_scores.values() if s > 0]
+            if len(non_zero_scores) > 1:
+                disagreement_ratio = min(non_zero_scores) / max(non_zero_scores)
+                # If minority opinion is >30% of majority AND high ambiguity, escalate
+                if disagreement_ratio > 0.3 and ambiguity > self.ambiguity_threshold:
+                    overall = 'REVIEW'
+                    reason = "Significant disagreement with high ambiguity"
+
+            # High confidence block threshold overrides
             if verdict_scores['BLOCK'] >= self.block_threshold:
                 overall = 'BLOCK'
-            reason = "Weighted aggregation"
+                reason = "Block threshold exceeded"
+
+            if reason == "":
+                reason = "Weighted aggregation"
         return {
             'overall_verdict': overall,
             'reason': reason,
