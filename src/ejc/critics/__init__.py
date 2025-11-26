@@ -4,7 +4,7 @@ EJC Critics Module
 Critic implementations for ethical evaluation.
 """
 
-from .base_critic import BaseCritic, RuleBasedCritic
+from ejc.core.base_critic import BaseCritic, RuleBasedCritic
 
 # Import available critics
 try:

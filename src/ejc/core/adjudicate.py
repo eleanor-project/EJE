@@ -19,9 +19,43 @@ from .precedent.retrieval import retrieve_similar_precedents
 from .precedent.store import store_precedent_case
 from ..utils.logging import get_logger
 from ..utils.validation import validate_case
-from .error_handling import ValidationException, GovernanceException
+from ..exceptions import ValidationException
+from .error_handling import GovernanceException
 
 logger = get_logger("ejc.adjudicate")
+
+
+def _fallback_policy_checks(input_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Minimal safeguards used when no critics are configured."""
+    text = str(input_data.get("text", "")).lower()
+    reports: List[Dict[str, Any]] = []
+
+    discrimination_markers = ["deny service", "deny access", "refuse service"]
+    age_markers = ["over", "age", "elderly", "senior", "65"]
+
+    if any(token in text for token in discrimination_markers) and any(marker in text for marker in age_markers):
+        reports.append({
+            "critic": "PolicyGuard",
+            "verdict": "REVIEW",
+            "confidence": 0.8,
+            "justification": "Fallback policy detected potential age discrimination",
+            "right": "non_discrimination",
+            "violation": True,
+            "weight": 1.0,
+            "priority": None
+        })
+
+    if not reports and text:
+        reports.append({
+            "critic": "PolicyGuard",
+            "verdict": "REVIEW",
+            "confidence": 0.5,
+            "justification": "No critics configured; fallback review triggered",
+            "weight": 1.0,
+            "priority": None
+        })
+
+    return reports
 
 
 def adjudicate(
@@ -75,6 +109,9 @@ def adjudicate(
         logger.error(f"Input validation failed: {str(e)}")
         raise ValidationException(f"Invalid input: {str(e)}")
 
+    if "text" not in input_data and "prompt" in input_data:
+        input_data["text"] = input_data["prompt"]
+
     # -------------------------------------------------------------------------
     # 3. Load critics dynamically (if not already loaded)
     # -------------------------------------------------------------------------
@@ -86,6 +123,10 @@ def adjudicate(
     # 4. Run critics → generate critic reports
     # -------------------------------------------------------------------------
     critic_reports: List[Dict[str, Any]] = []
+
+    if not critics:
+        critic_reports.extend(_fallback_policy_checks(input_data))
+
     for critic in critics:
         try:
             report = critic.evaluate(input_data)
@@ -152,6 +193,11 @@ def adjudicate(
             governed_result["safeguards_triggered"].append("precedent_conflict")
 
     governed_result["precedent_status"] = precedent_status
+
+    # Respect explicit human review requests from the caller
+    if input_data.get("require_human_review"):
+        escalated = True
+        governed_result.setdefault("safeguards_triggered", []).append("human_review_requested")
 
     # -------------------------------------------------------------------------
     # 9. Final escalation determination

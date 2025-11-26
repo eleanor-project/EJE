@@ -4,7 +4,7 @@ import os
 import tempfile
 import shutil
 import json
-from src.eje.core.precedent_manager import JurisprudenceRepository
+from ejc.core.jurisprudence_repository import JurisprudenceRepository
 
 
 class TestPrecedentManager:

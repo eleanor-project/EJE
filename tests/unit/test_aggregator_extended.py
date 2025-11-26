@@ -1,6 +1,6 @@
 """Extended unit tests for the Aggregator - edge cases and complex scenarios"""
 import pytest
-from src.eje.core.aggregator import Aggregator
+from ejc.core.aggregator import Aggregator
 
 
 class TestAggregatorEdgeCases:
