@@ -20,7 +20,7 @@ RETRY_MAX_WAIT = 10     # Maximum wait time in seconds between retries
 RETRY_MULTIPLIER = 1    # Exponential backoff multiplier
 
 # Precedent Constants
-PRECEDENT_SIMILARITY_THRESHOLD = 0.8  # Threshold for semantic similarity
+PRECEDENT_SIMILARITY_THRESHOLD = 0.55  # Threshold for semantic similarity
 
 # Verdict Types
 VERDICT_ALLOW = "ALLOW"

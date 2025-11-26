@@ -51,6 +51,12 @@ docs = [
     "mkdocs>=1.5",
     "mkdocs-material>=9.2",
 ]
+ops = [
+    "streamlit>=1.30.0",
+    "pandas>=2.1.0",
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/eleanor-project/EJE"
@@ -63,7 +69,7 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["ejc*"]
+include = ["ejc*", "eje*"]
 
 [tool.black]
 line-length = 100

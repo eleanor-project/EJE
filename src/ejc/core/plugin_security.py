@@ -259,17 +259,18 @@ class PluginSecurityManager:
             with security_manager.timeout_context(30.0, "MyPlugin"):
                 result = plugin.evaluate(case)
         """
+        timeout_event = threading.Event()
+
         def timeout_handler():
-            self._local.timed_out = True
+            timeout_event.set()
 
         # Set up timer
         timer = threading.Timer(seconds, timeout_handler)
-        self._local.timed_out = False
-
+        
         try:
             timer.start()
             yield
-            if self._local.timed_out:
+            if timeout_event.is_set():
                 raise TimeoutException(
                     f"Plugin '{plugin_name}' exceeded timeout of {seconds}s"
                 )
