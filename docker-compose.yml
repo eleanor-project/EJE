@@ -37,7 +37,11 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
-      
+
+      # Security
+      EJC_AUDIT_SIGNING_KEY: ${EJC_AUDIT_SIGNING_KEY}
+      EJC_DB_URI: ${DATABASE_URL}
+
       # Application config
       EJE_CONFIG_PATH: /app/config/global.yaml
       EJE_DATA_PATH: /app/eleanor_data
@@ -66,7 +70,7 @@ services:
     networks:
       - eje-network
     restart: unless-stopped
-    command: ["python", "-m", "uvicorn", "eje.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+    command: ["python", "-m", "uvicorn", "src.ejc.server.api:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
 
   # EJE Dashboard (Flask-based UI)
   eje-dashboard:
@@ -91,7 +95,7 @@ services:
     networks:
       - eje-network
     restart: unless-stopped
-    command: ["python", "-m", "flask", "--app", "eje.server.dashboard_enhanced:app", "run", "--host", "0.0.0.0", "--port", "8049"]
+    command: ["python", "-m", "flask", "--app", "src.ejc.server.dashboard_enhanced:app", "run", "--host", "0.0.0.0", "--port", "8049"]
 
   # Redis (optional - for distributed caching and task queues)
   redis:

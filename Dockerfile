@@ -37,15 +37,16 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Create non-root user for security
 RUN useradd -m -u 1000 eje && \
-    mkdir -p /app/eleanor_data /app/config /app/plugins && \
+    mkdir -p /app/eleanor_data /app/config /app/plugins /app/data/precedents /app/logs && \
     chown -R eje:eje /app
 
 # Copy application code
 COPY --chown=eje:eje src/ /app/src/
 COPY --chown=eje:eje config/ /app/config/
+COPY --chown=eje:eje data/ /app/data/
 
 # Set Python path
-ENV PYTHONPATH=/app/src
+ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
 # Switch to non-root user
@@ -61,4 +62,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 EXPOSE 8000 8049
 
 # Default command - start the API server
-CMD ["python", "-m", "uvicorn", "eje.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "src.ejc.server.api:app", "--host", "0.0.0.0", "--port", "8000"]

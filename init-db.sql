@@ -23,6 +23,21 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp ON audit_log(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_log_request_id ON audit_log(request_id);
 CREATE INDEX IF NOT EXISTS idx_audit_log_verdict ON audit_log((final_decision->>'overall_verdict'));
 
+-- Signed Audit Log Table (with cryptographic signatures for tamper detection)
+CREATE TABLE IF NOT EXISTS signed_audit_log (
+    id SERIAL PRIMARY KEY,
+    request_id VARCHAR(64) NOT NULL,
+    timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    decision_data TEXT NOT NULL,
+    signature VARCHAR(64) NOT NULL,
+    key_version VARCHAR(16) NOT NULL DEFAULT 'v1',
+    version VARCHAR(16) NOT NULL DEFAULT '1.0'
+);
+
+CREATE INDEX IF NOT EXISTS idx_signed_audit_log_request_id ON signed_audit_log(request_id);
+CREATE INDEX IF NOT EXISTS idx_signed_audit_log_timestamp ON signed_audit_log(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_signed_audit_log_key_version ON signed_audit_log(key_version);
+
 -- Precedent Table
 CREATE TABLE IF NOT EXISTS precedents (
     id SERIAL PRIMARY KEY,
