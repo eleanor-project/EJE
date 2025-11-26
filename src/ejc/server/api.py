@@ -22,8 +22,14 @@ from ejc.core.error_handling import (
     EJEBaseException,
     create_error_report,
 )
+from ejc.core.adjudicate import adjudicate
+from ejc.core.config_loader import load_global_config
+from ejc.core.precedent.retrieval import retrieve_similar_precedents
 
 logger = logging.getLogger(__name__)
+
+# Global configuration loaded on startup
+_config = None
 
 # ============================================================================
 # Request/Response Models
@@ -131,6 +137,25 @@ app.add_middleware(
 security = HTTPBearer()
 
 # ============================================================================
+# Application Lifecycle
+# ============================================================================
+
+@app.on_event("startup")
+async def startup_event():
+    """Load configuration on application startup."""
+    global _config
+    import time
+    app.state.start_time = time.time()
+
+    try:
+        _config = load_global_config("config/global.yaml")
+        logger.info("Configuration loaded successfully")
+    except Exception as e:
+        logger.error(f"Failed to load configuration: {e}")
+        # Set minimal config to allow health checks
+        _config = {"critics": [], "aggregation": {}, "governance": {}, "precedent": {"enabled": False}}
+
+# ============================================================================
 # API Endpoints
 # ============================================================================
 
@@ -149,17 +174,28 @@ async def health_check():
     """Health check endpoint."""
     import time
     start_time = getattr(app.state, 'start_time', time.time())
-    
+
+    # Check component health
+    components = {
+        "api": "operational",
+        "config": "operational" if _config else "degraded",
+        "critics": "operational" if _config and _config.get("critics") else "unavailable",
+        "precedent_engine": "operational" if _config and _config.get("precedent", {}).get("enabled") else "disabled"
+    }
+
+    # Overall status based on component health
+    status = "healthy"
+    if any(v == "degraded" for v in components.values()):
+        status = "degraded"
+    if any(v == "unavailable" for v in components.values()):
+        status = "degraded"
+
     return HealthResponse(
-        status="healthy",
+        status=status,
         version="1.0.0",
         timestamp=datetime.utcnow(),
         uptime_seconds=time.time() - start_time,
-        components={
-            "api": "operational",
-            "critics": "operational",
-            "precedent_engine": "operational"
-        }
+        components=components
     )
 
 @app.get("/metrics", response_model=MetricsResponse, tags=["Monitoring"])
@@ -176,40 +212,62 @@ async def get_metrics():
 async def evaluate_case(request: CaseRequest):
     """Evaluate case through EJE governance pipeline."""
     import time
-    import uuid
-    
+
     start_time = time.time()
-    case_id = request.case_id or f"case_{uuid.uuid4().hex[:8]}"
-    
+
     try:
-        logger.info(f"Evaluating case {case_id}")
-        
-        # TODO: Integrate with actual EJE engine
-        critic_results = [
-            CriticResult(
-                critic_name="openai_critic",
-                decision="approved",
-                confidence=0.85,
-                reasoning="Content aligns with guidelines",
-                execution_time_ms=120.5
-            )
-        ]
-        
+        logger.info(f"Evaluating case: {request.prompt[:50]}...")
+
+        # Build input data from request
+        input_data = {
+            "prompt": request.prompt,
+            "context": request.context,
+            "require_human_review": request.require_human_review
+        }
+
+        # Run adjudication through the full EJE pipeline
+        decision = adjudicate(input_data=input_data, config=_config)
+
+        # Extract execution times from critic reports
+        critic_results = []
+        for report in decision.critic_reports:
+            critic_results.append(CriticResult(
+                critic_name=report.get("critic", "unknown"),
+                decision=report.get("verdict", "ERROR"),
+                confidence=report.get("confidence", 0.0),
+                reasoning=report.get("justification", "No reasoning provided"),
+                execution_time_ms=report.get("execution_time_ms", 0.0)
+            ))
+
+        # Map governance outcome to decision status
+        final_verdict = decision.governance_outcome.get("verdict", "UNKNOWN")
+        status_map = {
+            "ALLOW": DecisionStatus.APPROVED,
+            "DENY": DecisionStatus.REJECTED,
+            "REVIEW": DecisionStatus.ESCALATED,
+            "ERROR": DecisionStatus.ESCALATED
+        }
+        decision_status = status_map.get(final_verdict, DecisionStatus.ESCALATED)
+
+        # Extract precedent IDs
+        precedent_ids = [p.get("id", f"prec_{i}") for i, p in enumerate(decision.precedents[:5])]
+
+        # Calculate total execution time
         execution_time = (time.time() - start_time) * 1000
-        
+
         return DecisionResponse(
-            case_id=case_id,
-            status=DecisionStatus.ESCALATED if request.require_human_review else DecisionStatus.APPROVED,
-            final_decision="approved",
-            confidence=0.85,
+            case_id=request.case_id or decision.decision_id,
+            status=decision_status,
+            final_decision=final_verdict.lower(),
+            confidence=decision.governance_outcome.get("confidence", 0.0),
             critic_results=critic_results,
-            precedents_applied=["precedent_001"],
-            requires_escalation=request.require_human_review,
-            audit_log_id=f"audit_{uuid.uuid4().hex[:8]}",
-            timestamp=datetime.utcnow(),
+            precedents_applied=precedent_ids,
+            requires_escalation=decision.escalated,
+            audit_log_id=decision.decision_id,  # Audit log uses decision ID
+            timestamp=datetime.fromisoformat(decision.timestamp.replace("Z", "+00:00")),
             execution_time_ms=execution_time
         )
-        
+
     except EJEBaseException as e:
         logger.error(f"EJE error: {e}")
         error_report = create_error_report(e)
@@ -228,29 +286,73 @@ async def evaluate_case(request: CaseRequest):
 async def search_precedents(request: PrecedentSearchRequest):
     """Search for similar precedents."""
     import time
-    
+
     start_time = time.time()
-    
-    # TODO: Integrate with precedent engine
-    results = [
-        Precedent(
-            precedent_id="prec_001",
-            case_summary="Similar case from 2024",
-            decision="approved",
-            reasoning="Based on ethical principles",
-            similarity_score=0.92,
-            created_at=datetime(2024, 1, 15)
+
+    try:
+        logger.info(f"Searching precedents for query: {request.query[:50]}...")
+
+        # Build input data from query
+        input_data = {"prompt": request.query, "context": {}}
+
+        # Retrieve similar precedents using the precedent engine
+        precedent_config = _config.get("precedent", {}) if _config else {}
+
+        # Override config limits with request parameters
+        precedent_config["limit"] = request.limit
+        precedent_config["min_similarity"] = request.min_similarity
+
+        similar_precedents = retrieve_similar_precedents(input_data, precedent_config)
+
+        # Filter by minimum similarity and limit results
+        filtered = [p for p in similar_precedents if p.get("similarity", 0) >= request.min_similarity]
+        filtered = filtered[:request.limit]
+
+        # Map to API response model
+        results = []
+        for prec in filtered:
+            # Extract decision outcome
+            outcome = prec.get("outcome", {})
+            decision_verdict = outcome.get("verdict", "unknown")
+
+            # Build case summary from input data
+            input_prompt = prec.get("input_data", {}).get("prompt", "No summary available")
+            case_summary = input_prompt[:200] + ("..." if len(input_prompt) > 200 else "")
+
+            # Extract reasoning from outcome
+            reasoning = outcome.get("justification", "No reasoning provided")
+
+            # Parse timestamp
+            timestamp_str = prec.get("timestamp", datetime.utcnow().isoformat() + "Z")
+            try:
+                timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+            except:
+                timestamp = datetime.utcnow()
+
+            results.append(Precedent(
+                precedent_id=prec.get("id", f"unknown_{len(results)}"),
+                case_summary=case_summary,
+                decision=decision_verdict.lower(),
+                reasoning=reasoning,
+                similarity_score=prec.get("similarity", 0.0),
+                created_at=timestamp
+            ))
+
+        execution_time = (time.time() - start_time) * 1000
+
+        return PrecedentSearchResponse(
+            query=request.query,
+            results=results,
+            total_count=len(similar_precedents),  # Total before filtering
+            execution_time_ms=execution_time
         )
-    ]
-    
-    execution_time = (time.time() - start_time) * 1000
-    
-    return PrecedentSearchResponse(
-        query=request.query,
-        results=results,
-        total_count=len(results),
-        execution_time_ms=execution_time
-    )
+
+    except Exception as e:
+        logger.error(f"Precedent search error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Precedent search failed: {str(e)}"
+        )
 
 # ============================================================================
 # Server Startup
