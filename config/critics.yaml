@@ -1,0 +1,31 @@
+critics:
+
+  - name: "rights"
+    module: "critics.rights_critic"
+    class: "RightsCritic"
+    priority: 1
+
+  - name: "fairness"
+    module: "critics.fairness_critic"
+    class: "FairnessCritic"
+    priority: 2
+
+  - name: "safety"
+    module: "critics.safety_critic"
+    class: "SafetyCritic"
+    priority: 1
+
+  - name: "truth"
+    module: "critics.truth_critic"
+    class: "TruthCritic"
+    priority: 3
+
+  - name: "pragmatics"
+    module: "critics.pragmatics_critic"
+    class: "PragmaticsCritic"
+    priority: 4
+
+  - name: "precedent"
+    module: "critics.precedent_critic"
+    class: "PrecedentCritic"
+    priority: 2
