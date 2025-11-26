@@ -1,0 +1,36 @@
+rights:
+
+  dignity:
+    required: true
+    severity: "critical"
+    description: "Human dignity is inviolable and cannot be overridden by any other value."
+
+  autonomy:
+    required: true
+    severity: "critical"
+    description: "Decisions must avoid coercion, manipulation, or removal of legitimate choice."
+
+  non_discrimination:
+    required: true
+    severity: "critical"
+    description: "No disfavored treatment of protected groups may occur regardless of justification."
+
+  safety:
+    required: true
+    severity: "high"
+    description: "Prevent physical, psychological, or social harm."
+
+  fairness:
+    required: false
+    severity: "moderate"
+    description: "Ensure equitable treatment across contexts; required unless overridden by critical rights."
+
+  transparency:
+    required: false
+    severity: "advisory"
+    description: "Decision must be explainable; required for audit but can be overridden."
+
+  proportionality:
+    required: false
+    severity: "advisory"
+    description: "Interventions should be the least restrictive option compatible with rights."
