@@ -2,17 +2,29 @@ precedent:
 
   enabled: true
 
+  # Backend: "vector" (Qdrant) or "file" (legacy JSONL)
+  backend: "vector"
+
   embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
 
   similarity_threshold:
-    strong_match: 0.80
-    weak_match: 0.60
+    inherited: 0.80
+    advisory: 0.60
+    novelty: 0.40
     conflict_threshold: 0.40
 
+  # Vector database configuration (Qdrant)
+  vector_db:
+    url: ":memory:"  # Use ":memory:" for testing, "http://localhost:6333" for production
+    collection: "precedents"
+    dimension: 384  # MiniLM-L6 embedding dimension
+    api_key: null  # Optional API key for Qdrant Cloud
+
+  # Legacy file-based storage (fallback)
   store:
     path: "data/precedents/"
     format: "jsonl"
 
   version:
-    major: 1
+    major: 2
     minor: 0

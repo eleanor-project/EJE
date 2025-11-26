@@ -6,10 +6,25 @@ import re
 from typing import Any, Dict
 
 from .embeddings import embed_text
+from .vector_manager import VectorPrecedentManager
 from ...utils.logging import get_logger
 from ..error_handling import ConfigurationException, PrecedentException
 
 logger = get_logger("ejc.precedent.store")
+
+# Global vector manager instance
+_vector_manager = None
+
+
+def _get_vector_manager(config: Dict[str, Any]) -> VectorPrecedentManager:
+    """Get or create the global VectorPrecedentManager instance."""
+    global _vector_manager
+
+    if _vector_manager is None:
+        logger.info("Initializing VectorPrecedentManager for storage")
+        _vector_manager = VectorPrecedentManager(config)
+
+    return _vector_manager
 
 
 def sanitize_id(decision_id: str) -> str:
@@ -29,13 +44,72 @@ def store_precedent_case(decision: Any, config: Dict[str, Any]) -> None:
     """
     Stores the final decision as a precedent case.
 
+    Supports two backends:
+    - "vector": Uses Qdrant vector database (production-grade)
+    - "file": Uses legacy JSONL file storage (fallback)
+
     Args:
         decision: Decision object to store
-        config: Precedent configuration including store path and embedding model
+        config: Precedent configuration including backend, store path, and embedding model
 
     Raises:
         ConfigurationException: If configuration is missing required keys
         PrecedentException: If storage operation fails
+    """
+    # Determine backend (default to "file" for backwards compatibility)
+    backend = config.get("backend", "file")
+
+    if backend == "vector":
+        # Use VectorPrecedentManager (Qdrant)
+        logger.debug("Using vector backend for precedent storage")
+        _store_with_vector_db(decision, config)
+    else:
+        # Use legacy file-based storage
+        logger.debug("Using file backend for precedent storage")
+        _store_with_file_storage(decision, config)
+
+
+def _store_with_vector_db(decision: Any, config: Dict[str, Any]) -> None:
+    """
+    Store precedent using Qdrant vector database.
+
+    Args:
+        decision: Decision object to store
+        config: Precedent configuration
+
+    Raises:
+        PrecedentException: If storage fails
+    """
+    try:
+        manager = _get_vector_manager(config)
+
+        # Store precedent in vector DB
+        point_id = manager.store_precedent(
+            decision_id=decision.decision_id,
+            input_data=decision.input_data,
+            outcome=decision.governance_outcome,
+            timestamp=decision.timestamp
+        )
+
+        logger.info(f"Stored precedent {decision.decision_id} in vector DB (point: {point_id})")
+
+    except Exception as e:
+        logger.error(f"Vector DB storage failed: {str(e)}, falling back to file storage")
+        # Fallback to file storage
+        _store_with_file_storage(decision, config)
+
+
+def _store_with_file_storage(decision: Any, config: Dict[str, Any]) -> None:
+    """
+    Store precedent using legacy file storage (JSONL).
+
+    Args:
+        decision: Decision object to store
+        config: Precedent configuration
+
+    Raises:
+        ConfigurationException: If configuration is invalid
+        PrecedentException: If storage fails
     """
     try:
         # Validate configuration

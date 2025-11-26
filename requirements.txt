@@ -10,6 +10,7 @@ tenacity
 sentence-transformers
 numpy
 scikit-learn
+qdrant-client>=1.7.0
 click
 tabulate
 fastapi>=0.104.0
