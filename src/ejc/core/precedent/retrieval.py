@@ -177,7 +177,8 @@ def _retrieve_with_file_storage(
 
     # Generate query embedding
     query_text = json.dumps(input_data, sort_keys=True)
-    query_vec = embed_text(query_text, config["embedding_model"])
+    model_name = config.get("embedding_model", "hashing-offline")
+    query_vec = embed_text(query_text, model_name)
 
     # Score all precedents
     scored = []
