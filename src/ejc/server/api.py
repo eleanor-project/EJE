@@ -8,13 +8,14 @@ Date: 2025-11-25
 Version: 1.0.0
 """
 
+import os
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
 
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBearer
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 import logging
 
@@ -126,15 +127,35 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
+allowed_origins_env = [
+    origin.strip()
+    for origin in os.getenv("EJE_ALLOWED_ORIGINS", "http://localhost,http://127.0.0.1").split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=allowed_origins_env,
+    allow_credentials=False,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
+
+
+def verify_bearer(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Simple bearer token enforcement when EJE_API_TOKEN is set."""
+    expected_token = os.getenv("EJE_API_TOKEN")
+    if not expected_token:
+        return None
+
+    if not credentials or credentials.credentials != expected_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing API token",
+        )
+    return credentials
 
 # ============================================================================
 # Application Lifecycle
@@ -199,7 +220,7 @@ async def health_check():
     )
 
 @app.get("/metrics", response_model=MetricsResponse, tags=["Monitoring"])
-async def get_metrics():
+async def get_metrics(credentials: HTTPAuthorizationCredentials = Depends(verify_bearer)):
     """Get system metrics."""
     return MetricsResponse(
         total_cases_evaluated=1234,
@@ -209,7 +230,10 @@ async def get_metrics():
     )
 
 @app.post("/evaluate", response_model=DecisionResponse, tags=["Decisions"])
-async def evaluate_case(request: CaseRequest):
+async def evaluate_case(
+    request: CaseRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(verify_bearer)
+):
     """Evaluate case through EJE governance pipeline."""
     import time
 
@@ -220,6 +244,7 @@ async def evaluate_case(request: CaseRequest):
 
         # Build input data from request
         input_data = {
+            "text": request.prompt,
             "prompt": request.prompt,
             "context": request.context,
             "require_human_review": request.require_human_review
@@ -283,7 +308,10 @@ async def evaluate_case(request: CaseRequest):
         )
 
 @app.post("/precedents/search", response_model=PrecedentSearchResponse, tags=["Precedents"])
-async def search_precedents(request: PrecedentSearchRequest):
+async def search_precedents(
+    request: PrecedentSearchRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(verify_bearer)
+):
     """Search for similar precedents."""
     import time
 

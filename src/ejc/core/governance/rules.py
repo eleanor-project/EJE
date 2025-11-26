@@ -44,6 +44,7 @@ def apply_governance_rules(
         raise GovernanceException("Missing rights hierarchy configuration.")
 
     outcome = aggregated.copy()
+    outcome.setdefault("verdict", aggregated.get("overall_verdict"))
     outcome["safeguards_triggered"] = []
     outcome["escalate"] = False
 
@@ -52,10 +53,17 @@ def apply_governance_rules(
     # ----------------------------------------------------------------------
     for right, rule in rights_cfg.items():
         if rule.get("required") and _violates_right(critic_reports, right):
-            logger.error(f"Critical rights violation: {right}")
-            raise RightsViolation(
-                f"Decision prohibited due to violation of '{right}'."
-            )
+            severity = str(rule.get("severity", "")).lower()
+            if severity == "critical":
+                logger.error(f"Critical rights violation: {right}")
+                raise RightsViolation(
+                    f"Decision prohibited due to violation of '{right}'."
+                )
+
+            # Non-critical required rights trigger escalation instead of blocking
+            logger.warning(f"Required right violated ({right}); escalating decision.")
+            outcome["escalate"] = True
+            outcome["safeguards_triggered"].append(right)
 
     # ----------------------------------------------------------------------
     # 2. Safety guard

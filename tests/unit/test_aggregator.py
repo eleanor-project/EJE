@@ -1,6 +1,6 @@
 """Unit tests for the Aggregator"""
 import pytest
-from src.eje.core.aggregator import Aggregator
+from ejc.core.aggregator import Aggregator
 
 
 class TestAggregator:
