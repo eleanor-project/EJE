@@ -75,8 +75,8 @@ eje.env → ejc.env
 
 **Old:**
 ```python
-from eje.core.decision_engine import DecisionEngine
-from eje.critics.critic_system import CriticSystem
+from ejc.core.decision_engine import EthicalReasoningEngine
+from ejc.critics.critic_system import CriticSystem
 ```
 
 **New:**
@@ -90,7 +90,7 @@ from ejc.critics.ethical_deliberation import EthicalDeliberationSystem
 **Rename these classes:**
 ```python
 # OLD → NEW
-DecisionEngine → EthicalReasoningEngine
+EthicalReasoningEngine → EthicalReasoningEngine
 CriticSystem → EthicalDeliberationSystem
 PrecedentSystem → JurisprudenceRepository
 ConstitutionalValidator → RightsBasedValidator
@@ -198,8 +198,8 @@ services:
 ```python
 # OLD
 import eje
-from eje.core import DecisionEngine
-from eje.critics import CriticSystem
+from ejc.core import EthicalReasoningEngine
+from ejc.critics import CriticSystem
 
 # NEW
 import ejc
@@ -212,7 +212,7 @@ from ejc.critics import EthicalDeliberationSystem
 ### Pattern 1: Initialization
 ```python
 # OLD
-engine = DecisionEngine(config)
+engine = EthicalReasoningEngine(config)
 critics = CriticSystem()
 
 # NEW
@@ -313,7 +313,7 @@ class TestEthicalReasoningEngine(unittest.TestCase):
 # OLD
 @pytest.fixture
 def eje_engine():
-    return DecisionEngine()
+    return EthicalReasoningEngine()
 
 # NEW
 @pytest.fixture
@@ -425,9 +425,9 @@ def _deprecated_import(old_name, new_name):
         stacklevel=2
     )
 
-DecisionEngine = EthicalReasoningEngine  # Deprecated
+EthicalReasoningEngine = EthicalReasoningEngine  # Deprecated
 def get_decision_engine(*args, **kwargs):
-    _deprecated_import("DecisionEngine", "EthicalReasoningEngine")
+    _deprecated_import("EthicalReasoningEngine", "EthicalReasoningEngine")
     return EthicalReasoningEngine(*args, **kwargs)
 ```
 
@@ -461,12 +461,12 @@ Refer to these documents in the package:
 """
 EJE Constitutional AI Engine
 """
-from eje.core.decision_engine import DecisionEngine
-from eje.critics.critic_system import CriticSystem
+from ejc.core.decision_engine import EthicalReasoningEngine
+from ejc.critics.critic_system import CriticSystem
 
 class ConstitutionalValidator:
     def __init__(self):
-        self.engine = DecisionEngine()
+        self.engine = EthicalReasoningEngine()
         self.critics = CriticSystem()
     
     def constitutional_check(self, decision):

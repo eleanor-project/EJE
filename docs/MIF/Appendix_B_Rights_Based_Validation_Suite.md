@@ -1496,7 +1496,7 @@ tests/
 # tests/fixtures/conftest.py
 
 import pytest
-from eje.core.decision_engine import DecisionEngine
+from ejc.core.decision_engine import EthicalReasoningEngine
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -1515,7 +1515,7 @@ def test_db():
 @pytest.fixture
 def engine(test_db):
     """Decision engine with test configuration"""
-    engine = DecisionEngine('config/test.yaml')
+    engine = EthicalReasoningEngine('config/test.yaml')
     engine.audit.session = test_db  # Use test database
     
     yield engine
@@ -1528,7 +1528,7 @@ def engine(test_db):
 @pytest.fixture
 def api_client(engine):
     """Test client for API"""
-    from eje.api.main import app
+    from ejc.api.main import app
     from fastapi.testclient import TestClient
     
     return TestClient(app)

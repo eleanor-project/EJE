@@ -749,12 +749,12 @@ pytest tests/calibration/ -v --html=calibration_report.html
 # tests/calibration/test_rights_critic.py
 
 import pytest
-from eje.core.decision_engine import DecisionEngine
+from ejc.core.decision_engine import EthicalReasoningEngine
 from tests.calibration.fixtures import load_test_scenarios
 
 @pytest.fixture
 def engine():
-    return DecisionEngine("config/global.yaml")
+    return EthicalReasoningEngine("config/global.yaml")
 
 def test_rights_critic_calibration(engine):
     """Test Rights Critic against calibration test set"""

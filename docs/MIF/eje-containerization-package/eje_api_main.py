@@ -18,15 +18,15 @@ from contextlib import asynccontextmanager
 import sys
 sys.path.insert(0, '/app/src')
 
-from eje.core.decision_engine import DecisionEngine
-from eje.exceptions import CriticException
-from eje.utils.logging import get_logger
+from ejc.core.decision_engine import EthicalReasoningEngine
+from ejc.exceptions import CriticException
+from ejc.utils.logging import get_logger
 
 # Configure logging
-logger = get_logger("EJE.API")
+logger = get_logger("EJC.API")
 
 # Global engine instance (initialized on startup)
-engine: Optional[DecisionEngine] = None
+engine: Optional[EthicalReasoningEngine] = None
 
 
 # Pydantic models for API request/response
@@ -97,7 +97,7 @@ async def lifespan(app: FastAPI):
     config_path = os.getenv("EJE_CONFIG_PATH", "/app/config/global.yaml")
     
     try:
-        engine = DecisionEngine(config_path)
+        engine = EthicalReasoningEngine(config_path)
         logger.info(f"Decision engine initialized with {len(engine.critics)} critics")
     except Exception as e:
         logger.error(f"Failed to initialize decision engine: {e}")
@@ -112,7 +112,8 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI application
 app = FastAPI(
-    title="Ethics Jurisprudence Engine (EJE) API",
+    title="Ethical Jurisprudence Core (EJC)
+    Part of the Mutual Intelligence Framework (MIF) API",
     description="Multi-critic, precedent-driven ethical oversight for AI systems",
     version="1.3.0",
     lifespan=lifespan,
@@ -131,7 +132,7 @@ app.add_middleware(
 
 
 # Dependency to get engine instance
-def get_engine() -> DecisionEngine:
+def get_engine() -> EthicalReasoningEngine:
     """Dependency to get the global engine instance"""
     if engine is None:
         raise HTTPException(status_code=503, detail="Decision engine not initialized")
@@ -144,7 +145,8 @@ def get_engine() -> DecisionEngine:
 async def root():
     """Root endpoint with API information"""
     return {
-        "name": "Ethics Jurisprudence Engine (EJE) API",
+        "name": "Ethical Jurisprudence Core (EJC)
+    Part of the Mutual Intelligence Framework (MIF) API",
         "version": "1.3.0",
         "status": "operational",
         "documentation": "/docs",
@@ -153,7 +155,7 @@ async def root():
 
 
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
-async def health_check(eng: DecisionEngine = Depends(get_engine)):
+async def health_check(eng: EthicalReasoningEngine = Depends(get_engine)):
     """
     Health check endpoint for monitoring and load balancers
     """
@@ -182,7 +184,7 @@ async def health_check(eng: DecisionEngine = Depends(get_engine)):
 async def evaluate_case(
     case: CaseInput,
     background_tasks: BackgroundTasks,
-    eng: DecisionEngine = Depends(get_engine)
+    eng: EthicalReasoningEngine = Depends(get_engine)
 ):
     """
     Evaluate a case using all configured critics
@@ -222,7 +224,7 @@ async def evaluate_case(
 
 
 @app.get("/stats", response_model=StatsResponse, tags=["Monitoring"])
-async def get_statistics(eng: DecisionEngine = Depends(get_engine)):
+async def get_statistics(eng: EthicalReasoningEngine = Depends(get_engine)):
     """
     Get system statistics including cache performance and plugin security metrics
     """
@@ -241,7 +243,7 @@ async def get_statistics(eng: DecisionEngine = Depends(get_engine)):
 async def search_precedents(
     query: str,
     limit: int = 5,
-    eng: DecisionEngine = Depends(get_engine)
+    eng: EthicalReasoningEngine = Depends(get_engine)
 ):
     """
     Search for similar precedents based on a query
@@ -264,7 +266,7 @@ async def search_precedents(
 
 
 @app.get("/critics", tags=["Configuration"])
-async def list_critics(eng: DecisionEngine = Depends(get_engine)):
+async def list_critics(eng: EthicalReasoningEngine = Depends(get_engine)):
     """
     List all loaded critics with their configurations
     """
@@ -289,7 +291,7 @@ async def list_critics(eng: DecisionEngine = Depends(get_engine)):
 
 
 @app.get("/config", tags=["Configuration"])
-async def get_configuration(eng: DecisionEngine = Depends(get_engine)):
+async def get_configuration(eng: EthicalReasoningEngine = Depends(get_engine)):
     """
     Get current engine configuration (sanitized - no API keys)
     """

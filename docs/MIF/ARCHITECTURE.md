@@ -154,10 +154,10 @@ ELEANOR (EJC) is a multi-critic, precedent-driven ethical oversight system that 
 - Coordinate with all subsystems
 
 **Key Classes:**
-- `DecisionEngine` - Main orchestrator
+- `EthicalReasoningEngine` - Main orchestrator
 - `CriticLoader` - Plugin management
 - `Aggregator` - Result aggregation
-- `PrecedentManager` - Historical lookup
+- `JurisprudenceRepository` - Historical lookup
 - `AuditLogger` - Decision logging
 
 ### 3. Critic System
