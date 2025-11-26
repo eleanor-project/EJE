@@ -19,10 +19,10 @@ Due to the comprehensive nature of Appendices A-C (covering Critic Calibration, 
 ### Python Integration
 
 ```python
-from eje.core.decision_engine import DecisionEngine
+from ejc.core.decision_engine import EthicalReasoningEngine
 
 # Initialize engine
-engine = DecisionEngine("config/global.yaml")
+engine = EthicalReasoningEngine("config/global.yaml")
 
 # Evaluate a decision
 result = engine.evaluate({
@@ -165,7 +165,7 @@ if preliminary_check['final_decision']['overall_verdict'] != 'DENY':
 ## Error Handling
 
 ```python
-from eje.exceptions import CriticException, ValidationException
+from ejc.exceptions import CriticException, ValidationException
 
 try:
     result = engine.evaluate(case)

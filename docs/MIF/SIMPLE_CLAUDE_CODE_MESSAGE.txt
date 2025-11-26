@@ -31,7 +31,7 @@ eje_config.yaml → ejc_config.yaml
 
 #### Python Classes:
 ```python
-DecisionEngine → EthicalReasoningEngine
+EthicalReasoningEngine → EthicalReasoningEngine
 CriticSystem → EthicalDeliberationSystem
 PrecedentSystem → JurisprudenceRepository
 ConstitutionalValidator → RightsBasedValidator
@@ -75,7 +75,7 @@ Replace any mentions of:
 Update imports everywhere:
 ```python
 # OLD
-from eje.core.decision_engine import DecisionEngine
+from ejc.core.decision_engine import EthicalReasoningEngine
 
 # NEW
 from ejc.core.ethical_reasoning_engine import EthicalReasoningEngine
@@ -104,11 +104,11 @@ MIF → ELEANOR → RBJA → EJC
 
 **BEFORE:**
 ```python
-from eje.core.decision_engine import DecisionEngine
+from ejc.core.decision_engine import EthicalReasoningEngine
 
 class ConstitutionalValidator:
     def __init__(self):
-        self.engine = DecisionEngine()
+        self.engine = EthicalReasoningEngine()
     
     def constitutional_check(self, decision):
         """Check constitutional constraints."""

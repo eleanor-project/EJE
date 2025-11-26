@@ -274,7 +274,7 @@ The **Mutual Intelligence Framework (MIF)** represents a comprehensive approach 
 
 ```python
 # OLD
-from eje.core.decision_engine import DecisionEngine
+from ejc.core.decision_engine import EthicalReasoningEngine
 
 # NEW
 from ejc.core.reasoning_engine import EthicalReasoningEngine
