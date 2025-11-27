@@ -1,0 +1,47 @@
+{
+  "name": "@eleanor-project/eje-client",
+  "version": "1.0.0",
+  "description": "TypeScript/JavaScript client for the Eleanor Judicial Engine (EJE) API",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "lint": "eslint src/**/*.ts",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "eleanor",
+    "eje",
+    "ethics",
+    "ai-safety",
+    "jurisprudence",
+    "client"
+  ],
+  "author": "Eleanor Project Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eleanor-project/EJE.git",
+    "directory": "sdk/typescript"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "eslint": "^8.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "jest": "^29.0.0",
+    "@types/jest": "^29.0.0",
+    "ts-jest": "^29.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
