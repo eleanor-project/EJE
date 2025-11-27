@@ -988,6 +988,313 @@ async def get_precedent_stats(
         )
 
 # ============================================================================
+# Phase 4.2: Enhanced Human Review Endpoints
+# ============================================================================
+
+# --- Human Review Models ---
+
+class EscalationRequest(BaseModel):
+    """Escalation bundle creation request."""
+    case_id: str
+    prompt: str = Field(..., min_length=1)
+    context: Dict[str, Any] = Field(default_factory=dict)
+    critic_results: List[Dict[str, Any]]
+    priority: Optional[str] = None
+
+class EscalationResponse(BaseModel):
+    """Escalation bundle response."""
+    bundle_id: str
+    case_id: str
+    priority: str
+    dissent_index: float
+    disagreement_type: str
+    majority_verdict: str
+    split_ratio: str
+    num_similar_precedents: int
+    explanation_summary: str
+    created_at: datetime
+
+class ReviewQueueRequest(BaseModel):
+    """Review queue request with filters."""
+    filter_by: Optional[str] = "all"  # all, critical, high_priority, high_dissent
+    sort_by: Optional[str] = "priority_desc"  # priority_desc, dissent_desc, oldest_first
+    assigned_to: Optional[str] = None
+    limit: Optional[int] = 50
+
+class ReviewQueueResponse(BaseModel):
+    """Review queue response."""
+    summary: Dict[str, Any]
+    by_category: Dict[str, Any]
+    queue_items: List[Dict[str, Any]]
+
+class FeedbackSubmission(BaseModel):
+    """Reviewer feedback submission."""
+    bundle_id: str
+    reviewer_id: str
+    verdict: str
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    reasoning: str = Field(..., min_length=10)
+    responses: Dict[str, Any] = Field(default_factory=dict)
+    conditions: Optional[str] = None
+    principles_applied: List[str] = Field(default_factory=list)
+
+class FeedbackSubmissionResponse(BaseModel):
+    """Feedback submission response."""
+    bundle_id: str
+    reviewer_id: str
+    verdict: str
+    submitted_at: datetime
+    validation_status: str
+
+@app.post("/review/escalate", response_model=EscalationResponse, tags=["Phase 4.2: Human Review"])
+async def create_escalation_bundle(
+    request: EscalationRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(verify_bearer)
+):
+    """Create escalation bundle for human review."""
+    try:
+        from ejc.core.review.escalation import EscalationBundleBuilder
+        from ejc.core.precedent.semantic import VectorPrecedentStore, HybridPrecedentSearch
+        from ejc.core.jurisprudence_repository import JurisprudenceRepository
+
+        # Initialize components
+        data_path = os.getenv("EJE_DATA_PATH", "./eleanor_data")
+        vector_store = VectorPrecedentStore(os.path.join(data_path, "vector_precedents"))
+        hash_store = JurisprudenceRepository(data_path)
+        precedent_search = HybridPrecedentSearch(hash_store, vector_store)
+
+        # Create bundle builder
+        builder = EscalationBundleBuilder(precedent_search=precedent_search)
+
+        # Build escalation bundle
+        input_data = {
+            "prompt": request.prompt,
+            "context": request.context
+        }
+
+        bundle = builder.build_bundle(
+            case_id=request.case_id,
+            input_data=input_data,
+            critic_results=request.critic_results,
+            priority=request.priority
+        )
+
+        return EscalationResponse(
+            bundle_id=bundle.bundle_id,
+            case_id=bundle.case_id,
+            priority=bundle.priority,
+            dissent_index=bundle.dissent_analysis.dissent_index,
+            disagreement_type=bundle.dissent_analysis.disagreement_type,
+            majority_verdict=bundle.dissent_analysis.majority_verdict,
+            split_ratio=bundle.dissent_analysis.split_ratio,
+            num_similar_precedents=len(bundle.similar_precedents),
+            explanation_summary=bundle.explanation_summary,
+            created_at=bundle.escalated_at
+        )
+
+    except Exception as e:
+        logger.error(f"Escalation bundle creation error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create escalation bundle: {str(e)}"
+        )
+
+@app.post("/review/queue", response_model=ReviewQueueResponse, tags=["Phase 4.2: Human Review"])
+async def get_review_queue(
+    request: ReviewQueueRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(verify_bearer)
+):
+    """Get filtered and sorted review queue."""
+    try:
+        from ejc.core.review.dashboard import ReviewDashboard, QueueFilter, QueueSortOrder
+
+        # Initialize dashboard (would load from storage in production)
+        dashboard = ReviewDashboard()
+
+        # Map string filters to enums
+        filter_enum = QueueFilter.ALL
+        if request.filter_by:
+            filter_enum = QueueFilter[request.filter_by.upper()]
+
+        sort_enum = QueueSortOrder.PRIORITY_DESC
+        if request.sort_by:
+            sort_enum = QueueSortOrder[request.sort_by.upper()]
+
+        # Export queue summary
+        summary = dashboard.export_queue_summary()
+
+        return ReviewQueueResponse(
+            summary=summary["summary"],
+            by_category=summary["by_category"],
+            queue_items=summary["queue_items"]
+        )
+
+    except Exception as e:
+        logger.error(f"Review queue error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve review queue: {str(e)}"
+        )
+
+@app.post("/review/submit", response_model=FeedbackSubmissionResponse, tags=["Phase 4.2: Human Review"])
+async def submit_review_feedback(
+    submission: FeedbackSubmission,
+    credentials: HTTPAuthorizationCredentials = Depends(verify_bearer)
+):
+    """Submit reviewer feedback for escalated case."""
+    try:
+        from ejc.core.review.feedback import FeedbackFormBuilder, FeedbackType
+
+        # Create feedback builder
+        builder = FeedbackFormBuilder()
+
+        # Convert submission to ReviewFeedback
+        responses = {
+            "verdict": submission.verdict,
+            "confidence": submission.confidence,
+            "reasoning": submission.reasoning,
+            "conditions": submission.conditions,
+            "principles_applied": submission.principles_applied,
+            **submission.responses
+        }
+
+        feedback = builder.create_feedback_from_responses(
+            bundle_id=submission.bundle_id,
+            reviewer_id=submission.reviewer_id,
+            responses=responses,
+            feedback_type=FeedbackType.VERDICT_CORRECTION
+        )
+
+        # Validate feedback (would normally validate against specific form)
+        is_valid, errors = builder.validate_feedback(
+            feedback,
+            builder.base_questions
+        )
+
+        validation_status = "valid" if is_valid else "invalid"
+        if not is_valid:
+            logger.warning(f"Feedback validation errors: {errors}")
+
+        # Store feedback (would integrate with ground truth system in production)
+
+        return FeedbackSubmissionResponse(
+            bundle_id=feedback.bundle_id,
+            reviewer_id=feedback.reviewer_id,
+            verdict=feedback.verdict.value,
+            submitted_at=feedback.submitted_at,
+            validation_status=validation_status
+        )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Feedback submission error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to submit feedback: {str(e)}"
+        )
+
+@app.get("/review/form/{bundle_id}", tags=["Phase 4.2: Human Review"])
+async def get_review_form(
+    bundle_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(verify_bearer)
+):
+    """Get feedback form for escalation bundle."""
+    try:
+        from ejc.core.review.feedback import FeedbackFormBuilder
+
+        # Create form builder
+        builder = FeedbackFormBuilder()
+
+        # Build form (would load bundle context in production)
+        form_questions = builder.build_form(
+            bundle_id=bundle_id,
+            dissent_analysis=None,  # Would load from bundle
+            input_context=None,  # Would load from bundle
+            similar_precedents=None  # Would load from bundle
+        )
+
+        # Convert to dict format
+        questions_dict = [
+            {
+                "question_id": q.question_id,
+                "question_text": q.question_text,
+                "question_type": q.question_type,
+                "required": q.required,
+                "options": q.options,
+                "help_text": q.help_text
+            }
+            for q in form_questions
+        ]
+
+        return {
+            "bundle_id": bundle_id,
+            "questions": questions_dict,
+            "generated_at": datetime.utcnow()
+        }
+
+    except Exception as e:
+        logger.error(f"Form generation error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate form: {str(e)}"
+        )
+
+@app.get("/review/stats", tags=["Phase 4.2: Human Review"])
+async def get_review_stats(
+    reviewer_id: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(verify_bearer)
+):
+    """Get review queue and reviewer statistics."""
+    try:
+        from ejc.core.review.dashboard import ReviewDashboard
+
+        # Initialize dashboard
+        dashboard = ReviewDashboard()
+
+        # Get queue stats
+        queue_stats = dashboard.get_stats()
+
+        response = {
+            "queue": {
+                "total_pending": queue_stats.total_pending,
+                "critical_count": queue_stats.critical_count,
+                "high_priority_count": queue_stats.high_priority_count,
+                "overdue_count": queue_stats.overdue_count,
+                "avg_dissent_index": queue_stats.avg_dissent_index,
+                "avg_time_in_queue_hours": queue_stats.avg_time_in_queue.total_seconds() / 3600,
+                "by_disagreement_type": queue_stats.by_disagreement_type,
+                "by_priority": queue_stats.by_priority
+            },
+            "timestamp": datetime.utcnow()
+        }
+
+        # Add reviewer stats if requested
+        if reviewer_id:
+            reviewer_stats = dashboard.get_reviewer_stats(reviewer_id)
+            response["reviewer"] = {
+                "reviewer_id": reviewer_stats.reviewer_id,
+                "total_reviews": reviewer_stats.total_reviews,
+                "avg_confidence": reviewer_stats.avg_confidence,
+                "avg_review_time_hours": reviewer_stats.avg_review_time.total_seconds() / 3600,
+                "verdict_distribution": reviewer_stats.verdict_distribution,
+                "reviews_this_week": reviewer_stats.reviews_this_week,
+                "reviews_this_month": reviewer_stats.reviews_this_month
+            }
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Review stats error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve review stats: {str(e)}"
+        )
+
+# ============================================================================
 # Server Startup
 # ============================================================================
 
