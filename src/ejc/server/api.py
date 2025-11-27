@@ -714,6 +714,280 @@ async def get_performance_stats(
         )
 
 # ============================================================================
+# Phase 4: Semantic Precedent Search Endpoints
+# ============================================================================
+
+# --- Semantic Precedent Models ---
+
+class SemanticSearchRequest(BaseModel):
+    """Semantic precedent search request."""
+    prompt: str = Field(..., min_length=1)
+    context: Dict[str, Any] = Field(default_factory=dict)
+    top_k: int = Field(10, ge=1, le=50)
+    min_similarity: float = Field(0.70, ge=0.0, le=1.0)
+    search_mode: str = Field("hybrid", pattern="^(exact|semantic|hybrid)$")
+
+class SemanticPrecedentResult(BaseModel):
+    """Single semantic precedent match."""
+    precedent_id: str
+    similarity_score: float
+    match_type: str
+    case_summary: str
+    decision: str
+    reasoning: str
+    timestamp: datetime
+
+class SemanticSearchResponse(BaseModel):
+    """Semantic search results."""
+    query_summary: str
+    results: List[SemanticPrecedentResult]
+    total_found: int
+    search_mode: str
+    execution_time_ms: float
+
+class PrivacyBundleRequest(BaseModel):
+    """Privacy bundle creation request."""
+    precedent_ids: List[str]
+    k_value: int = Field(5, ge=2, le=20)
+    bundle_name: Optional[str] = None
+
+class PrivacyBundleResponse(BaseModel):
+    """Privacy bundle response."""
+    bundle_id: str
+    precedent_count: int
+    k_value: int
+    privacy_guarantee: str
+    generalized_attributes: List[str]
+    redacted_fields: List[str]
+    created_at: datetime
+
+@app.post("/precedents/search/semantic", response_model=SemanticSearchResponse, tags=["Phase 4: Semantic Search"])
+async def search_precedents_semantic(
+    request: SemanticSearchRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(verify_bearer)
+):
+    """
+    Search for precedents using semantic similarity.
+
+    Supports three modes:
+    - exact: Hash-based exact matching only
+    - semantic: Vector embedding similarity only
+    - hybrid: Combined exact + semantic (default)
+    """
+    import time
+
+    start_time = time.time()
+
+    try:
+        from ejc.core.precedent.semantic import VectorPrecedentStore, HybridPrecedentSearch
+        from ejc.core.jurisprudence_repository import JurisprudenceRepository
+
+        # Initialize stores
+        data_path = os.getenv("EJE_DATA_PATH", "./eleanor_data")
+        vector_store = VectorPrecedentStore(os.path.join(data_path, "vector_precedents"))
+        hash_store = JurisprudenceRepository(data_path)
+
+        # Create hybrid search
+        search = HybridPrecedentSearch(hash_store, vector_store)
+
+        # Perform search
+        case = {
+            "prompt": request.prompt,
+            "context": request.context
+        }
+
+        results = search.search(
+            case,
+            top_k=request.top_k,
+            min_similarity=request.min_similarity,
+            exact_only=(request.search_mode == "exact"),
+            semantic_only=(request.search_mode == "semantic")
+        )
+
+        # Map to API response format
+        precedent_results = []
+        for result in results:
+            prec = result.precedent
+            input_data = prec.get("input_data", {})
+            outcome = prec.get("outcome", {})
+
+            # Create case summary
+            prompt_text = input_data.get("prompt", "No description")
+            case_summary = prompt_text[:200] + ("..." if len(prompt_text) > 200 else "")
+
+            precedent_results.append(SemanticPrecedentResult(
+                precedent_id=result.precedent_id,
+                similarity_score=result.similarity_score,
+                match_type=result.match_type,
+                case_summary=case_summary,
+                decision=outcome.get("verdict", "unknown"),
+                reasoning=outcome.get("justification", "No reasoning provided"),
+                timestamp=datetime.fromisoformat(prec.get("timestamp", datetime.utcnow().isoformat()).replace("Z", "+00:00"))
+            ))
+
+        execution_time = (time.time() - start_time) * 1000
+
+        return SemanticSearchResponse(
+            query_summary=request.prompt[:100],
+            results=precedent_results,
+            total_found=len(results),
+            search_mode=request.search_mode,
+            execution_time_ms=execution_time
+        )
+
+    except Exception as e:
+        logger.error(f"Semantic search error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Semantic search failed: {str(e)}"
+        )
+
+@app.get("/precedents/{precedent_id}/similar", response_model=SemanticSearchResponse, tags=["Phase 4: Semantic Search"])
+async def find_similar_precedents(
+    precedent_id: str,
+    top_k: int = 10,
+    min_similarity: float = 0.75,
+    credentials: HTTPAuthorizationCredentials = Depends(verify_bearer)
+):
+    """Find precedents similar to an existing precedent."""
+    import time
+
+    start_time = time.time()
+
+    try:
+        from ejc.core.precedent.semantic import VectorPrecedentStore, HybridPrecedentSearch
+        from ejc.core.jurisprudence_repository import JurisprudenceRepository
+
+        # Initialize stores
+        data_path = os.getenv("EJE_DATA_PATH", "./eleanor_data")
+        vector_store = VectorPrecedentStore(os.path.join(data_path, "vector_precedents"))
+        hash_store = JurisprudenceRepository(data_path)
+
+        # Create hybrid search
+        search = HybridPrecedentSearch(hash_store, vector_store)
+
+        # Search for similar
+        results = search.search_similar_to_precedent(
+            precedent_id,
+            top_k=top_k,
+            min_similarity=min_similarity
+        )
+
+        # Map to API response format
+        precedent_results = []
+        for result in results:
+            prec = result.precedent
+            input_data = prec.get("input_data", {})
+            outcome = prec.get("outcome", {})
+
+            prompt_text = input_data.get("prompt", "No description")
+            case_summary = prompt_text[:200] + ("..." if len(prompt_text) > 200 else "")
+
+            precedent_results.append(SemanticPrecedentResult(
+                precedent_id=result.precedent_id,
+                similarity_score=result.similarity_score,
+                match_type=result.match_type,
+                case_summary=case_summary,
+                decision=outcome.get("verdict", "unknown"),
+                reasoning=outcome.get("justification", "No reasoning provided"),
+                timestamp=datetime.fromisoformat(prec.get("timestamp", datetime.utcnow().isoformat()).replace("Z", "+00:00"))
+            ))
+
+        execution_time = (time.time() - start_time) * 1000
+
+        return SemanticSearchResponse(
+            query_summary=f"Similar to {precedent_id}",
+            results=precedent_results,
+            total_found=len(results),
+            search_mode="semantic",
+            execution_time_ms=execution_time
+        )
+
+    except Exception as e:
+        logger.error(f"Similar precedents error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Could not find similar precedents: {str(e)}"
+        )
+
+@app.post("/precedents/bundle/create", response_model=PrivacyBundleResponse, tags=["Phase 4: Semantic Search"])
+async def create_privacy_bundle(
+    request: PrivacyBundleRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(verify_bearer)
+):
+    """Create privacy-preserving precedent bundle with k-anonymity."""
+    try:
+        from ejc.core.precedent.semantic import VectorPrecedentStore, PrivacyPreservingPrecedents
+
+        # Initialize stores
+        data_path = os.getenv("EJE_DATA_PATH", "./eleanor_data")
+        vector_store = VectorPrecedentStore(os.path.join(data_path, "vector_precedents"))
+
+        # Get precedents by IDs
+        precedents = []
+        for prec_id in request.precedent_ids:
+            prec = vector_store.get_by_id(prec_id)
+            if prec:
+                precedents.append(prec)
+
+        if len(precedents) < request.k_value:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Need at least {request.k_value} valid precedents for k-anonymity, found {len(precedents)}"
+            )
+
+        # Create privacy bundle
+        privacy = PrivacyPreservingPrecedents(k=request.k_value)
+        bundle = privacy.create_anonymous_bundle(precedents, bundle_name=request.bundle_name)
+
+        return PrivacyBundleResponse(
+            bundle_id=bundle.bundle_id,
+            precedent_count=len(bundle.precedents),
+            k_value=bundle.k_value,
+            privacy_guarantee=bundle.privacy_guarantee,
+            generalized_attributes=bundle.generalized_attributes,
+            redacted_fields=bundle.redacted_fields,
+            created_at=bundle.created_at
+        )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Privacy bundle creation error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create privacy bundle: {str(e)}"
+        )
+
+@app.get("/precedents/stats", tags=["Phase 4: Semantic Search"])
+async def get_precedent_stats(
+    credentials: HTTPAuthorizationCredentials = Depends(verify_bearer)
+):
+    """Get precedent store statistics."""
+    try:
+        from ejc.core.precedent.semantic import VectorPrecedentStore
+
+        data_path = os.getenv("EJE_DATA_PATH", "./eleanor_data")
+        vector_store = VectorPrecedentStore(os.path.join(data_path, "vector_precedents"))
+
+        stats = vector_store.get_stats()
+
+        return {
+            "vector_store": stats,
+            "timestamp": datetime.utcnow()
+        }
+
+    except Exception as e:
+        logger.error(f"Precedent stats error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve stats: {str(e)}"
+        )
+
+# ============================================================================
 # Server Startup
 # ============================================================================
 
