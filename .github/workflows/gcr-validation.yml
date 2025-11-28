@@ -1,0 +1,246 @@
+name: GCR Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+      - 'claude/**'
+
+jobs:
+  validate-gcr:
+    name: Validate Governance Change Requests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Full history for comparing with main
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install jsonschema pyyaml
+
+      - name: Check for schema changes
+        id: schema-check
+        run: |
+          echo "Checking for schema/model changes..."
+
+          # Files that indicate schema changes
+          SCHEMA_PATTERNS=(
+            "src/ejc/core/*/models.py"
+            "src/ejc/core/*/schemas.py"
+            "src/ejc/core/*/*schema*.py"
+            "src/ejc/server/api.py"
+            "governance/gcr_ledger.json"
+          )
+
+          CHANGED_FILES=$(git diff --name-only origin/main...HEAD 2>/dev/null || git diff --name-only HEAD~1...HEAD)
+
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          SCHEMA_CHANGED=false
+          for pattern in "${SCHEMA_PATTERNS[@]}"; do
+            if echo "$CHANGED_FILES" | grep -E "$pattern"; then
+              SCHEMA_CHANGED=true
+              echo "Schema change detected: $pattern"
+              break
+            fi
+          done
+
+          echo "schema_changed=$SCHEMA_CHANGED" >> $GITHUB_OUTPUT
+          echo "CHANGED_FILES<<EOF" >> $GITHUB_ENV
+          echo "$CHANGED_FILES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Validate GCR ledger syntax
+        run: |
+          echo "Validating GCR ledger JSON syntax..."
+          python -c "
+          import json
+          with open('governance/gcr_ledger.json', 'r') as f:
+              ledger = json.load(f)
+              print(f'✓ GCR ledger is valid JSON')
+              print(f'  Total GCRs: {ledger[\"metadata\"][\"total_gcrs\"]}')
+              print(f'  Approved: {ledger[\"metadata\"][\"approved_gcrs\"]}')
+          "
+
+      - name: Check GCR ledger updated
+        if: steps.schema-check.outputs.schema_changed == 'true'
+        run: |
+          echo "Schema changes detected, checking if GCR ledger was updated..."
+
+          if echo "$CHANGED_FILES" | grep -q "governance/gcr_ledger.json"; then
+            echo "✓ GCR ledger was updated"
+          else
+            echo "❌ ERROR: Schema changed but GCR ledger not updated"
+            echo ""
+            echo "Schema/API changes require a GCR to be documented in governance/gcr_ledger.json"
+            echo ""
+            echo "Please:"
+            echo "1. Add a new entry to governance/gcr_ledger.json"
+            echo "2. Update metadata.total_gcrs"
+            echo "3. Create a GitHub issue using the GCR template if not already done"
+            echo ""
+            exit 1
+          fi
+
+      - name: Validate GCR entry format
+        if: steps.schema-check.outputs.schema_changed == 'true'
+        run: |
+          echo "Validating latest GCR entry format..."
+          python << 'EOF'
+          import json
+          import sys
+          from datetime import datetime
+
+          with open('governance/gcr_ledger.json', 'r') as f:
+              ledger = json.load(f)
+
+          if not ledger['gcr_ledger']:
+              print("❌ No GCRs in ledger")
+              sys.exit(1)
+
+          latest_gcr = ledger['gcr_ledger'][-1]
+
+          # Required fields
+          required_fields = [
+              'gcr_id', 'title', 'proposed_by', 'date_proposed',
+              'status', 'priority', 'impact_analysis', 'changes',
+              'test_coverage', 'documentation', 'version'
+          ]
+
+          errors = []
+          for field in required_fields:
+              if field not in latest_gcr:
+                  errors.append(f"Missing field: {field}")
+
+          # Validate GCR ID format
+          gcr_id = latest_gcr.get('gcr_id', '')
+          if not gcr_id.startswith('GCR-'):
+              errors.append(f"Invalid GCR ID format: {gcr_id} (should be GCR-YYYY-NNN)")
+
+          # Validate status
+          valid_statuses = ['PROPOSED', 'APPROVED', 'REJECTED', 'IMPLEMENTED']
+          if latest_gcr.get('status') not in valid_statuses:
+              errors.append(f"Invalid status: {latest_gcr.get('status')}")
+
+          # Validate priority
+          valid_priorities = ['HIGH', 'MEDIUM', 'LOW']
+          if latest_gcr.get('priority') not in valid_priorities:
+              errors.append(f"Invalid priority: {latest_gcr.get('priority')}")
+
+          if errors:
+              print("❌ GCR validation failed:")
+              for error in errors:
+                  print(f"  - {error}")
+              sys.exit(1)
+
+          print(f"✓ Latest GCR is valid: {gcr_id}")
+          print(f"  Title: {latest_gcr['title']}")
+          print(f"  Status: {latest_gcr['status']}")
+          print(f"  Priority: {latest_gcr['priority']}")
+          EOF
+
+      - name: Check migration map exists
+        if: steps.schema-check.outputs.schema_changed == 'true'
+        run: |
+          echo "Checking if migration map exists (if required)..."
+          python << 'EOF'
+          import json
+          import os
+          import sys
+
+          with open('governance/gcr_ledger.json', 'r') as f:
+              ledger = json.load(f)
+
+          latest_gcr = ledger['gcr_ledger'][-1]
+
+          # Check if migration required
+          migration_required = latest_gcr.get('impact_analysis', {}).get('migration_required', False)
+          migration_map = latest_gcr.get('migration_map')
+
+          if migration_required:
+              if not migration_map:
+                  print("❌ Migration required but no migration_map specified in GCR")
+                  sys.exit(1)
+
+              if not os.path.exists(migration_map):
+                  print(f"❌ Migration map file not found: {migration_map}")
+                  sys.exit(1)
+
+              print(f"✓ Migration map exists: {migration_map}")
+          else:
+              print("ℹ No migration required for this GCR")
+          EOF
+
+      - name: Validate test coverage specified
+        if: steps.schema-check.outputs.schema_changed == 'true'
+        run: |
+          echo "Validating test coverage is specified..."
+          python << 'EOF'
+          import json
+          import sys
+
+          with open('governance/gcr_ledger.json', 'r') as f:
+              ledger = json.load(f)
+
+          latest_gcr = ledger['gcr_ledger'][-1]
+          test_coverage = latest_gcr.get('test_coverage', '')
+
+          if not test_coverage or test_coverage.strip() == '':
+              print("❌ No test coverage specified in GCR")
+              print("  Please specify test files in 'test_coverage' field")
+              sys.exit(1)
+
+          print(f"✓ Test coverage specified: {test_coverage}")
+          EOF
+
+      - name: Check documentation specified
+        if: steps.schema-check.outputs.schema_changed == 'true'
+        run: |
+          echo "Checking documentation is specified..."
+          python << 'EOF'
+          import json
+          import sys
+
+          with open('governance/gcr_ledger.json', 'r') as f:
+              ledger = json.load(f)
+
+          latest_gcr = ledger['gcr_ledger'][-1]
+          documentation = latest_gcr.get('documentation', '')
+
+          if not documentation or documentation.strip() == '':
+              print("⚠️  Warning: No documentation specified in GCR")
+              print("  Consider adding documentation references")
+          else:
+              print(f"✓ Documentation specified: {documentation}")
+          EOF
+
+      - name: Summary
+        if: always()
+        run: |
+          echo ""
+          echo "═══════════════════════════════════════"
+          echo "  GCR Validation Summary"
+          echo "═══════════════════════════════════════"
+          echo ""
+          if [ "${{ steps.schema-check.outputs.schema_changed }}" == "true" ]; then
+            echo "✓ Schema changes detected"
+            echo "✓ GCR ledger validated"
+            echo "✓ All GCR requirements met"
+          else
+            echo "ℹ No schema changes detected"
+            echo "ℹ GCR validation skipped"
+          fi
+          echo ""
+          echo "═══════════════════════════════════════"

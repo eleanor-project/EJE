@@ -1,23 +1,89 @@
 {
-  "version": "1.0",
-  "last_updated": "2025-11-25",
+  "schema_version": "1.0",
+  "description": "Governance Change Request (GCR) Ledger - Complete audit trail of all governance, schema, and logic changes",
   "gcr_ledger": [
     {
       "gcr_id": "GCR-2025-001",
-      "title": "Initialize GCR Process and Ledger System",
-      "proposed_by": "william.parris",
-      "date_proposed": "2025-11-25",
+      "title": "Implement Phase 3 Intelligence & Adaptation Features",
+      "proposed_by": "engineering-team",
+      "date_proposed": "2025-11-20",
       "date_approved": "2025-11-25",
-      "status": "IMPLEMENTED",
+      "status": "APPROVED",
+      "priority": "HIGH",
       "impact_analysis": {
-        "affected_components": ["governance", "documentation"],
+        "affected_components": [
+          "Core engine",
+          "Calibration system",
+          "Drift detection",
+          "Context awareness",
+          "Performance optimization"
+        ],
         "breaking_changes": false,
-        "migration_required": false
+        "migration_required": false,
+        "backward_compatible": true
       },
-      "description": "Establish formal Governance Change Request (GCR) process, ledger system, and migration map framework as specified in ELEANOR Spec v2.1",
+      "changes": {
+        "added": [
+          "ejc.core.calibration",
+          "ejc.core.drift_detection",
+          "ejc.core.context",
+          "ejc.core.performance"
+        ],
+        "modified": [],
+        "deprecated": [],
+        "removed": []
+      },
       "migration_map": null,
-      "test_coverage": null,
-      "version": "1.4.1"
+      "test_coverage": "tests/test_calibration.py, tests/test_drift_detection.py, tests/test_context_system.py, tests/test_performance.py",
+      "documentation": "PHASE_3_PR_DESCRIPTION.md, DEPLOYMENT_GUIDE.md",
+      "version": "1.3.0"
+    },
+    {
+      "gcr_id": "GCR-2025-002",
+      "title": "Add semantic precedent search with vector embeddings (Phase 4.1)",
+      "proposed_by": "engineering-team",
+      "date_proposed": "2025-11-27",
+      "date_approved": "2025-11-27",
+      "status": "APPROVED",
+      "priority": "HIGH",
+      "impact_analysis": {
+        "affected_components": [
+          "JurisprudenceRepository",
+          "Precedent retrieval",
+          "API endpoints"
+        ],
+        "breaking_changes": false,
+        "migration_required": true,
+        "backward_compatible": true
+      },
+      "changes": {
+        "added": [
+          "ejc.core.precedent.semantic.VectorPrecedentStore",
+          "ejc.core.precedent.semantic.HybridPrecedentSearch",
+          "ejc.core.precedent.semantic.PrivacyPreservingPrecedents",
+          "API: POST /precedents/search/semantic",
+          "API: GET /precedents/{id}/similar",
+          "API: POST /precedents/bundle/create",
+          "API: GET /precedents/stats"
+        ],
+        "modified": [
+          "Precedent retrieval logic (now supports semantic + exact)",
+          "API precedent endpoints"
+        ],
+        "deprecated": [],
+        "removed": []
+      },
+      "migration_map": "governance/migration_maps/precedent_v2_to_v3.py",
+      "test_coverage": "tests/test_semantic_precedents.py",
+      "documentation": "PHASE_4_ROADMAP.md, docs/semantic_precedent_search.md",
+      "version": "1.4.0"
     }
-  ]
+  ],
+  "metadata": {
+    "last_updated": "2025-11-27T12:00:00Z",
+    "total_gcrs": 2,
+    "approved_gcrs": 2,
+    "pending_gcrs": 0,
+    "maintainer": "Eleanor Project Governance Lab"
+  }
 }
