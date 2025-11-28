@@ -34,6 +34,31 @@ critic_priorities:
 plugin_critics:
   - "./plugins/custom_rule.py"
 
+# Governance configuration
+governance:
+  rights_hierarchy:
+    dignity:
+      required: true
+      severity: critical
+    autonomy:
+      required: true
+      severity: critical
+    non_discrimination:
+      required: true
+      severity: critical
+    safety:
+      required: true
+      severity: high
+    fairness:
+      required: false
+      severity: moderate
+    transparency:
+      required: false
+      severity: advisory
+    proportionality:
+      required: false
+      severity: advisory
+
 # LLM Configuration
 llm:
   critic_model_name: "gpt-4-1106-preview"

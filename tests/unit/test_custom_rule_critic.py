@@ -1,6 +1,6 @@
 """Unit tests for CustomRuleCritic"""
 import pytest
-from src.eje.critics.community.custom_rule import CustomRuleCritic
+from ejc.critics.community.custom_rule import CustomRuleCritic
 
 
 class TestCustomRuleCritic:

@@ -18,6 +18,11 @@ def validate_case(case: Dict[str, Any]) -> bool:
     if not isinstance(case, dict):
         raise TypeError("Case must be a dictionary, got {}".format(type(case).__name__))
 
+    # Normalize prompt -> text for callers that provide prompt fields
+    if "text" not in case and "prompt" in case:
+        case = case.copy()
+        case["text"] = case["prompt"]
+
     # Required field check
     if "text" not in case:
         raise ValueError("Case must include a 'text' field")
@@ -39,7 +44,7 @@ def validate_case(case: Dict[str, Any]) -> bool:
         raise ValueError("Input text cannot be empty or whitespace-only")
 
     # Validate allowed keys (prevent injection of unexpected fields)
-    ALLOWED_KEYS = {'text', 'context', 'metadata', 'tags', 'priority'}
+    ALLOWED_KEYS = {'text', 'prompt', 'context', 'metadata', 'tags', 'priority', 'require_human_review'}
     invalid_keys = set(case.keys()) - ALLOWED_KEYS
     if invalid_keys:
         raise ValueError(f"Invalid keys in case: {invalid_keys}. Allowed: {ALLOWED_KEYS}")

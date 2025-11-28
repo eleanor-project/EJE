@@ -1,6 +1,6 @@
 """Unit tests for input validation"""
 import pytest
-from src.eje.utils.validation import validate_case
+from ejc.utils.validation import validate_case
 
 
 class TestValidateCase:

@@ -16,6 +16,7 @@ click
 tabulate
 fastapi>=0.104.0
 pydantic>=2.0.0
+pydantic-settings>=2.0.0
 uvicorn>=0.24.0
 
 # Phase 5A: Explainability & Bias Detection
@@ -25,3 +26,5 @@ alibi>=0.9.0
 matplotlib>=3.7.0
 aif360>=0.5.0
 fairlearn>=0.8.0
+streamlit>=1.30.0
+pandas>=2.1.0

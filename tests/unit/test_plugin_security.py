@@ -2,7 +2,7 @@
 import pytest
 import time
 from unittest.mock import Mock, patch
-from src.eje.core.plugin_security import (
+from ejc.core.plugin_security import (
     PluginSecurityManager,
     TimeoutException,
     PluginErrorStats
