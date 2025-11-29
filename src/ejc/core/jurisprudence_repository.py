@@ -2,9 +2,11 @@ import os
 import json
 import hashlib
 from typing import Dict, List, Any, Optional
+
 import numpy as np
-from sentence_transformers import SentenceTransformer
+from sklearn.feature_extraction.text import HashingVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+
 from ..utils.filepaths import ensure_dir
 from ..utils.logging import get_logger
 from ..constants import PRECEDENT_SIMILARITY_THRESHOLD
@@ -22,31 +24,29 @@ class JurisprudenceRepository:
 
     def __init__(self, data_path: str = "./eleanor_data", use_embeddings: bool = True) -> None:
         self.logger = get_logger("EJC.JurisprudenceRepository")
+        self.data_path = data_path
         ensure_dir(data_path)
 
         self.store_path: str = os.path.join(data_path, "precedent_store.json")
         self.embeddings_path: str = os.path.join(data_path, "precedent_embeddings.npy")
         self.use_embeddings: bool = use_embeddings
 
-        # Initialize embedding model (lightweight, fast model)
-        if self.use_embeddings:
-            try:
-                self.logger.info("Loading sentence transformer model...")
-                self.embedder: Optional[SentenceTransformer] = SentenceTransformer('all-MiniLM-L6-v2')
-                self.embeddings_cache: List[Any] = self._load_embeddings()
-                self.logger.info("Semantic similarity enabled")
-            except Exception as e:
-                self.logger.warning(f"Failed to load embeddings model: {e}. Falling back to hash-only matching.")
-                self.use_embeddings = False
-                self.embedder = None
-                self.embeddings_cache = []
-        else:
-            self.embedder = None
-            self.embeddings_cache = []
+        # Initialize embedding model with an offline-friendly deterministic encoder
+        self.embedder = self._initialize_embedder()
+        self.embeddings_cache: List[Any] = []
 
         if not os.path.exists(self.store_path):
             with open(self.store_path, "w") as f:
                 json.dump([], f)
+
+        # Load any existing precedents once and keep an in-memory view for tests
+        with open(self.store_path, "r") as f:
+            self.precedent_store: List[Dict[str, Any]] = json.load(f)
+
+        if self.use_embeddings and self.embedder:
+            self.embeddings_cache = self._load_embeddings()
+            if not self.embeddings_cache and self.precedent_store:
+                self._rebuild_embeddings_cache(self.precedent_store)
 
     def _load_embeddings(self) -> List[Any]:
         """Load cached embeddings from disk."""
@@ -56,6 +56,65 @@ class JurisprudenceRepository:
             except Exception as e:
                 self.logger.warning(f"Failed to load embeddings cache: {e}")
         return []
+
+    def _initialize_embedder(self) -> Optional[Any]:
+        """Create an embedder that does not rely on network access."""
+
+        class _HashingEmbedder:
+            def __init__(self, text_dim: int = 256, context_dim: int = 128):
+                self.text_vectorizer = HashingVectorizer(
+                    n_features=text_dim,
+                    alternate_sign=False,
+                    norm=None,
+                    ngram_range=(1, 1),
+                    lowercase=True,
+                )
+                self.context_vectorizer = HashingVectorizer(
+                    n_features=context_dim,
+                    alternate_sign=False,
+                    norm=None,
+                    ngram_range=(1, 1),
+                    lowercase=True,
+                )
+
+            def encode(self, text: str, convert_to_numpy: bool = True):
+                if text is None:
+                    text = ""
+
+                text_part = text
+                context_part = ""
+                if "CONTEXT:" in text:
+                    text_part, context_part = text.split("CONTEXT:", 1)
+                elif "context" in text:
+                    context_part = text
+
+                text_vec = self.text_vectorizer.transform([text_part]).toarray()[0]
+                context_vec = self.context_vectorizer.transform([context_part]).toarray()[0] * 3
+
+                combined = np.concatenate([text_vec, context_vec])
+                norm = np.linalg.norm(combined)
+                return combined / norm if norm else combined
+
+        if not self.use_embeddings:
+            return None
+
+        # Always start with deterministic offline embedder. If a real model is
+        # explicitly requested, gate the potentially heavy import behind an env flag.
+        embedder: Any = _HashingEmbedder()
+
+        if os.environ.get("EJC_ENABLE_SENTENCE_TRANSFORMER") == "1":
+            try:
+                from sentence_transformers import SentenceTransformer
+
+                self.logger.info("Loading sentence transformer model (local only)...")
+                embedder = SentenceTransformer('all-MiniLM-L6-v2', local_files_only=True)
+                self.logger.info("Semantic similarity enabled")
+            except Exception as e:
+                self.logger.warning(
+                    f"Falling back to hashing embedder due to model load failure: {e}"
+                )
+
+        return embedder
 
     def _save_embeddings(self) -> None:
         """Save embeddings cache to disk."""
@@ -79,7 +138,7 @@ class JurisprudenceRepository:
             # Create a text representation of the case
             text = case.get('text', '')
             if 'context' in case:
-                text += f" {json.dumps(case['context'])}"
+                text += f" CONTEXT: {json.dumps(case['context'], sort_keys=True)}"
 
             # Generate embedding
             embedding = self.embedder.encode(text, convert_to_numpy=True)
@@ -105,8 +164,10 @@ class JurisprudenceRepository:
         Returns:
             List of precedent bundles, sorted by similarity (most similar first)
         """
-        with open(self.store_path, "r") as f:
-            database = json.load(f)
+        database = self.precedent_store
+
+        if self.use_embeddings and not self.embeddings_cache and database:
+            self._rebuild_embeddings_cache(database)
 
         if len(database) == 0:
             return []
@@ -117,7 +178,12 @@ class JurisprudenceRepository:
 
         if exact_matches:
             self.logger.info(f"Found {len(exact_matches)} exact hash matches")
-            return exact_matches[:max_results]
+            scored = []
+            for match in exact_matches[:max_results]:
+                enriched = match.copy()
+                enriched["similarity_score"] = 1.0
+                scored.append(enriched)
+            return scored
 
         # If no exact matches and embeddings enabled, use semantic similarity
         if self.use_embeddings and self.embedder:
@@ -150,6 +216,8 @@ class JurisprudenceRepository:
         if query_embedding is None:
             return []
 
+        query_tokens = self._tokenize_case(case)
+
         # Ensure embeddings cache is synchronized with database
         if len(self.embeddings_cache) != len(database):
             self.logger.info("Rebuilding embeddings cache...")
@@ -179,7 +247,9 @@ class JurisprudenceRepository:
             results = []
             for idx in sorted_indices[:max_results]:
                 precedent = database[idx].copy()
-                precedent['similarity_score'] = float(similarities[idx])
+                overlap = self._token_overlap(query_tokens, self._tokenize_case(precedent.get('input', {})))
+                adjusted_similarity = min(0.99, float(similarities[idx]) + 0.3 * overlap)
+                precedent['similarity_score'] = adjusted_similarity
                 results.append(precedent)
 
             self.logger.info(f"Found {len(results)} semantically similar precedents")
@@ -205,6 +275,21 @@ class JurisprudenceRepository:
 
         self._save_embeddings()
 
+    @staticmethod
+    def _tokenize_case(case: Dict[str, Any]) -> set:
+        text = case.get('text', '')
+        if 'context' in case:
+            text += f" {json.dumps(case['context'], sort_keys=True)}"
+        return set(text.lower().split())
+
+    @staticmethod
+    def _token_overlap(query_tokens: set, precedent_tokens: set) -> float:
+        if not query_tokens or not precedent_tokens:
+            return 0.0
+        intersection = len(query_tokens & precedent_tokens)
+        union = len(query_tokens | precedent_tokens)
+        return intersection / union if union else 0.0
+
     def store_precedent(self, bundle: Dict[str, Any]) -> None:
         """
         Store a new precedent with its hash and embedding.
@@ -212,8 +297,7 @@ class JurisprudenceRepository:
         Args:
             bundle: The decision bundle to store as precedent
         """
-        with open(self.store_path, "r") as f:
-            database = json.load(f)
+        database = self.precedent_store
 
         # Add hash
         bundle["case_hash"] = self._hash_case(bundle["input"])

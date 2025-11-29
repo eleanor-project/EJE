@@ -8,16 +8,51 @@ class Aggregator:
         self.critic_priorities: Dict[str, Any] = config.get('critic_priorities', {})
 
     def aggregate(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
-        verdict_scores = {'ALLOW': 0, 'BLOCK': 0, 'REVIEW': 0}
+        if not results:
+            return {
+                'overall_verdict': 'REVIEW',
+                'reason': 'No critic results available',
+                'details': [],
+                'verdict_scores': {'ALLOW': 0, 'BLOCK': 0, 'REVIEW': 0},
+                'avg_confidence': 0.0,
+                'ambiguity': 0.0
+            }
+
+        verdict_scores = {'ALLOW': 0, 'BLOCK': 0, 'REVIEW': 0, 'DENY': 0}
+        error_count = 0
         confidences = []
         overall, reason = None, ""
         for r in results:
             score = r['confidence'] * r['weight']
-            verdict_scores[r['verdict']] += score
+            verdict = r.get('verdict', 'REVIEW')
+
+            if verdict == 'ERROR':
+                error_count += 1
+                continue
+
+            if verdict == 'DENY':
+                verdict_scores['DENY'] += score
+                # Treat DENY as a strong BLOCK signal
+                verdict_scores['BLOCK'] += score
+            elif verdict in verdict_scores:
+                verdict_scores[verdict] += score
+            else:
+                # Unknown verdicts are treated as neutral review signals
+                verdict_scores['REVIEW'] += score
             confidences.append(r['confidence'])
             if r.get('priority') == "override" and r['verdict'] != "ALLOW":
                 overall = r['verdict']
                 reason = f"Override by {r['critic']}"
+
+        if not confidences:
+            return {
+                'overall_verdict': 'ERROR',
+                'reason': 'All critics failed',
+                'details': results,
+                'verdict_scores': verdict_scores,
+                'avg_confidence': 0.0,
+                'ambiguity': 0.0,
+            }
         if not overall:
             top = max(verdict_scores, key=verdict_scores.get)
             ambiguity = variance(confidences) if len(confidences) > 1 else 0
