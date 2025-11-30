@@ -50,7 +50,7 @@ class EthicalReasoningEngine:
 
         self.weights: Dict[str, float] = self.config.get("critic_weights", {})
         self.priorities: Dict[str, Optional[str]] = self.config.get("critic_priorities", {})
-        self.aggregator: Aggregator = Aggregator(self.config)
+        self.aggregator: Aggregator = Aggregator(self.config, root_config=self.config)
 
         # Initialize retraining manager
         self.retrainer: Retrainer = Retrainer(self.config, self.audit)

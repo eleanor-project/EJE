@@ -5,6 +5,7 @@ Integrates precedent retrieval, conflict logic, escalation, storage, and human-r
 This is the unified adjudication entrypoint for the EJE/ELEANOR system.
 """
 
+import os
 import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -17,6 +18,10 @@ from .governance.rules import apply_governance_rules
 from .governance.audit import write_signed_audit_log
 from .precedent.retrieval import retrieve_similar_precedents
 from .precedent.store import store_precedent_case
+from .replay_logger import ReplayLogger
+from .self_awareness import SelfAwarenessScorer
+from ..critics.chaos_critic import ChaosCritic
+from ..critics.identity import IDENTITY_LEDGER
 from ..utils.logging import get_logger
 from ..utils.validation import validate_case
 from ..exceptions import ValidationException
@@ -100,6 +105,17 @@ def adjudicate(
         config = load_global_config(config_path)
         logger.info(f"Loaded configuration from {config_path}")
 
+    data_path = config.get("data_path", "./eleanor_data")
+    IDENTITY_LEDGER.set_persist_path(os.path.join(data_path, "critic_identity.json"))
+
+    replay_cfg = config.get("replay_logging", {})
+    replay_enabled = replay_cfg.get("enabled", True)
+    replay_path = replay_cfg.get("path", os.path.join(data_path, "replays"))
+    replay_logger = ReplayLogger(replay_path) if replay_enabled else None
+
+    awareness_penalty = config.get("self_awareness_penalty", 0.05)
+    self_awareness = SelfAwarenessScorer(IDENTITY_LEDGER, context_penalty=awareness_penalty)
+
     # -------------------------------------------------------------------------
     # 2. Validate input
     # -------------------------------------------------------------------------
@@ -117,21 +133,47 @@ def adjudicate(
     # -------------------------------------------------------------------------
     critics_config = config.get("critics", [])
     critics = load_critics_from_config(critics_config) if critics_config else []
+    if config.get("enable_chaos_critic", False):
+        critics.append(ChaosCritic())
     logger.info(f"Loaded {len(critics)} critics")
 
     # -------------------------------------------------------------------------
     # 4. Run critics → generate critic reports
     # -------------------------------------------------------------------------
     critic_reports: List[Dict[str, Any]] = []
+    timeline: List[Dict[str, Any]] = []
 
     if not critics:
-        critic_reports.extend(_fallback_policy_checks(input_data))
+        fallback_reports = _fallback_policy_checks(input_data)
+        critic_reports.extend(fallback_reports)
+        for report in fallback_reports:
+            timeline.append({
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "critic": report.get("critic", "PolicyGuard"),
+                "verdict": report.get("verdict"),
+                "confidence": report.get("confidence"),
+                "justification": report.get("justification"),
+            })
 
     for critic in critics:
         try:
             report = critic.evaluate(input_data)
+            critic_name = getattr(critic, "name", critic.__class__.__name__)
+            report.setdefault("critic", critic_name)
+            report["confidence"] = self_awareness.adjusted_confidence(
+                critic_name,
+                float(report.get("confidence", 0.0)),
+                input_data.get("context", {}) or {},
+            )
             critic_reports.append(report)
             logger.debug(f"Critic {getattr(critic, 'name', 'unknown')} report: {report}")
+            timeline.append({
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "critic": critic_name,
+                "verdict": report.get("verdict"),
+                "confidence": report.get("confidence"),
+                "justification": report.get("justification"),
+            })
         except Exception as e:
             logger.error(f"Critic {getattr(critic, 'name', 'unknown')} failed: {str(e)}")
             # Add error report instead of failing completely
@@ -141,11 +183,18 @@ def adjudicate(
                 "confidence": 0,
                 "justification": f"Critic failed: {str(e)}"
             })
+            timeline.append({
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "critic": getattr(critic, 'name', 'unknown'),
+                "verdict": "ERROR",
+                "confidence": 0,
+                "justification": str(e),
+            })
 
     # -------------------------------------------------------------------------
     # 5. Aggregate results
     # -------------------------------------------------------------------------
-    aggregator = Aggregator(config.get("aggregation", {}))
+    aggregator = Aggregator(config.get("aggregation", {}), root_config=config)
     aggregation_result = aggregator.aggregate(critic_reports)
     logger.info("Aggregation complete.")
 
@@ -199,6 +248,10 @@ def adjudicate(
         escalated = True
         governed_result.setdefault("safeguards_triggered", []).append("human_review_requested")
 
+    final_verdict = governed_result.get("verdict", aggregation_result.get("overall_verdict"))
+    for report in critic_reports:
+        IDENTITY_LEDGER.record_outcome(report.get("critic", "unknown"), report.get("verdict", ""), final_verdict)
+
     # -------------------------------------------------------------------------
     # 9. Final escalation determination
     # -------------------------------------------------------------------------
@@ -210,6 +263,17 @@ def adjudicate(
     # 10. Build Decision object
     # -------------------------------------------------------------------------
     decision_id = str(uuid.uuid4())
+    scenario_id = input_data.get("case_id") or input_data.get("scenario_id") or decision_id
+    if replay_logger:
+        timeline.append({
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "event": "final_decision",
+            "verdict": final_verdict,
+            "aggregation": aggregation_result,
+            "governance": governed_result,
+        })
+        replay_logger.log(scenario_id, timeline)
+
     decision = Decision(
         decision_id=decision_id,
         input_data=input_data,

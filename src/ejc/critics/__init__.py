@@ -5,6 +5,7 @@ Critic implementations for ethical evaluation.
 """
 
 from ejc.core.base_critic import BaseCritic, RuleBasedCritic
+from .chaos_critic import ChaosCritic
 
 # Import available critics
 try:
@@ -27,5 +28,6 @@ __all__ = [
     "RuleBasedCritic",
     "OpenAICritic",
     "AnthropicCritic",
-    "GeminiCritic"
+    "GeminiCritic",
+    "ChaosCritic",
 ]

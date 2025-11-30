@@ -26,7 +26,7 @@ class EJEIntegration:
     """
     def __init__(self, config: Dict[str, Any]):
         self.config = config
-        self.aggregator = Aggregator()
+        self.aggregator = Aggregator(config, root_config=config)
         self.audit_logger = AuditLogger()
         self.critic_loader = CriticLoader(config)
         self.reasoning_engine = EthicalReasoningEngine(config)
