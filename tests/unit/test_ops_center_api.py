@@ -1,13 +1,14 @@
 import yaml
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
+import yaml
 
 from eje.api.app import create_app
 from eje.config.settings import Settings
 from eje.db import escalation_log
 
 
-def build_app(tmp_path, *, token=None, dynamic_weights=False):
+def build_app(tmp_path, *, token=None, dynamic_weights=False, require_api_token=True):
     config_path = tmp_path / "ops_config.yaml"
     with open("config/global.yaml", "r") as base_config:
         config = yaml.safe_load(base_config)
@@ -26,6 +27,7 @@ def build_app(tmp_path, *, token=None, dynamic_weights=False):
         db_path=str(tmp_path / "ops_center.db"),
         api_token=token,
         dynamic_weights=dynamic_weights,
+        require_api_token=require_api_token,
     )
     return create_app(settings)
 
@@ -42,7 +44,7 @@ def test_health_requires_token(tmp_path):
 
 
 def test_evaluate_persists_precedent(tmp_path):
-    app = build_app(tmp_path)
+    app = build_app(tmp_path, require_api_token=False)
     payload = {
         "prompt": "Should we allow this request?",
         "context": {"actor": "tester"},
@@ -63,7 +65,7 @@ def test_evaluate_persists_precedent(tmp_path):
 
 
 def test_escalate_writes_record(tmp_path):
-    app = build_app(tmp_path)
+    app = build_app(tmp_path, require_api_token=False)
     payload = {"case_id": "case-123", "reason": "requires supervisor", "metadata": {"foo": "bar"}}
 
     with TestClient(app) as client:
