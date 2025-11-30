@@ -262,9 +262,9 @@ class BiasObjectivityCritic(RuleBasedCritic):
             try:
                 total = sum(protected_groups.values())
                 if total > 0:
-                    # Check if any group is severely underrepresented (< 5%)
+                    # Check if any group is severely underrepresented (<= 5%)
                     min_representation = min(v / total for v in protected_groups.values())
-                    if min_representation < 0.05:
+                    if min_representation <= 0.05:
                         return 0.3
                     elif min_representation < 0.15:
                         return 0.6
@@ -298,10 +298,12 @@ class BiasObjectivityCritic(RuleBasedCritic):
         fairness_risk = 1.0 - fairness_score
         representation_risk = 1.0 - representation_score
 
-        # Weighted combination
+        # Weighted combination (tilt toward fairness gaps and representation)
+        # A tighter weighting makes disparate impact scenarios register as
+        # medium-to-high risk even when representation looks reasonable.
         total_risk = (
-            0.3 * signal_risk +
-            0.5 * fairness_risk +
+            0.2 * signal_risk +
+            0.6 * fairness_risk +
             0.2 * representation_risk
         )
 

@@ -306,6 +306,30 @@ class ConstitutionalDriftDetector:
         overall_violation_rate = total_violations / total_decisions if total_decisions > 0 else 0.0
         overall_blocking_rate = total_blocked / total_violations if total_violations > 0 else 1.0
 
+        # Fallback alerting when we see significant violations but lack a baseline
+        if not drift_alerts and total_decisions > 0:
+            if overall_violation_rate >= 0.1 or overall_blocking_rate < 0.9:
+                severity = "high" if overall_blocking_rate < 0.75 or overall_violation_rate >= 0.2 else "medium"
+                drift_alerts.append(
+                    DriftAlert(
+                        alert_type="constitutional_drift",
+                        severity=severity,
+                        title="Rights protection degrading",
+                        description="Recent decisions show elevated rights violations without sufficient blocking.",
+                        detected_at=datetime.utcnow().isoformat(),
+                        metrics={
+                            "violation_rate": overall_violation_rate,
+                            "blocking_rate": overall_blocking_rate,
+                            "total_decisions": total_decisions,
+                        },
+                        recommendations=[
+                            "Review rights critic enforcement",
+                            "Escalate governance thresholds for rights violations",
+                            "Audit recent DENY/ALLOW disagreements",
+                        ],
+                    )
+                )
+
         return {
             "timestamp": datetime.utcnow().isoformat(),
             "overall_metrics": {
