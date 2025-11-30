@@ -1,3 +1,4 @@
+import copy
 import uuid
 import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -13,7 +14,7 @@ from .retraining_manager import Retrainer
 from .plugin_security import get_security_manager, PluginSecurityManager, TimeoutException
 from ..utils.logging import get_logger
 from ..utils.validation import validate_case
-from ..utils.caching import DecisionCache
+from ..utils.caching import DecisionCache, fingerprint_config
 from ..exceptions import CriticException, APIException
 from ..constants import (
     MAX_RETRY_ATTEMPTS,
@@ -60,7 +61,13 @@ class EthicalReasoningEngine:
 
         # Initialize decision cache
         cache_size: int = self.config.get("cache_size", 1000)
-        self.cache: DecisionCache = DecisionCache(maxsize=cache_size)
+        cache_ttl = self.config.get("cache_ttl_seconds", 3600)
+        self.cache_fingerprint = fingerprint_config(self.config)
+        self.cache: DecisionCache = DecisionCache(
+            maxsize=cache_size,
+            ttl_seconds=cache_ttl,
+            config_fingerprint=self.cache_fingerprint,
+        )
         self.cache_enabled: bool = self.config.get("enable_cache", True)
 
         # Initialize plugin security manager
@@ -201,10 +208,11 @@ class EthicalReasoningEngine:
             if cached_result is not None:
                 self.logger.info(f"✨ Cache hit! Returning cached decision")
                 # Update request_id and timestamp for cached result
-                cached_result['request_id'] = str(uuid.uuid4())
-                cached_result['timestamp'] = datetime.datetime.utcnow().isoformat()
-                cached_result['from_cache'] = True
-                return cached_result
+                refreshed = copy.deepcopy(cached_result)
+                refreshed['request_id'] = str(uuid.uuid4())
+                refreshed['timestamp'] = datetime.datetime.utcnow().isoformat()
+                refreshed['from_cache'] = True
+                return refreshed
 
         request_id = str(uuid.uuid4())
         timestamp = datetime.datetime.utcnow().isoformat()
