@@ -78,6 +78,14 @@ async def evaluate(
 
     critic_reports: List[Dict[str, Any]] = list(decision.critic_reports)
     context_model.record_outcome(decision.governance_outcome.get("verdict", "ERROR"), critic_reports)
+    error_stats = decision.aggregation.get("errors", {}) if isinstance(decision.aggregation, dict) else {}
+    error_count = error_stats.get("count") if isinstance(error_stats, dict) else 0
+    total_reports = len(critic_reports)
+
+    stats = request.app.state.error_stats
+    stats["errors"] += int(error_count or 0)
+    stats["total"] += total_reports
+    stats["last_error_rate"] = error_stats.get("rate", 0.0) if isinstance(error_stats, dict) else 0.0
 
     case_result = models.CaseResult(
         case_id=request_body.case_id or decision.decision_id,
@@ -143,6 +151,9 @@ async def health(request: Request):
 
     config_loaded = bool(request.app.state.config)
     db_ready = bool(request.app.state.engine)
+    error_stats = request.app.state.error_stats
+    total = error_stats.get("total", 0)
+    aggregated_error_rate = (error_stats.get("errors", 0) / total) if total else 0.0
     return models.HealthResponse(
         status="ok" if config_loaded and db_ready else "degraded",
         components={
@@ -151,6 +162,7 @@ async def health(request: Request):
         },
         version=request.app.state.version,
         timestamp=datetime.utcnow(),
+        error_rate=aggregated_error_rate,
     )
 
 

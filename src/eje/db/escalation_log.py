@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import logging
+import time
 from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional
 
@@ -10,6 +12,9 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 metadata = MetaData()
 Base = declarative_base(metadata=metadata)
+
+logger = logging.getLogger(__name__)
+_failed_writes: List[Dict[str, Any]] = []
 
 
 class PrecedentRecord(Base):
@@ -56,6 +61,40 @@ def _serialize_reports(reports: Iterable[Dict[str, Any]]) -> str:
     return json.dumps(list(reports))
 
 
+def _persist_with_retry(write_fn, payload: Dict[str, Any], kind: str, max_attempts: int = 3, base_delay: float = 0.1) -> bool:
+    """Persist records with simple exponential backoff; enqueue on failure."""
+
+    for attempt in range(1, max_attempts + 1):
+        try:
+            write_fn()
+            return True
+        except Exception as exc:  # pragma: no cover - defensive logging path
+            if attempt == max_attempts:
+                logger.exception("Failed to persist %s after %s attempts", kind, max_attempts)
+                _failed_writes.append({
+                    "kind": kind,
+                    "payload": payload,
+                    "error": str(exc),
+                    "attempted_at": datetime.utcnow().isoformat(),
+                })
+                return False
+            time.sleep(base_delay * (2 ** (attempt - 1)))
+
+
+def flush_failed_writes(engine) -> None:
+    """Attempt to flush any queued failed writes."""
+
+    pending = list(_failed_writes)
+    _failed_writes.clear()
+    for item in pending:
+        payload = item.get("payload", {})
+        kind = item.get("kind", "unknown")
+        if kind == "precedent":
+            log_precedent(engine, **payload)
+        elif kind == "escalation":
+            log_escalation(engine, **payload)
+
+
 def log_precedent(
     engine,
     *,
@@ -70,17 +109,22 @@ def log_precedent(
     """Persist a case result along with critic context."""
 
     Session = sessionmaker(bind=engine, expire_on_commit=False)
-    record = PrecedentRecord(
-        case_id=case_id,
-        prompt=prompt,
-        verdict=verdict,
-        confidence=confidence,
-        escalated=escalated,
-        precedents=_serialize_precedents(precedents),
-        critic_reports=_serialize_reports(critic_reports),
-    )
-    with Session.begin() as session:
-        session.add(record)
+    payload = {
+        "case_id": case_id,
+        "prompt": prompt,
+        "verdict": verdict,
+        "confidence": confidence,
+        "escalated": escalated,
+        "precedents": _serialize_precedents(precedents),
+        "critic_reports": _serialize_reports(critic_reports),
+    }
+
+    def _write():
+        record = PrecedentRecord(**payload)
+        with Session.begin() as session:
+            session.add(record)
+
+    _persist_with_retry(_write, payload={"case_id": case_id, "prompt": prompt, "verdict": verdict}, kind="precedent")
 
 
 def log_escalation(
@@ -93,13 +137,18 @@ def log_escalation(
     """Persist a manual escalation to allow follow-up in the dashboard."""
 
     Session = sessionmaker(bind=engine, expire_on_commit=False)
-    record = EscalationRecord(
-        case_id=case_id,
-        reason=reason,
-        metadata_json=json.dumps(metadata or {}),
-    )
-    with Session.begin() as session:
-        session.add(record)
+    payload = {
+        "case_id": case_id,
+        "reason": reason,
+        "metadata_json": json.dumps(metadata or {}),
+    }
+
+    def _write():
+        record = EscalationRecord(**payload)
+        with Session.begin() as session:
+            session.add(record)
+
+    _persist_with_retry(_write, payload={"case_id": case_id, "reason": reason}, kind="escalation")
 
 
 def fetch_recent(engine, limit: int = 10) -> List[PrecedentRecord]:

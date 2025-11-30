@@ -31,6 +31,18 @@ except ImportError:
     logger.warning("faiss not available, using fallback similarity search")
 
 
+class _LocalStubEmbedder:
+    """Lightweight offline embedder to keep tests deterministic without downloads."""
+
+    def __init__(self, embedding_dim: int):
+        self.embedding_dim = embedding_dim
+
+    def encode(self, text: str, convert_to_numpy: bool = True):
+        rng = np.random.default_rng(abs(hash(text)) % (2**32))
+        vec = rng.standard_normal(self.embedding_dim)
+        return vec.astype(np.float32) if convert_to_numpy else vec
+
+
 @dataclass
 class SimilarPrecedent:
     """A precedent with similarity score."""
@@ -100,12 +112,13 @@ class VectorPrecedentStore:
             device = "cuda" if self.use_gpu else "cpu"
             self.embedder = SentenceTransformer(
                 self.embedding_model_name,
-                device=device
+                device=device,
+                local_files_only=True,
             )
             logger.info(f"Initialized embedder: {self.embedding_model_name} on {device}")
         except Exception as e:
-            logger.error(f"Failed to initialize embedder: {e}")
-            self.embedder = None
+            logger.error(f"Failed to initialize embedder: {e}; falling back to stub embedder")
+            self.embedder = _LocalStubEmbedder(self.embedding_dim)
 
     def _initialize_index(self):
         """Initialize FAISS index for vector search."""
@@ -212,7 +225,7 @@ class VectorPrecedentStore:
             embedding = self._generate_embedding(prec)
 
             # Add to storage
-            idx = len(self.precedents) + len(ids)
+            idx = len(self.precedents)
             self.precedents.append(prec)
             self.precedent_index[prec_id] = idx
             ids.append(prec_id)

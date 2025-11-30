@@ -227,7 +227,15 @@ class PrivacyProtectionCritic(RuleBasedCritic):
             1 for attr in self.PII_CATEGORIES['sensitive_attributes']
             if attr in text_lower or any(attr in dt for dt in data_types_lower)
         )
-        risk_score += min(sensitive_count * 0.12, 0.3)
+        risk_score += min(sensitive_count * 0.18, 0.6)
+
+        # Biometrics/genetics carry outsized risk even in small quantities
+        severe_markers = {'biometric', 'genetic', 'health'}
+        if any(
+            marker in text_lower or any(marker in dt for dt in data_types_lower)
+            for marker in severe_markers
+        ):
+            risk_score = max(risk_score, 0.65)
 
         # Check for quasi-identifiers (medium risk)
         quasi_count = sum(
@@ -357,8 +365,8 @@ class PrivacyProtectionCritic(RuleBasedCritic):
 
         # Check for good retention practices
         good_indicators = [
-            'time-limited', 'automatic deletion', 'defined period',
-            'secure disposal', 'anonymization', 'regular review'
+            'time-limited', 'automatic deletion', 'automatically deleted', 'auto delete',
+            'defined period', 'secure disposal', 'anonymization', 'regular review'
         ]
         good_count = sum(1 for indicator in good_indicators if indicator in retention_lower)
 

@@ -21,6 +21,8 @@ security = HTTPBearer(auto_error=False)
 
 def verify_bearer(settings: Settings):
     def dependency(credentials: HTTPAuthorizationCredentials = Depends(security)):
+        if not settings.api_token and settings.require_api_token:
+            raise HTTPException(status_code=500, detail="API token not configured")
         if not settings.api_token:
             return None
         if not credentials or credentials.credentials != settings.api_token:
@@ -34,10 +36,12 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
     """Build a FastAPI app with shared config, DB, and learning helpers."""
 
     settings = settings or get_settings()
+    settings.validate_security()
     app = FastAPI(title="ELEANOR Moral Ops Center", version="1.0.0")
     app.state.settings = settings
     app.state.version = "1.0.0"
     app.logger = logger
+    app.state.error_stats = {"errors": 0, "total": 0, "last_error_rate": 0.0}
 
     app.add_middleware(
         CORSMiddleware,
