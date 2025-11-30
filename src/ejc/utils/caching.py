@@ -1,12 +1,13 @@
-"""
-Caching utilities for the EJE.
+"""Caching utilities for the EJE.
 Provides LRU cache for decision results to avoid redundant API calls.
+Includes TTL-based invalidation and config fingerprinting to avoid stale reads
+after deployments or rule updates.
 """
 
 import json
 import hashlib
-from functools import lru_cache
-from typing import Dict, Any
+import time
+from typing import Dict, Any, Optional, Tuple
 
 
 def generate_case_hash(case: Dict[str, Any]) -> str:
@@ -24,13 +25,26 @@ def generate_case_hash(case: Dict[str, Any]) -> str:
     return hashlib.sha256(case_json.encode()).hexdigest()
 
 
+def fingerprint_config(config: Dict[str, Any]) -> str:
+    """Create a deterministic fingerprint for a configuration payload."""
+
+    config_json = json.dumps(config, sort_keys=True, default=str)
+    return hashlib.sha256(config_json.encode()).hexdigest()
+
+
 class DecisionCache:
     """
     LRU cache for decision results.
     Caches decisions by case hash to avoid redundant evaluations.
     """
 
-    def __init__(self, maxsize=1000):
+    def __init__(
+        self,
+        *,
+        maxsize: int = 1000,
+        ttl_seconds: Optional[int] = 3600,
+        config_fingerprint: Optional[str] = None,
+    ):
         """
         Initialize the cache.
 
@@ -38,10 +52,25 @@ class DecisionCache:
             maxsize: Maximum number of cached decisions
         """
         self.maxsize = maxsize
-        self._cache = {}
+        self.ttl_seconds = ttl_seconds
+        self.config_fingerprint = config_fingerprint
+        self._cache: Dict[str, Tuple[float, Dict[str, Any], Optional[str]]] = {}
         self._access_order = []
         self.hits = 0
         self.misses = 0
+
+    def _is_stale(self, stored_at: float, stored_fingerprint: Optional[str]) -> bool:
+        """Determine whether a cache entry is stale."""
+
+        ttl_expired = (
+            self.ttl_seconds is not None
+            and (time.time() - stored_at) > self.ttl_seconds
+        )
+        fingerprint_changed = (
+            self.config_fingerprint is not None
+            and stored_fingerprint != self.config_fingerprint
+        )
+        return ttl_expired or fingerprint_changed
 
     def get(self, case: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -57,10 +86,16 @@ class DecisionCache:
 
         if case_hash in self._cache:
             # Move to end (most recently used)
+            stored_at, decision, stored_fingerprint = self._cache[case_hash]
+            if not self._is_stale(stored_at, stored_fingerprint):
+                self._access_order.remove(case_hash)
+                self._access_order.append(case_hash)
+                self.hits += 1
+                return decision
+
+            # Drop stale entry
             self._access_order.remove(case_hash)
-            self._access_order.append(case_hash)
-            self.hits += 1
-            return self._cache[case_hash]
+            del self._cache[case_hash]
 
         self.misses += 1
         return None
@@ -84,7 +119,7 @@ class DecisionCache:
         if case_hash in self._cache:
             self._access_order.remove(case_hash)
 
-        self._cache[case_hash] = decision
+        self._cache[case_hash] = (time.time(), decision, self.config_fingerprint)
         self._access_order.append(case_hash)
 
     def clear(self):

@@ -66,3 +66,4 @@ class HealthResponse(BaseModel):
     components: Dict[str, str]
     version: str
     timestamp: datetime
+    error_rate: float = Field(0.0, ge=0.0)

@@ -23,7 +23,15 @@ class Settings(BaseSettings):
     )
     api_token: Optional[str] = Field(
         default=None,
-        description="Optional bearer token to secure API endpoints.",
+        description="Bearer token to secure API endpoints.",
+    )
+    require_api_token: bool = Field(
+        default=True,
+        description="Whether to enforce non-empty API tokens on startup.",
+    )
+    reject_wildcard_origins: bool = Field(
+        default=True,
+        description="Disallow '*' CORS origins to enforce explicit allowlists.",
     )
     dynamic_weights: bool = Field(
         default=True,
@@ -39,6 +47,18 @@ class Settings(BaseSettings):
     class Config:
         env_prefix = "EJE_"
         case_sensitive = False
+
+    def validate_security(self) -> None:
+        """Fail fast when security-sensitive settings are unsafe."""
+
+        if self.require_api_token and not self.api_token:
+            raise ValueError("API token is required; set EJE_API_TOKEN to a non-empty value")
+
+        if not self.allowed_origins:
+            raise ValueError("allowed_origins cannot be empty")
+
+        if self.reject_wildcard_origins and any(origin == "*" for origin in self.allowed_origins):
+            raise ValueError("Wildcard CORS origins are rejected; specify explicit domains instead")
 
 
 @lru_cache(maxsize=1)

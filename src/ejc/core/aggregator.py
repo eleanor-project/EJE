@@ -12,6 +12,10 @@ class Aggregator:
         raw_weights = config.get('critic_weights', root_config.get('critic_weights', {}))
         self.critic_weights: Dict[str, float] = {str(k).lower(): float(v) for k, v in raw_weights.items()} if raw_weights else {}
         self.moral_mode: str = config.get('moral_mode', root_config.get('moral_mode', 'balanced'))
+        self.error_review_threshold: float = config.get(
+            'error_review_threshold',
+            root_config.get('error_review_threshold', 0.5),
+        )
 
     def _resolve_weight(self, result: Dict[str, Any]) -> float:
         """Determine the effective weight for a critic result."""
@@ -54,7 +58,8 @@ class Aggregator:
                 'details': [],
                 'verdict_scores': {'ALLOW': 0, 'BLOCK': 0, 'REVIEW': 0},
                 'avg_confidence': 0.0,
-                'ambiguity': 0.0
+                'ambiguity': 0.0,
+                'errors': {'count': 0, 'rate': 0.0},
             }
 
         verdict_scores = {'ALLOW': 0, 'BLOCK': 0, 'REVIEW': 0, 'DENY': 0}
@@ -92,6 +97,7 @@ class Aggregator:
                 'verdict_scores': verdict_scores,
                 'avg_confidence': 0.0,
                 'ambiguity': 0.0,
+                'errors': {'count': error_count, 'rate': 1.0},
             }
         if not overall:
             top = max(verdict_scores, key=verdict_scores.get)
@@ -115,11 +121,20 @@ class Aggregator:
 
             if reason == "":
                 reason = "Weighted aggregation"
+        total = len(results)
+        error_rate = error_count / total if total else 0.0
+        if error_rate >= self.error_review_threshold and overall != 'ERROR':
+            overall = 'REVIEW'
+            if reason:
+                reason = f"{reason}; high critic failure rate"
+            else:
+                reason = "High critic failure rate"
         return {
             'overall_verdict': overall,
             'reason': reason,
             'details': results,
             'verdict_scores': verdict_scores,
             'avg_confidence': mean(confidences),
-            'ambiguity': ambiguity if 'ambiguity' in locals() else 0
+            'ambiguity': ambiguity if 'ambiguity' in locals() else 0,
+            'errors': {'count': error_count, 'rate': error_rate},
         }
