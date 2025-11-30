@@ -298,11 +298,14 @@ class CulturalNormAdapter:
         neutral = []
 
         for value in action_values:
-            value_lower = value.lower()
+            value_lower = value.lower().replace("_", " ")
 
             # Check for alignment
-            if any(cv.lower() in value_lower or value_lower in cv.lower()
-                   for cv in culture.core_values):
+            if any(
+                cv.lower().replace("_", " ") in value_lower
+                or value_lower in cv.lower().replace("_", " ")
+                for cv in culture.core_values
+            ):
                 aligned.append(value)
 
             # Check for conflict (simplified)
