@@ -20,6 +20,10 @@ enable_cache: true
 cache_size: 1000  # Maximum cached decisions
 
 # Critic Configuration
+enable_chaos_critic: false  # Optional chaos-mode critic for stress testing
+moral_mode: "balanced"  # legalist | utilitarian | deontological | diplomatic | balanced
+self_awareness_penalty: 0.05  # Controls how strongly context size reduces confidence
+
 critic_weights:
   Rights: 1.0
   Equity: 0.9
@@ -33,6 +37,11 @@ critic_priorities:
 # Plugin Critics
 plugin_critics:
   - "./plugins/custom_rule.py"
+
+# Replay logging
+replay_logging:
+  enabled: true
+  path: "./eleanor_data/replays"
 
 # Governance configuration
 governance:
