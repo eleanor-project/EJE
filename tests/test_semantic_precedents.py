@@ -52,7 +52,7 @@ def sample_precedents() -> List[Dict]:
             "id": "prec_002",
             "hash": "def456",
             "input_data": {
-                "prompt": "Disclose health data to third party without consent",
+                "prompt": "Disclose medical data to third party without consent",
                 "context": {"privacy_sensitive": True, "age": 42}
             },
             "outcome": {"verdict": "blocked", "confidence": 0.92},
