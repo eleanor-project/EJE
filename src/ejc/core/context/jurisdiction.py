@@ -304,5 +304,5 @@ class JurisdictionRegistry:
             "violations": violations,
             "warnings": warnings,
             "requirements_met": requirements_met,
-            "applicable_jurisdictions": [j.name for j in jurisdictions],
+            "applicable_jurisdictions": [j.jurisdiction_id for j in jurisdictions],
         }

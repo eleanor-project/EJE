@@ -8,16 +8,22 @@ Provides:
 """
 
 from .context_manager import ContextManager
-from .jurisdiction import JurisdictionContext, JurisdictionRegistry
+from .jurisdiction import (
+    JurisdictionContext,
+    JurisdictionRegistry,
+    PrivacyRegime,
+)
 from .cultural import CulturalContext, CulturalNormAdapter
-from .domain import DomainContext, DomainSpecialization
+from .domain import DomainContext, DomainSpecialization, EthicalPrinciple
 
 __all__ = [
     "ContextManager",
     "JurisdictionContext",
     "JurisdictionRegistry",
+    "PrivacyRegime",
     "CulturalContext",
     "CulturalNormAdapter",
     "DomainContext",
     "DomainSpecialization",
+    "EthicalPrinciple",
 ]
