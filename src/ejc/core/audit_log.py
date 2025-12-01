@@ -3,6 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import datetime
 import json
+from typing import Any, Dict, List, Optional
 
 Base = declarative_base()
 
@@ -67,22 +68,75 @@ class AuditLogger:
             feedback_data: Dictionary containing feedback information
         """
         session = self.Session()
-        # Find event by request_id stored in result_json
-        events = session.query(AuditEvent).all()
-        for event in events:
-            try:
-                result = json.loads(event.result_json) if event.result_json else {}
-                # Check if this event matches the request_id
-                # (request_id might be stored in different places depending on version)
-                if isinstance(result, dict):
-                    # Append feedback
-                    existing_feedback = json.loads(event.feedback) if event.feedback else []
-                    if not isinstance(existing_feedback, list):
-                        existing_feedback = [existing_feedback]
-                    existing_feedback.append(feedback_data)
-                    event.feedback = json.dumps(existing_feedback)
-                    session.commit()
-                    break
-            except (json.JSONDecodeError, KeyError):
-                continue
-        session.close()
+        try:
+            events = session.query(AuditEvent).all()
+            for event in events:
+                try:
+                    result = json.loads(event.result_json) if event.result_json else {}
+                    if self._event_matches_request(result, request_id):
+                        self._append_feedback_to_event(event, feedback_data)
+                        session.commit()
+                        return
+
+                    details = json.loads(event.details_json) if event.details_json else {}
+                    if self._event_matches_request(details, request_id):
+                        self._append_feedback_to_event(event, feedback_data)
+                        session.commit()
+                        return
+                except json.JSONDecodeError:
+                    continue
+        finally:
+            session.close()
+
+    def get_feedback(self, request_id: Optional[str]) -> List[Dict[str, Any]]:
+        """Retrieve feedback entries for a request ID from the audit log."""
+        session = self.Session()
+        feedback_entries: List[Dict[str, Any]] = []
+        try:
+            events = session.query(AuditEvent).all()
+            for event in events:
+                try:
+                    result = json.loads(event.result_json) if event.result_json else {}
+                    if request_id is not None and not self._event_matches_request(result, request_id):
+                        details = json.loads(event.details_json) if event.details_json else {}
+                        if not self._event_matches_request(details, request_id):
+                            continue
+
+                    if event.feedback:
+                        stored_feedback = json.loads(event.feedback)
+                        if isinstance(stored_feedback, list):
+                            feedback_entries.extend(stored_feedback)
+                        else:
+                            feedback_entries.append(stored_feedback)
+                except json.JSONDecodeError:
+                    continue
+            return feedback_entries
+        finally:
+            session.close()
+
+    @staticmethod
+    def _event_matches_request(event_payload: Any, request_id: str) -> bool:
+        """Determine whether an audit event payload references the request ID."""
+        if not isinstance(event_payload, dict):
+            return False
+
+        candidate_keys = ("request_id", "decision_id", "id")
+        if any(event_payload.get(key) == request_id for key in candidate_keys):
+            return True
+
+        for nested_key in ("final_decision", "decision", "bundle"):
+            nested = event_payload.get(nested_key)
+            if isinstance(nested, dict) and any(
+                nested.get(key) == request_id for key in candidate_keys
+            ):
+                return True
+
+        return False
+
+    @staticmethod
+    def _append_feedback_to_event(event: AuditEvent, feedback_data: Dict[str, Any]) -> None:
+        existing_feedback = json.loads(event.feedback) if event.feedback else []
+        if not isinstance(existing_feedback, list):
+            existing_feedback = [existing_feedback]
+        existing_feedback.append(feedback_data)
+        event.feedback = json.dumps(existing_feedback)
