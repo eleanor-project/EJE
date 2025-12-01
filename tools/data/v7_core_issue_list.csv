@@ -1,0 +1,828 @@
+title,body,labels,milestone
+"[Core Engine] Task 1.1 — Define Evidence Bundle Schema","Description:
+Create a formal schema for evidence bundles, specifying critic outputs, metadata, input snapshots, and internal version IDs.
+
+Rationale:
+Evidence bundles are the atomic unit of reasoning across critics. A strict schema ensures consistency and safe aggregation.
+
+Functional Requirements:
+- Create `schemas/evidence_bundle.json`
+- Define critic output fields
+- Define justification field
+- Define metadata block (timestamps, critic name, config version)
+- Define input snapshot section
+- Add version tag
+
+Acceptance Criteria:
+- JSON schema validates a set of test bundles
+- Validation errors are descriptive
+- Downstream aggregator can parse the schema
+
+Definition of Done:
+Schema file created, validated, documented.","core-engine,architecture,priority:high","V7-Core"
+"[Core Engine] Task 1.2 — Implement Evidence Normalizer","Description:
+Implement a normalizer that converts raw critic outputs into the unified evidence bundle schema.
+
+Rationale:
+Critic outputs vary; normalization guarantees structure and reduces downstream error cases.
+
+Functional Requirements:
+- Create `core/evidence_normalizer.py`
+- Map critic raw output → schema format
+- Auto-fill missing fields
+- Attach metadata from config
+
+Acceptance Criteria:
+- All critic outputs normalize without errors
+- Missing fields are handled gracefully
+- Normalized bundle passes schema validation","core-engine,architecture,priority:high","V7-Core"
+"[Core Engine] Task 1.3 — Add Metadata Enrichment","Description:
+Add system metadata (timestamps, latency, config props) to each evidence bundle.
+
+Rationale:
+Metadata is essential for observability, policy checks, audit trails.
+
+Functional Requirements:
+- Add timestamp generation
+- Add critic execution timing
+- Add config version
+- Add aggregator run ID
+
+Acceptance Criteria:
+- Metadata appears in every bundle
+- Timing fields are non-zero
+- Bundle still validates against schema","core-engine,observability,priority:medium","V7-Core"
+"[Core Engine] Task 1.4 — Implement Serialization/Deserialization","Description:
+Provide strict methods for converting evidence bundles to/from JSON.
+
+Requirements:
+- Implement `to_json()` and `from_json()`
+- Ensure strict validation on load
+- Provide error messages on structural mismatch","core-engine,priority:medium","V7-Core"
+"[Core Engine] Task 1.5 — Write EvidenceBundle Unit Tests","Description:
+Write test suite validating normalization, serialization, and schema compliance.
+
+Requirements:
+- Positive tests for valid bundles
+- Negative tests for invalid/missing fields
+- Ensure test coverage for normalization edge-cases","testing,core-engine,priority:medium","V7-Core"
+"[Core Engine] Task 2.1 — Add Critic Weighting","Description:
+Add numeric weighting to critic outputs to influence aggregation.
+
+Requirements:
+- Add weighting field to critic config
+- Aggregator must incorporate weighting
+- Create tests verifying new weighting logic","core-engine,critic-engine,priority:high","V7-Core"
+"[Core Engine] Task 2.2 — Implement Conflict Detection","Description:
+Detect contradictory critic outputs and return structured conflict objects.
+
+Examples:
+- Two critics yield opposing classifications
+- Confidence levels diverge sharply
+
+Acceptance Criteria:
+- Conflict objects exposed to policy engine
+- Logged in observability","core-engine,critic-engine,priority:high","V7-Core"
+"[Core Engine] Task 2.3 — Multi-Critic Justification Synthesis","Description:
+Aggregate all critic justifications into a unified explanation.
+
+Requirements:
+- Surface critic-level reasoning
+- Merge into a composite justification
+- Highlight agreement vs disagreement","core-engine,explainability,priority:high","V7-XAI"
+"[Core Engine] Task 2.4 — Aggregator Test Suite","Description:
+Comprehensive tests for aggregator behavior.
+
+Coverage:
+- Weighted aggregation
+- Conflict detection
+- Fallback scenarios
+- Missing critic output","testing,core-engine,priority:high","V7-Core"
+"[Core Engine] Task 3.1 — Implement Precedent Storage Backend","Description:
+Add a precedent store using SQLite/Postgres.
+
+Requirements:
+- `precedents` table
+- Store: query, evidence bundle, decision
+- Indexing for efficient lookup","precedent-engine,storage,priority:high","V7-Core"
+"[Core Engine] Task 3.2 — Create Precedent Ingestion Pipeline","Description:
+Automatically store each completed decision into precedent storage.
+
+Functional Requirements:
+- Trigger after aggregator and policy stages
+- Include evidence bundle snapshot
+- Include final verdict and justification","precedent-engine,priority:high","V7-Core"
+"[Core Engine] Task 3.3 — Implement Similarity Search Wrapper","Description:
+Similarity search for precedent retrieval using embeddings.
+
+Requirements:
+- Cosine similarity
+- Embedding model wrapper
+- Retrieve top-k relevant precedents","precedent-engine,priority:high","V7-Core"
+"[Core Engine] Task 3.4 — Implement Precedent Ranking Function","Description:
+Rank precedents based on similarity + recency + relevance.
+
+Acceptance Criteria:
+- Ranking stable across runs
+- Recency weighting tunable","precedent-engine,priority:medium","V7-Core"
+"[Core Engine] Task 3.5 — Precedent Engine Tests","Description:
+Unit tests validating:
+- Storage
+- Retrieval
+- Ranking
+- Error conditions","testing,precedent-engine,priority:medium","V7-Core"
+"[Core Engine] Task 4.1 — Formalize Policy Rule Interface","Description:
+Define a strongly-typed rule structure and policy evaluation interface.
+
+Requirements:
+- Create `/core/policy/rules.py`
+- Standard rule fields
+- Compliance flags","governance,policy-engine,priority:high","V7-Core"
+"[Core Engine] Task 4.2 — Add Threshold Rules","Description:
+Implement threshold-based rules (e.g., minimum confidence, critic agreement, conflict tolerance).
+
+Functional Requirements:
+- Configurable thresholds
+- Enforcement inside policy engine
+- Structured failure messages
+
+Acceptance Criteria:
+- Decision flagged when threshold fails
+- Logged for audit + observability","governance,policy-engine,priority:high","V7-Core"
+"[Core Engine] Task 4.3 — Implement Compliance Flags","Description:
+Add compliance outcome indicators: `passes`, `borderline`, `fails`.
+
+Requirements:
+- Flags based on rule evaluation
+- Included in final decision object
+- Propagated to audit log","governance,policy-engine,priority:high","V7-Core"
+"[Core Engine] Task 4.4 — Policy Outcome Formatter","Description:
+Create formatter to produce clean, human-readable policy explanations.
+
+Requirements:
+- Include rule matches/mismatches
+- Link to critic outputs
+- Provide structured reasoning","governance,explainability,priority:medium","V7-XAI"
+"[Core Engine] Task 4.5 — Policy Engine Tests","Description:
+Tests validating rule application and compliance flags.
+
+Coverage:
+- Threshold failures
+- Rule conflicts
+- Explainability output","testing,governance,priority:medium","V7-Core"
+"[Core Engine] Task 5.1 — Per-Critic Explanation Formatter","Description:
+Define standardized explanation format for each critic.
+
+Requirements:
+- Style enforcement
+- Key info extraction
+- Confidence + reasoning conveyed","explainability,critic-engine,priority:high","V7-XAI"
+"[Core Engine] Task 5.2 — Aggregated Explanation Builder","Description:
+Combine critic explanations into one structured narrative.
+
+Requirements:
+- Merge reasoning
+- Highlight consistencies/inconsistencies
+- Support long-form and short-form modes","explainability,core-engine,priority:high","V7-XAI"
+"[Core Engine] Task 5.3 — Counterfactual Placeholder","Description:
+Add stub for counterfactual generation: “Decision would change if X differed.”
+
+Requirements:
+- Basic template generation
+- No model-based reasoning yet
+- Integration point documented","explainability,priority:medium","V7-XAI"
+"[Core Engine] Task 5.4 — Explainability Tests","Description:
+Test suite validating:
+- Individual critic explanations
+- Aggregated explanation correctness
+- Counterfactual formatting","testing,explainability,priority:medium","V7-XAI"
+"[Core Engine] Task 6.1 — Fallback Evidence Bundle","Description:
+Schema for capturing fallback events, including reasons and fallback decision.
+
+Requirements:
+- `fallback_type`
+- `failed_critics`
+- `system_state_at_trigger`","fallback,core-engine,priority:high","V7-Core"
+"[Core Engine] Task 6.2 — Implement Fallback Logic","Description:
+Trigger fallback when:
+- Critic failure count exceeds threshold
+- Timeouts occur
+- Schema validations fail
+
+Acceptance Criteria:
+- Fallback decision always safe
+- Logged and auditable","fallback,core-engine,priority:high","V7-Core"
+"[Core Engine] Task 6.3 — Fallback Explanation Generator","Description:
+Human-readable explanation for fallback events.
+
+Requirements:
+- Clear failure reasons
+- List affected critics
+- Safety rationale","fallback,explainability,priority:medium","V7-Core"
+"[Core Engine] Task 6.4 — Fallback Tests","Description:
+Test fallback handling under:
+- Timeouts
+- Missing critic output
+- Conflicts
+- Precedent retrieval failure","testing,fallback,priority:high","V7-Core"
+"[Governance] Task 7.1 — Override Request Model","Description:
+Define `OverrideRequest` fields:
+- Reviewer ID
+- Justification
+- Proposed override outcome
+
+Requirements:
+- Pydantic model
+- schema validation","governance,priority:medium","V7-Governance"
+"[Governance] Task 7.2 — Implement Override Handler","Description:
+Override pipeline:
+- Validate request
+- Apply override
+- Update decision
+- Mark decision as human-modified","governance,priority:high","V7-Governance"
+"[Governance] Task 7.3 — Override Event Logger","Description:
+Log override events including:
+- Reviewer identity
+- Timestamp
+- Reasoning
+- Original vs overridden decision","governance,audit,priority:medium","V7-Governance"
+"[Governance] Task 7.4 — Override Tests","Description:
+Test override flows:
+- Valid override
+- Invalid override
+- Multiple override attempts
+- Audit propagation","testing,governance,priority:medium","V7-Governance"
+"[Governance] Task 7.5 — Override Documentation","Description:
+Document override workflow:
+- When allowed
+- Required evidence
+- Reviewer role expectations","documentation,governance,priority:low","V7-Governance"
+"[Governance] Task 8.1 — Decision Audit Schema","Description:
+Schema defining fields stored in audit logs.
+
+Requirements:
+- Critic outputs
+- Aggregator result
+- Policy flags
+- Precedents used
+- Override state","audit,storage,priority:high","V7-Core"
+"[Governance] Task 8.2 — Implement Audit Writer","Description:
+Write audit entries to the storage backend.
+
+Requirements:
+- Insert record for every decision
+- Include metadata
+- Ensure write succeeds even under fallback","audit,storage,priority:high","V7-Core"
+"[Governance] Task 8.3 — Implement Audit Reader","Description:
+Retrieve audit records by ID or filter.
+
+Requirements:
+- Pagination
+- Structured results
+- Error handling","audit,storage,priority:medium","V7-Core"
+"[Governance] Task 8.4 — Add Version Metadata","Description:
+Store version numbers:
+- EJE version
+- Critic config version
+- Policy version
+
+Purpose:
+- Full traceability across decisions","audit,core-engine,priority:medium","V7-Core"
+"[Governance] Task 8.5 — Log Overrides","Description:
+Ensure overrides are written into audit log.
+
+Requirements:
+- Before + After snapshots
+- Reviewer metadata","audit,governance,priority:medium","V7-Core"
+"[Governance] Task 8.6 — Log Fallbacks","Description:
+Fallback events must be logged with:
+- Triggering reason
+- System state
+- Critic failures","audit,fallback,priority:medium","V7-Core"
+"[Governance] Task 8.7 — Audit Tests","Description:
+Test:
+- Write success
+- Readbacks
+- Overrides
+- Fallback events","testing,audit,priority:medium","V7-Core"
+"[Governance] Task 9.1 — Implement PII Scrubber","Description:
+Scrub PII from input before critics process it.
+
+Requirements:
+- Regex-based scrubbing
+- Configurable rules
+- Optional bypass for closed environments","governance,safety,priority:high","V7-Core"
+"[Governance] Task 9.2 — Prompt Injection Protection","Description:
+Sanitize input against:
+- Malicious instructions
+- Model steering attempts
+- Unsafe payloads","governance,safety,priority:high","V7-Core"
+"[Governance] Task 9.3 — Sensitive Metadata Classifier","Description:
+Label metadata with sensitivity classes.
+
+Purpose:
+- Enable future access controls","governance,safety,priority:medium","V7-Core"
+"[Governance] Task 9.4 — Governance Tests","Description:
+Test suite validating:
+- PII scrubbing effectiveness
+- Injection protection behavior
+- Metadata sensitivity labeling
+- Error handling for malformed input","testing,governance,safety,priority:medium","V7-Core"
+"[Operational] Task 10.1 — Implement FastAPI Routes","Description:
+Implement full API layer including:
+
+Endpoints:
+- POST /decision
+- GET /precedents
+- GET /critics
+- GET /health
+
+Requirements:
+- Async FastAPI endpoints
+- Pydantic validation
+- Integration with core pipeline","api,operational,priority:high","V7-Operational"
+"[Operational] Task 10.2 — Add Request Validation","Description:
+Validate all incoming requests using Pydantic models.
+
+Requirements:
+- Strict mode enabled
+- Clear errors for invalid shape
+- Validation integrated before pipeline","api,operational,priority:high","V7-Operational"
+"[Operational] Task 10.3 — Add Response Models","Description:
+Define response models for:
+
+- DecisionOutput
+- EvidenceBundle
+- PrecedentBundle
+- HealthCheck
+
+Acceptance Criteria:
+- Models enforced at runtime
+- Used by all API routes","api,operational,priority:medium","V7-Operational"
+"[Operational] Task 10.4 — Add API Authentication","Description:
+Add API authentication (choose one):
+- API key header
+- OAuth2 token bearer
+
+Requirements:
+- Unauthorized requests return 401
+- Logged in audit trail","api,security,priority:high","V7-Operational"
+"[Operational] Task 10.5 — Implement Rate Limiting","Description:
+Add rate limiting to protect infrastructure.
+
+Requirements:
+- Per-IP rate limit
+- Exponential backoff
+- Configurable via env vars","api,security,priority:medium","V7-Operational"
+"[Operational] Task 10.6 — API Tests","Description:
+Test suite validating:
+
+- Happy path decision
+- Invalid request body
+- Unauthorized caller
+- Rate limits","testing,api,priority:high","V7-Operational"
+"[Operational] Task 11.1 — Prometheus Metrics Exporter","Description:
+Expose Prometheus metrics at `/metrics`.
+
+Metrics must include:
+- Decision latency
+- Critic latency
+- Critic failures
+- Fallback events","observability,monitoring,priority:high","V7-Operational"
+"[Operational] Task 11.2 — Track Critic Latency","Description:
+Record per-critic latency metrics and export to Prometheus.
+
+Requirements:
+- Histogram buckets
+- Aggregated & per-critic stats","observability,monitoring,priority:medium","V7-Operational"
+"[Operational] Task 11.3 — Track Decision Latency","Description:
+Measure end-to-end latency from API request → final decision.
+
+Acceptance Criteria:
+- Histogram generated
+- Metrics available in dashboard","observability,monitoring,priority:medium","V7-Operational"
+"[Operational] Task 11.4 — Critic Failure & Fallback Counters","Description:
+Count:
+- Critic errors
+- Timeouts
+- Fallback invocations","observability,monitoring,priority:medium","V7-Operational"
+"[Operational] Task 11.5 — Add Drift Indicator Stub","Description:
+Add stub metric representing:
+- Input drift
+- Embedding drift
+- Precedent divergence
+
+(No actual drift detection required yet.)","observability,monitoring,priority:low","V7-Operational"
+"[Operational] Task 11.6 — Observability Tests","Description:
+Ensure metrics emit correctly for:
+
+- Normal runs
+- Critic failures
+- Fallback events","testing,observability,priority:medium","V7-Operational"
+"[Operational] Task 12.1 — Implement Standardized JSON Logging","Description:
+Adopt structured JSON logging across the codebase.
+
+Requirements:
+- Standard log format
+- Include correlation_id
+- Include critic_name & latency","operational,logging,priority:high","V7-Operational"
+"[Operational] Task 12.2 — Add Correlation IDs","Description:
+Add correlation IDs propagated through:
+
+- API
+- Critics
+- Aggregator
+- Audit Log","operational,logging,priority:high","V7-Operational"
+"[Operational] Task 12.3 — Add Critic-Level Logs","Description:
+Each critic must log:
+
+- Input summary
+- Output summary
+- Latency
+- Errors","operational,logging,priority:medium","V7-Operational"
+"[Operational] Task 12.4 — Add Decision-Level Logs","Description:
+Log aggregated decision object including:
+
+- Policy flags
+- Precedents used
+- Fallback or override status","operational,logging,priority:medium","V7-Operational"
+"[Operational] Task 13.1 — Add Postgres Storage Layer","Description:
+Add Postgres database for:
+
+- Decisions
+- Audit logs
+- Precedents
+
+Requirements:
+- SQLAlchemy models
+- Migrations
+- Connection pooling","storage,operational,priority:high","V7-Infrastructure"
+"[Operational] Task 13.2 — Add VectorDB Storage","Description:
+Integrate vector search for precedent embeddings.
+
+Supported options:
+- Qdrant
+- Pinecone
+- pgvector
+
+Requirements:
+- Insert embeddings
+- Similarity query API","storage,precedent-engine,priority:high","V7-Infrastructure"
+"[Operational] Task 13.3 — Add S3-Compatible Storage","Description:
+Store heavy artifacts (evidence bundles, logs) in S3.
+
+Requirements:
+- boto3 or minio client
+- Write/read functions
+- Retry logic","storage,operational,priority:medium","V7-Infrastructure"
+"[Testing] Task 14.1 — Unit Tests for Critics","Description:
+Coverage:
+- Input validation
+- Output structure
+- Timeouts
+- Error handling","testing,critic-engine,priority:high","V7-Testing"
+"[Testing] Task 14.2 — Unit Tests for Aggregator","Description:
+Tests for:
+- Weighted aggregation
+- Conflict detection
+- Missing critic output","testing,core-engine,priority:high","V7-Testing"
+"[Testing] Task 14.3 — Evidence Normalizer Tests","Description:
+Test normalization across diverse critic outputs and malformed inputs.","testing,core-engine,priority:medium","V7-Testing"
+"[Testing] Task 14.4 — Integration Test: Full Pipeline","Description:
+Simulate full run:
+- Input → Critics → Aggregator → Policy → Decision → Audit","testing,priority:high","V7-Testing"
+"[Testing] Task 14.5 — Policy Engine Tests","Description:
+Test:
+- Rule thresholds
+- Compliance flags
+- Conflicting rules","testing,governance,priority:medium","V7-Testing"
+"[Testing] Task 14.6 — Precedent Engine Tests","Description:
+Test precedent engine behavior including:
+
+- Storage correctness
+- Retrieval correctness
+- Ranking function stability
+- Handling missing embeddings","testing,precedent-engine,priority:medium","V7-Testing"
+"[Testing] Task 14.7 — Fallback Tests","Description:
+Validate fallback triggers under:
+
+- Critic timeout
+- Schema validation failure
+- Precedent retrieval failure
+
+Ensure fallback decision is valid + logged.","testing,fallback,priority:high","V7-Testing"
+"[Testing] Task 14.8 — Regression Suite","Description:
+Create regression test suite ensuring:
+
+- No breaking behavior for existing features
+- Stable aggregator outputs
+- Stable critic normalization","testing,priority:medium","V7-Testing"
+"[Testing] Task 15.1 — Prompt Injection Suite","Description:
+Test against adversarial inputs including:
+
+- Hidden instructions
+- Role hijacking attempts
+- Nested malicious structures","testing,security,priority:high","V7-Testing"
+"[Testing] Task 15.2 — Bias Probe Suite","Description:
+Develop tests detecting systematic bias across critics and aggregator.
+
+Requirements:
+- Vary protected attributes
+- Evaluate fairness shifts","testing,ethics,bias,priority:high","V7-Testing"
+"[Testing] Task 15.3 — Context Poisoning Tests","Description:
+Test resilience against poisoned or misleading context fields.
+
+Examples:
+- Opposing metadata
+- Conflicting precedent suggestions","testing,security,priority:medium","V7-Testing"
+"[Testing] Task 15.4 — Malformed Input Tests","Description:
+Test malformed or corrupted inputs including:
+
+- Nulls
+- Non-UTF8 strings
+- Missing fields","testing,priority:medium","V7-Testing"
+"[Testing] Task 15.5 — Boundary Tests","Description:
+Boundary conditions for:
+
+- Max input size
+- Max critic count
+- Max evidence depth","testing,priority:low","V7-Testing"
+"[Deployment] Task 16.1 — Create Dockerfile","Description:
+Containerize system with optimized Dockerfile.
+
+Requirements:
+- Multi-stage build
+- Minimal base image
+- Production entrypoint","deployment,containers,priority:high","V7-Infrastructure"
+"[Deployment] Task 16.2 — docker-compose for Dev","Description:
+Create `docker-compose.yml` supporting:
+
+- API service
+- Postgres
+- Vector DB
+- Minio/S3 mock","deployment,containers,priority:medium","V7-Infrastructure"
+"[Deployment] Task 16.3 — Kubernetes Manifests","Description:
+Create manifests for:
+
+- Deployment
+- Service
+- ConfigMap
+- Secret
+- HPA (optional)","deployment,kubernetes,priority:medium","V7-Infrastructure"
+"[Deployment] Task 16.4 — Env Var Templates","Description:
+Add template file documenting required env vars:
+
+- DB URLs
+- API keys
+- Rate limits
+- Logging modes","deployment,documentation,priority:low","V7-Infrastructure"
+"[Deployment] Task 16.5 — Container Health Checks","Description:
+Configure:
+
+- Liveness probe
+- Readiness probe
+- Startup probe","deployment,kubernetes,priority:medium","V7-Infrastructure"
+"[Deployment] Task 17.1 — GitHub Actions: Linting","Description:
+Create GitHub Actions workflow for linting:
+
+- Runs on PRs
+- Python linting (flake8/ruff)
+- Formatting checks","ci-cd,priority:medium","V7-Infrastructure"
+"[Deployment] Task 17.2 — GitHub Actions: Testing","Description:
+Create CI workflow:
+
+- Run entire test suite
+- Test matrix for Python versions
+- Fails build on test failure","ci-cd,testing,priority:high","V7-Infrastructure"
+"[Deployment] Task 17.3 — GitHub Actions: Build","Description:
+Automate container build + publish to GHCR.
+
+Requirements:
+- Build on tag
+- Stable version tagging","ci-cd,containers,priority:medium","V7-Infrastructure"
+"[Deployment] Task 17.4 — GitHub Actions: Security Scan","Description:
+Integrate security scanning for:
+
+- Dependencies
+- Containers
+- CodeQL","ci-cd,security,priority:medium","V7-Infrastructure"
+"[Deployment] Task 17.5 — GitHub Actions: Versioning","Description:
+Automate semantic versioning:
+
+- Auto-bump
+- Auto-tag
+- Auto-changelog entry","ci-cd,versioning,priority:medium","V7-Release"
+"[Deployment] Task 17.6 — GitHub Actions: Release Artifacts","Description:
+Workflow to publish:
+
+- Docker images
+- Bundle zip
+- Release notes","ci-cd,release,priority:medium","V7-Release"
+"[Deployment] Task 18.1 — Create CHANGELOG.md","Description:
+Draft CHANGELOG.md following semantic versioning.
+
+Requirements:
+- Added / Changed / Fixed
+- Link to PRs","documentation,release,priority:low","V7-Release"
+"[Deployment] Task 18.2 — Add Semantic Versioning","Description:
+Define semantic versioning scheme for EJE.
+
+Requirements:
+- Follow MAJOR.MINOR.PATCH
+- Document breaking changes policy
+- Integrate with CI version bump workflow","release,versioning,priority:medium","V7-Release"
+"[Deployment] Task 18.3 — Publish v7.0.0 Release Bundle","Description:
+Prepare and publish release bundle including:
+
+- Docker image
+- Source bundle (zip)
+- API spec
+- Architecture diagrams
+- CHANGELOG","release,priority:high","V7-Release"
+"[Documentation] Task 19.1 — Rewrite README with System Overview","Description:
+Rewrite README.md to include:
+
+- High-level architecture
+- How critics work
+- How aggregation works
+- How precedents work
+- Governance model
+- Glossary","documentation,priority:high","V7-Docs"
+"[Documentation] Task 19.2 — Add Architecture Diagrams","Description:
+Add PNG + Mermaid diagrams for:
+
+- Core engine
+- Precedent engine
+- Governance pipeline
+- API service
+- Storage layers","documentation,architecture,priority:high","V7-Docs"
+"[Documentation] Task 19.3 — Critic Documentation","Description:
+Document each critic with:
+
+- Purpose
+- Input/Output shape
+- Reasoning model
+- Failure conditions
+- Config parameters","documentation,critic-engine,priority:medium","V7-Docs"
+"[Documentation] Task 19.4 — Evidence Bundle Documentation","Description:
+Document evidence bundle schema fields:
+
+- critic_output
+- justification
+- metadata
+- input snapshot
+- system version info","documentation,core-engine,priority:medium","V7-Docs"
+"[Documentation] Task 19.5 — API Documentation","Description:
+Publish API documentation using:
+
+- OpenAPI spec
+- Endpoint descriptions
+- Examples
+- Error codes","documentation,api,priority:medium","V7-Docs"
+"[Documentation] Task 20.1 — Demonstration Jupyter Notebook","Description:
+Build notebook demonstrating:
+
+- Full decision flow
+- Inspecting evidence bundles
+- Inspecting precedents
+- Viewing explanations
+- Fallback & override examples","documentation,notebook,priority:high","V7-Demo"
+"[Documentation] Task 20.2 — Sample Decision Run","Description:
+Add a script or markdown showing:
+
+- Example request
+- Sample output
+- Explanation + policy flags","documentation,priority:medium","V7-Demo"
+"[Documentation] Task 20.3 — Override Demonstration","Description:
+Document example override case:
+
+- Reviewer justification
+- Before/after comparison
+- Audit record snapshot","documentation,governance,priority:low","V7-Demo"
+"[Documentation] Task 20.4 — Precedent Demonstration","Description:
+Provide example of:
+
+- Precedent retrieval
+- Ranking
+- How the precedent influences decision","documentation,precedent-engine,priority:medium","V7-Demo"
+"[Documentation] Task 20.5 — Observability Example","Description:
+Show how to view:
+
+- Prometheus metrics
+- Grafana dashboards
+- Critic latency
+- Failure counters","documentation,observability,priority:low","V7-Demo"
+"[Documentation] Task 20.6 — Fallback Example","Description:
+Document fallback case:
+
+- Trigger reason
+- Failed critics
+- Fallback decision object
+- Logging entries","documentation,fallback,priority:low","V7-Demo"
+"[Documentation] Task 21.1 — Human-in-the-Loop Policy","Description:
+Draft policy for governance reviewers:
+
+- When they intervene
+- Required documentation
+- Ethical guardrails
+- How overrides work","documentation,governance,priority:medium","V7-Governance"
+"[Documentation] Task 21.2 — Reviewer Training Guide","Description:
+Produce guide explaining:
+
+- System architecture
+- Policy rules
+- Override protocol
+- Bias awareness","documentation,governance,priority:medium","V7-Governance"
+"[Documentation] Task 21.3 — Policy Tuning Guide","Description:
+Explain how to tune:
+
+- Threshold rules
+- Conflict tolerances
+- Precedent weights
+- Override permissions","documentation,governance,priority:medium","V7-Governance"
+"[Documentation] Task 21.4 — Drift-Handling Protocol","Description:
+Draft protocol for:
+
+- Detecting drift
+- Responding to drift
+- Updating embedding models
+- Adjusting thresholds","documentation,governance,priority:medium","V7-Governance"
+"[Integration] Task 22.1 — Python Client SDK","Description:
+Build Python SDK for:
+
+- Decision API
+- Precedent API
+- Health API
+
+Requirements:
+- Pydantic models
+- Typed responses","integration,sdk,priority:medium","V7-Integration"
+"[Integration] Task 22.2 — JS/TS Client SDK","Description:
+Build TypeScript SDK supporting:
+
+- Browser usage
+- Node usage
+- Typed interfaces","integration,sdk,priority:medium","V7-Integration"
+"[Integration] Task 22.3 — CLI Tool","Description:
+Build CLI wrapper for:
+
+- Submit decisions
+- Inspect audit logs
+- Retrieve precedents","integration,priority:medium","V7-Integration"
+"[Integration] Task 23.1 — HR Governance Profile","Description:
+Develop domain-specific configuration profile for HR decisions.
+
+Requirements:
+- Critic selection tuned to HR ethics
+- Policy rules for fairness, discrimination, transparency
+- Precedent templates for HR cases","integration,domain,priority:medium","V7-Domain"
+"[Integration] Task 23.2 — Research Ethics Profile","Description:
+Create profile supporting research ethics scenarios.
+
+Requirements:
+- Belmont principles integration
+- Risk/benefit weighting
+- IRB-style override flags","integration,domain,priority:medium","V7-Domain"
+"[Integration] Task 23.3 — Compliance/Legal Profile","Description:
+Profile for compliance and legal governance use cases.
+
+Requirements:
+- Legal-critic activation
+- Precedent weighting toward statutory analogs
+- Policy rules for regulatory compliance","integration,domain,priority:high","V7-Domain"
+"[Integration] Task 23.4 — Content Moderation Profile","Description:
+Moderation-focused critic configuration.
+
+Requirements:
+- Safety critic emphasis
+- Precedent retrieval tuned for harmful content
+- Conflict resolution tuned for risk-first logic","integration,domain,priority:high","V7-Domain"
+"[Integration] Task 23.5 — Healthcare Ethics Profile","Description:
+Healthcare governance profile based on medical ethics.
+
+Requirements:
+- Beneficence, non-maleficence, autonomy critics
+- Strong policy thresholds
+- Precedent templates for clinical/operational cases","integration,domain,priority:high","V7-Domain"
+"[Documentation] Task 24.1 — Add Architecture Overview Video Script","Description:
+Produce script for a short overview explainer video.
+
+Requirements:
+- High-level walk-through
+- Critics → Aggregator → Policy → Governance flow
+- Visual metaphors for ELEANOR/EJE architecture","documentation,priority:low","V7-Docs"
+"[Documentation] Task 24.2 — Create Quickstart One-Pager","Description:
+One-page PDF/Markdown with:
+
+- Installation steps
+- Example API call
+- Diagram
+- Glossary of critical terms","documentation,priority:medium","V7-Docs"
+"[Documentation] Task 24.3 — Add System Glossary","Description:
+Glossary covering:
+
+- Critics / Evidence bundles
+- Precedents / Governance
+- Drift
+- Overrides
+- Fallback models","documentation,priority:low","V7-Docs"
