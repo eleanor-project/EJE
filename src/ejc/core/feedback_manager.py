@@ -4,6 +4,7 @@ Handles human feedback signals, feedback loops, and integration with retraining.
 """
 import datetime
 import json
+import os
 from typing import Dict, Any, Optional, List, Callable
 from dataclasses import dataclass, field, asdict
 from enum import Enum
@@ -183,6 +184,8 @@ class FeedbackManager:
         self.data_path = data_path
         self.hooks: List[FeedbackHook] = []
 
+        os.makedirs(self.data_path, exist_ok=True)
+
         # Default hooks
         self.logging_hook = LoggingFeedbackHook(f"{data_path}/feedback.jsonl")
         self.metrics_hook = MetricsFeedbackHook()
@@ -254,30 +257,48 @@ class FeedbackManager:
         """Get feedback metrics."""
         return self.metrics_hook.get_metrics()
 
-    def get_feedback_for_request(self, request_id: str) -> List[FeedbackSignal]:
+    def get_feedback_for_request(self, request_id: Optional[str]) -> List[FeedbackSignal]:
         """
         Retrieve all feedback for a specific request.
 
         Args:
-            request_id: Request ID to look up
+            request_id: Request ID to look up. If None, returns all feedback.
 
         Returns:
             List of FeedbackSignals
         """
-        # This would query the audit log for feedback
-        # Placeholder implementation
-        feedbacks = []
+        feedbacks: List[FeedbackSignal] = []
+
+        # Prefer the structured audit log when available
         try:
-            # Read from feedback log
-            with open(f"{self.data_path}/feedback.jsonl", 'r') as f:
-                for line in f:
-                    data = json.loads(line)
-                    if data['request_id'] == request_id:
-                        feedbacks.append(FeedbackSignal.from_dict(data))
-        except FileNotFoundError:
-            pass
-        except Exception as e:
-            logger.error(f"Error retrieving feedback: {e}")
+            if hasattr(self.audit_logger, "get_feedback"):
+                for entry in self.audit_logger.get_feedback(request_id):
+                    feedbacks.append(FeedbackSignal.from_dict(entry))
+        except Exception as e:  # pragma: no cover - defensive logging
+            logger.error(f"Error retrieving feedback from audit log: {e}")
+
+        # Fallback to local feedback log file
+        if not feedbacks:
+            try:
+                feedbacks.extend(self._load_feedback_file(request_id))
+            except Exception as e:  # pragma: no cover - defensive logging
+                logger.error(f"Error retrieving feedback from file: {e}")
+
+        return feedbacks
+
+    def _load_feedback_file(self, request_id: Optional[str] = None) -> List[FeedbackSignal]:
+        """Load feedback from the local JSONL log."""
+        path = f"{self.data_path}/feedback.jsonl"
+        if not os.path.exists(path):
+            return []
+
+        feedbacks: List[FeedbackSignal] = []
+        with open(path, "r") as f:
+            for line in f:
+                data = json.loads(line)
+                if request_id and data.get("request_id") != request_id:
+                    continue
+                feedbacks.append(FeedbackSignal.from_dict(data))
 
         return feedbacks
 
@@ -298,12 +319,34 @@ class FeedbackAnalyzer:
         Returns:
             Dictionary with accuracy metrics
         """
-        # Placeholder implementation
+        feedbacks = self._load_all_feedback()
+        critic_feedback = []
+        for feedback in feedbacks:
+            metadata = feedback.metadata or {}
+            if metadata.get("critic") == critic_name or metadata.get("critic_name") == critic_name or metadata.get("target") == critic_name:
+                critic_feedback.append(feedback)
+
+        total = len(critic_feedback)
+        if total == 0:
+            return {
+                'critic': critic_name,
+                'agreement_rate': 1.0,
+                'correction_count': 0,
+                'needs_retraining': False
+            }
+
+        approvals = sum(1 for f in critic_feedback if f.feedback_type == FeedbackType.APPROVAL)
+        rejections = sum(1 for f in critic_feedback if f.feedback_type == FeedbackType.REJECTION)
+        corrections = sum(1 for f in critic_feedback if f.feedback_type == FeedbackType.CORRECTION)
+
+        agreement_rate = approvals / total
+        negative_ratio = (rejections + corrections) / total
+
         return {
             'critic': critic_name,
-            'agreement_rate': 0.0,
-            'correction_count': 0,
-            'needs_retraining': False
+            'agreement_rate': agreement_rate,
+            'correction_count': corrections,
+            'needs_retraining': negative_ratio >= 0.3
         }
 
     def identify_drift(self) -> List[Dict[str, Any]]:
@@ -313,8 +356,33 @@ class FeedbackAnalyzer:
         Returns:
             List of critics with drift indicators
         """
-        # Placeholder implementation
-        return []
+        feedbacks = self._load_all_feedback()
+        drift_indicators: Dict[str, Dict[str, Any]] = {}
+
+        for feedback in feedbacks:
+            metadata = feedback.metadata or {}
+            critic_name = metadata.get("critic") or metadata.get("critic_name")
+            if not critic_name:
+                continue
+
+            stats = drift_indicators.setdefault(critic_name, {"total": 0, "negative": 0})
+            stats["total"] += 1
+            if feedback.feedback_type in {FeedbackType.REJECTION, FeedbackType.CORRECTION}:
+                stats["negative"] += 1
+
+        drifting: List[Dict[str, Any]] = []
+        for critic, stats in drift_indicators.items():
+            if stats["total"] == 0:
+                continue
+            negative_ratio = stats["negative"] / stats["total"]
+            if negative_ratio >= 0.4:
+                drifting.append({
+                    "critic": critic,
+                    "negative_ratio": negative_ratio,
+                    "signals": stats["total"]
+                })
+
+        return drifting
 
     def recommend_weight_adjustments(self) -> Dict[str, float]:
         """
@@ -323,8 +391,51 @@ class FeedbackAnalyzer:
         Returns:
             Dictionary mapping critic names to recommended weights
         """
-        # Placeholder implementation
-        return {}
+        feedbacks = self._load_all_feedback()
+        critic_stats: Dict[str, Dict[str, int]] = {}
+
+        for feedback in feedbacks:
+            metadata = feedback.metadata or {}
+            critic_name = metadata.get("critic") or metadata.get("critic_name")
+            if not critic_name:
+                continue
+
+            stats = critic_stats.setdefault(critic_name, {"total": 0, "negative": 0})
+            stats["total"] += 1
+            if feedback.feedback_type in {FeedbackType.REJECTION, FeedbackType.CORRECTION}:
+                stats["negative"] += 1
+
+        recommendations: Dict[str, float] = {}
+        for critic, stats in critic_stats.items():
+            if stats["total"] == 0:
+                continue
+            negative_ratio = stats["negative"] / stats["total"]
+            # Down-weight critics with higher negative ratios; clamp between 0.1 and 1.0
+            recommendations[critic] = max(0.1, round(1.0 - negative_ratio, 2))
+
+        return recommendations
+
+    def _load_all_feedback(self) -> List[FeedbackSignal]:
+        """Load all feedback signals from available stores."""
+        signals: List[FeedbackSignal] = []
+
+        try:
+            signals.extend(self.get_feedback_for_request(request_id=None))
+        except TypeError:
+            # get_feedback_for_request expects a request_id; fall back to file scan
+            signals.extend(self._load_feedback_file())
+
+        # Deduplicate by request_id + timestamp to avoid double counting
+        seen = set()
+        unique_signals: List[FeedbackSignal] = []
+        for signal in signals:
+            key = (signal.request_id, signal.timestamp, signal.feedback_type.value)
+            if key in seen:
+                continue
+            seen.add(key)
+            unique_signals.append(signal)
+
+        return unique_signals
 
 
 # Convenience functions for common feedback scenarios
