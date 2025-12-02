@@ -57,6 +57,7 @@ class PrometheusExporter:
         # Initialize all metrics
         self._init_critic_metrics()
         self._init_decision_metrics()
+        self._init_eje_specific_metrics()
         self._init_system_metrics()
         self._init_error_metrics()
 
@@ -148,6 +149,120 @@ class PrometheusExporter:
             f'{self.namespace}_overrides_total',
             'Total number of override decisions',
             ['override_type'],
+            registry=self.registry
+        )
+
+    def _init_eje_specific_metrics(self):
+        """Initialize EJE-specific governance metrics"""
+        # Decision confidence histogram (more detailed than average)
+        self.decision_confidence_histogram = Histogram(
+            f'{self.namespace}_decision_confidence',
+            'Distribution of decision confidence scores',
+            buckets=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99, 1.0),
+            registry=self.registry
+        )
+
+        # Precedent match rate counter
+        self.precedent_matches_total = Counter(
+            f'{self.namespace}_precedent_matches_total',
+            'Total number of precedent matches found',
+            ['match_quality', 'precedent_type'],
+            registry=self.registry
+        )
+
+        # Precedent lookups counter
+        self.precedent_lookups_total = Counter(
+            f'{self.namespace}_precedent_lookups_total',
+            'Total number of precedent lookup operations',
+            ['lookup_type'],
+            registry=self.registry
+        )
+
+        # Critic agreement gauge (percentage of critics in agreement)
+        self.critic_agreement_ratio = Gauge(
+            f'{self.namespace}_critic_agreement_ratio',
+            'Ratio of critics in agreement (0.0-1.0)',
+            ['decision_id'],
+            registry=self.registry
+        )
+
+        # Critic unanimous verdicts counter
+        self.critic_unanimous_verdicts_total = Counter(
+            f'{self.namespace}_critic_unanimous_verdicts_total',
+            'Total number of unanimous critic verdicts',
+            ['verdict_type'],
+            registry=self.registry
+        )
+
+        # Audit trail size gauge
+        self.audit_trail_size_bytes = Gauge(
+            f'{self.namespace}_audit_trail_size_bytes',
+            'Current audit trail storage size in bytes',
+            ['storage_type'],
+            registry=self.registry
+        )
+
+        # Audit trail entries counter
+        self.audit_trail_entries_total = Counter(
+            f'{self.namespace}_audit_trail_entries_total',
+            'Total number of audit trail entries',
+            ['entry_type', 'severity'],
+            registry=self.registry
+        )
+
+        # Cache hit rate counter
+        self.cache_hits_total = Counter(
+            f'{self.namespace}_cache_hits_total',
+            'Total number of cache hits',
+            ['cache_name', 'cache_type'],
+            registry=self.registry
+        )
+
+        # Cache misses counter
+        self.cache_misses_total = Counter(
+            f'{self.namespace}_cache_misses_total',
+            'Total number of cache misses',
+            ['cache_name', 'cache_type'],
+            registry=self.registry
+        )
+
+        # Cache evictions counter
+        self.cache_evictions_total = Counter(
+            f'{self.namespace}_cache_evictions_total',
+            'Total number of cache evictions',
+            ['cache_name', 'eviction_reason'],
+            registry=self.registry
+        )
+
+        # Cache size gauge
+        self.cache_size_bytes = Gauge(
+            f'{self.namespace}_cache_size_bytes',
+            'Current cache size in bytes',
+            ['cache_name'],
+            registry=self.registry
+        )
+
+        # Cache entry count gauge
+        self.cache_entries = Gauge(
+            f'{self.namespace}_cache_entries',
+            'Current number of entries in cache',
+            ['cache_name'],
+            registry=self.registry
+        )
+
+        # Policy rule applications counter
+        self.policy_rules_applied_total = Counter(
+            f'{self.namespace}_policy_rules_applied_total',
+            'Total number of policy rule applications',
+            ['policy_name', 'rule_outcome'],
+            registry=self.registry
+        )
+
+        # Governance compliance gauge
+        self.governance_compliance_score = Gauge(
+            f'{self.namespace}_governance_compliance_score',
+            'Current governance compliance score (0.0-1.0)',
+            ['compliance_domain'],
             registry=self.registry
         )
 
