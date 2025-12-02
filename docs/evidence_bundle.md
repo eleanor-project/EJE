@@ -11,6 +11,7 @@
 - **justification**: Summary, supporting evidence, and optional reasoning trace and uncertainties linking findings to the verdict.
 
 ## Validation highlights
+- Required text fields include minimum lengths to prevent empty strings (e.g., critic name/version, prompts, recommended actions, labels, finding codes/descriptions, evidence content, and reasoning step descriptions). Arrays such as recommended actions, labels, precedents, attachments, and supporting evidence require at least one item when present.
 - Required text fields include minimum lengths to prevent empty strings (e.g., critic name/version, prompts, recommended actions, labels, finding codes/descriptions, evidence content, and reasoning step descriptions).
 - Evidence sources are normalized to one of `input`, `knowledge_base`, `policy`, `precedent_id`, or `system` to improve downstream routing.
 - Arrays such as findings and supporting evidence enforce at least one item; URIs and UUIDs use standard JSON Schema formats.

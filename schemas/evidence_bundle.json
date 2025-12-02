@@ -26,6 +26,10 @@
       "description": "Unique identifier for this evidence bundle instance.",
       "examples": ["1b4e28ba-2fa1-11d2-883f-0016d3cca427"]
     },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Provenance data describing when and how the critic produced this bundle.",
     "metadata": {
       "type": "object",
       "additionalProperties": false,
@@ -35,6 +39,11 @@
         "timestamp",
         "config_version"
       ],
+          "properties": {
+            "critic": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Critic identity and classification.",
       "properties": {
         "critic": {
           "type": "object",
@@ -44,6 +53,17 @@
             "name",
             "version"
           ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Human-readable critic name (e.g., SafetyCritic)."
+                },
+                "version": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Implementation or prompt version for the critic logic."
+                },
           "properties": {
             "name": {
               "type": "string",

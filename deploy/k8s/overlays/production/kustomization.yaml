@@ -1,0 +1,44 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: eje-production
+resources:
+  - ../../base
+  - configmap.yaml
+  - namespace.yaml
+images:
+  - name: ghcr.io/eleanor-project/eje
+    newName: ghcr.io/eleanor-project/eje
+    newTag: stable
+patches:
+  - target:
+      kind: Deployment
+      name: eje-api
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: eje-api
+      spec:
+        replicas: 3
+        template:
+          metadata:
+            annotations:
+              deploy.eje/last-updated: "production"
+          spec:
+            containers:
+              - name: eje-api
+                env:
+                  - name: RUNTIME_ENVIRONMENT
+                    value: production
+                  - name: FEATURE_FLAGS
+                    valueFrom:
+                      configMapKeyRef:
+                        name: eje-config
+                        key: ENABLE_BETA_FEATURES
+                resources:
+                  requests:
+                    cpu: 500m
+                    memory: 1Gi
+                  limits:
+                    cpu: 1
+                    memory: 2Gi
