@@ -7,6 +7,7 @@ recommendations for transparency and interpretability.
 
 from .xai_pipeline import XAIPipeline, ExplanationLevel, XAIMethod
 from .counterfactual_generator import CounterfactualGenerator, CounterfactualMode, Counterfactual
+from .shap_explainer import SHAPExplainer, SHAPExplanation
 
 __all__ = [
     'XAIPipeline',
@@ -14,5 +15,7 @@ __all__ = [
     'XAIMethod',
     'CounterfactualGenerator',
     'CounterfactualMode',
-    'Counterfactual'
+    'Counterfactual',
+    'SHAPExplainer',
+    'SHAPExplanation'
 ]

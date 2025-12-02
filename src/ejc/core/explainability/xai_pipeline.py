@@ -27,8 +27,9 @@ project_root = str(Path(__file__).parent.parent.parent.parent.parent)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-# Import counterfactual generator
+# Import counterfactual generator and SHAP explainer
 from .counterfactual_generator import CounterfactualGenerator, CounterfactualMode
+from .shap_explainer import SHAPExplainer, SHAPExplanation
 
 
 class ExplanationLevel(Enum):
@@ -61,6 +62,7 @@ class XAIPipeline:
         """Initialize XAI Pipeline with available methods."""
         self.available_methods = self._check_available_methods()
         self.counterfactual_generator = CounterfactualGenerator()
+        self.shap_explainer = SHAPExplainer(enable_caching=True)
 
     def _check_available_methods(self) -> Dict[str, bool]:
         """Check which XAI libraries are available."""
@@ -166,7 +168,43 @@ class XAIPipeline:
 
         SHAP (SHapley Additive exPlanations) uses game theory to assign
         importance scores to features.
+
+        For EJE decisions, instance should be a Decision dict.
         """
+        # Check if instance is an EJE decision
+        if isinstance(instance, dict) and 'critic_reports' in instance:
+            # Use EJE-specific SHAP explainer
+            try:
+                explanation = self.shap_explainer.explain_decision(
+                    decision=instance,
+                    explanation_type=kwargs.get('explanation_type', 'local'),
+                    background_data=background_data
+                )
+
+                if not explanation.get('available', False):
+                    return {
+                        'error': explanation.get('error', 'SHAP not available'),
+                        'confidence': 0.0
+                    }
+
+                return {
+                    'method': 'SHAP',
+                    'critic_explanations': explanation['critic_explanations'],
+                    'aggregate_explanation': explanation['aggregate_explanation'],
+                    'features': explanation['features'],
+                    'computation_time': explanation['computation_time'],
+                    'cached_count': explanation.get('cached_count', 0),
+                    'confidence': 0.9,
+                    'visualizations': ['waterfall', 'bar', 'force']
+                }
+
+            except Exception as e:
+                return {
+                    'error': f'SHAP generation failed: {str(e)}',
+                    'confidence': 0.0
+                }
+
+        # Fallback for non-EJE models
         if not self.available_methods['shap']:
             return {
                 'error': 'SHAP not available. Install with: pip install shap',
