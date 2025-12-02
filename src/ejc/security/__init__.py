@@ -16,10 +16,24 @@ from .attack_patterns import (
     AttackSeverity,
     AttackPatternLibrary
 )
+from .adversarial_testing import (
+    AdversarialTestRunner,
+    CICDIntegration,
+    TestResult,
+    TestSuiteResult,
+    TestStatus
+)
 
 __all__ = [
+    # Attack Patterns
     'AttackPattern',
     'AttackCategory',
     'AttackSeverity',
-    'AttackPatternLibrary'
+    'AttackPatternLibrary',
+    # Adversarial Testing
+    'AdversarialTestRunner',
+    'CICDIntegration',
+    'TestResult',
+    'TestSuiteResult',
+    'TestStatus'
 ]

@@ -1,0 +1,244 @@
+name: Adversarial Security Testing
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Nightly at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    # Allow manual triggering
+
+jobs:
+  adversarial-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-cov
+        pip install -e .
+
+    - name: Run Attack Pattern Library Tests
+      run: |
+        pytest tests/security/test_attack_patterns.py -v --cov=src/ejc/security --cov-report=xml
+
+    - name: Run Adversarial Testing Framework Tests
+      run: |
+        pytest tests/security/test_adversarial_testing.py -v --cov=src/ejc/security --cov-append --cov-report=xml
+
+    - name: Run Critical Security Tests
+      id: critical_tests
+      continue-on-error: true
+      run: |
+        python -c "
+        from src.ejc.security import CICDIntegration
+        from src.ejc.core.decision_engine import EJEDecisionEngine
+
+        # Initialize system
+        system = EJEDecisionEngine()
+
+        # Run CI tests
+        exit_code = CICDIntegration.run_ci_tests(system)
+        exit(exit_code)
+        "
+
+    - name: Upload Test Results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: adversarial-test-results-${{ matrix.python-version }}
+        path: test_results/
+
+    - name: Upload Coverage
+      if: always()
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage.xml
+        flags: adversarial-tests
+        name: adversarial-coverage-${{ matrix.python-version }}
+
+    - name: Check for Blocking Failures
+      if: steps.critical_tests.outcome == 'failure'
+      run: |
+        echo "::error::Critical security vulnerabilities detected! Review test results."
+        exit 1
+
+  nightly-comprehensive:
+    # Only run on schedule (nightly) or manual dispatch
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .
+
+    - name: Run Full Adversarial Test Suite
+      run: |
+        python -c "
+        from src.ejc.security import CICDIntegration
+        from src.ejc.core.decision_engine import EJEDecisionEngine
+
+        system = EJEDecisionEngine()
+        results = CICDIntegration.run_nightly_tests(system)
+
+        print(f'\\n=== Nightly Test Summary ===')
+        print(f'Total Tests: {results.total_tests}')
+        print(f'Passed: {results.passed}')
+        print(f'Failed: {results.failed}')
+        print(f'Pass Rate: {results.pass_rate:.1%}')
+
+        # Fail if pass rate below threshold
+        if results.pass_rate < 0.95:
+            print('\\n⚠️ Pass rate below 95% threshold!')
+            exit(1)
+        "
+
+    - name: Upload Comprehensive Results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: nightly-adversarial-results
+        path: test_results/
+
+    - name: Create Issue on Failure
+      if: failure()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: '⚠️ Nightly Adversarial Tests Failed',
+            body: 'Nightly adversarial security tests failed. Review test results and address vulnerabilities.\n\nRun: ${{ github.run_number }}\nCommit: ${{ github.sha }}\n\nResults: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}',
+            labels: ['security', 'testing', 'automated']
+          })
+
+  regression-check:
+    # Run on every push to detect regressions
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .
+
+    - name: Download Previous Results
+      uses: dawidd6/action-download-artifact@v2
+      continue-on-error: true
+      with:
+        workflow: adversarial-testing.yml
+        name: baseline-results
+        path: test_results/
+
+    - name: Run Regression Tests
+      run: |
+        python -c "
+        from src.ejc.security import AdversarialTestRunner
+        from src.ejc.core.decision_engine import EJEDecisionEngine
+
+        system = EJEDecisionEngine()
+        runner = AdversarialTestRunner(
+            system_under_test=system,
+            enable_regression_detection=True
+        )
+
+        results = runner.run_regression_tests()
+
+        if results.regressions:
+            print(f'\\n⚠️ REGRESSIONS DETECTED: {len(results.regressions)}')
+            for reg in results.regressions:
+                print(f'  - {reg}')
+            exit(1)
+        else:
+            print('✓ No regressions detected')
+        "
+
+    - name: Save Results as Baseline
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      uses: actions/upload-artifact@v3
+      with:
+        name: baseline-results
+        path: test_results/latest_results.json
+        retention-days: 30
+
+  security-report:
+    # Weekly security report
+    if: github.event_name == 'schedule' && github.event.schedule == '0 2 * * 0'
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .
+
+    - name: Generate Weekly Security Report
+      run: |
+        python -c "
+        from src.ejc.security import CICDIntegration, AdversarialTestRunner
+        from src.ejc.core.decision_engine import EJEDecisionEngine
+
+        system = EJEDecisionEngine()
+
+        # Run comprehensive tests
+        results = CICDIntegration.run_weekly_tests(system)
+
+        # Get historical trends
+        runner = AdversarialTestRunner(system)
+        trends = runner.get_historical_trends()
+
+        # Generate report
+        print('\\n=== Weekly Security Report ===')
+        print(f'Test Suite: {results.suite_name}')
+        print(f'Total Tests: {results.total_tests}')
+        print(f'Pass Rate: {results.pass_rate:.1%}')
+        print(f'\\nHistorical Trends:')
+        print(f'  Total Runs: {trends[\"total_runs\"]}')
+        print(f'  Average Pass Rate: {trends[\"average_pass_rate\"]:.1%}')
+        print(f'  Trend: {trends[\"trend\"]}')
+        " > weekly_report.txt
+
+    - name: Upload Weekly Report
+      uses: actions/upload-artifact@v3
+      with:
+        name: weekly-security-report
+        path: weekly_report.txt
