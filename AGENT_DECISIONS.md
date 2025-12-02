@@ -94,9 +94,101 @@ This file tracks all technical decisions made by the autonomous development agen
 
 **Rationale**: Industry standard observability stack. Well-documented. Strong community support.
 
-**Status**: Pending implementation
+**Status**: Implemented (#160, #161, #162 complete)
+
+---
+
+### Decision 007: Prometheus Metrics Architecture
+**Issue**: #160
+**Decision**: Comprehensive PrometheusExporter class with:
+- Counters: decisions, critic executions, failures
+- Histograms: latency tracking with buckets
+- Gauges: active operations, memory usage
+- Decorators: @track_critic_execution, @track_decision_execution
+- HTTP endpoint: /metrics for scraping
+
+**Rationale**:
+- Decorators minimize code changes for instrumentation
+- Histogram buckets chosen for decision pipeline latency patterns
+- Memory and process metrics for capacity planning
+- Standard /metrics endpoint follows Prometheus conventions
+
+**Files**:
+- `src/ejc/monitoring/prometheus_exporter.py`
+- `tests/monitoring/test_prometheus_exporter.py`
+- `docs/monitoring/prometheus_setup.md`
+
+**Commit**: 283e88b
+
+---
+
+### Decision 008: Grafana Dashboard Design
+**Issue**: #161
+**Decision**: Created 4 specialized dashboards:
+1. **EJE Overview**: System health and throughput
+2. **Critic Performance**: Critic-specific metrics
+3. **Decision Analysis**: Verdict patterns and conflicts
+4. **Alerting**: Real-time alert monitoring
+
+**Rationale**:
+- Separation by audience (ops vs. developers vs. auditors)
+- Pre-configured alert thresholds visualized
+- Auto-provisioning via YAML for repeatability
+- Import/export scripts for version control
+- Docker Compose and K8s deployment configs
+
+**Design Choices**:
+- 10-second refresh for real-time monitoring
+- P95/P99 latency instead of just averages
+- Pie charts for verdict distribution (easier to scan)
+- Variables for filtering by critic/environment
+
+**Files**:
+- `monitoring/grafana/dashboards/*.json` (4 dashboards)
+- `monitoring/grafana/provisioning/*.yml`
+- `scripts/monitoring/{import,export}_dashboards.sh`
+- `docs/monitoring/grafana_dashboards.md`
+
+**Commit**: 7c0db5c
+
+---
+
+### Decision 009: OpenTelemetry Tracing Strategy
+**Issue**: #162
+**Decision**: Decorator-based tracing with:
+- @trace_decision: Root span for decision pipeline
+- @trace_critic: Child spans for each critic
+- trace_span: Context manager for custom operations
+- Jaeger backend for trace visualization
+- Configurable sampling (default 1.0 dev, 0.1 prod)
+- Parent-based trace ID propagation
+
+**Rationale**:
+- **Decorators over manual instrumentation**: Reduces code noise, easier adoption
+- **Jaeger over Zipkin**: Better UI, more active development, native OpenTelemetry support
+- **Sampling flexibility**: Production needs low overhead, debugging needs full traces
+- **Attribute standardization**: All EJE attributes prefixed with "eje." for namespacing
+
+**Performance Considerations**:
+- Batch span export (default)
+- Async export to avoid blocking
+- Sampling to reduce overhead
+- Target: < 5% performance impact
+
+**Trace Context Propagation**:
+- Automatic for HTTP (via OpenTelemetry instrumentation)
+- Manual inject/extract for queues and custom protocols
+- Trace ID included in logs for correlation
+
+**Files**:
+- `src/ejc/monitoring/opentelemetry_tracer.py`
+- `tests/monitoring/test_opentelemetry_tracer.py`
+- `docs/monitoring/opentelemetry_setup.md`
+- Updated `src/ejc/monitoring/__init__.py`
+
+**Commit**: d4d2cab
 
 ---
 
 **Agent Version**: Claude Code v1.0
-**Last Updated**: 2025-12-01
+**Last Updated**: 2025-12-02
