@@ -27,6 +27,9 @@ project_root = str(Path(__file__).parent.parent.parent.parent.parent)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
+# Import counterfactual generator
+from .counterfactual_generator import CounterfactualGenerator, CounterfactualMode
+
 
 class ExplanationLevel(Enum):
     """Explanation detail levels per World Bank recommendations."""
@@ -57,6 +60,7 @@ class XAIPipeline:
     def __init__(self):
         """Initialize XAI Pipeline with available methods."""
         self.available_methods = self._check_available_methods()
+        self.counterfactual_generator = CounterfactualGenerator()
 
     def _check_available_methods(self) -> Dict[str, bool]:
         """Check which XAI libraries are available."""
@@ -288,23 +292,47 @@ class XAIPipeline:
         Generate counterfactual explanation.
 
         Counterfactuals answer: "What would need to change for a different outcome?"
-        """
-        if not self.available_methods['alibi']:
-            return {
-                'error': 'Alibi not available for counterfactuals. Install with: pip install alibi',
-                'confidence': 0.0
-            }
 
+        For EJE decisions, instance should be a Decision dict.
+        """
         try:
-            # Placeholder for counterfactual generation
-            # Full implementation requires model-specific setup
-            return {
-                'method': 'COUNTERFACTUAL',
-                'counterfactuals': [],
-                'message': 'Counterfactual generation requires additional configuration',
-                'confidence': 0.5,
-                'visualizations': []
-            }
+            # Check if instance is an EJE decision
+            if isinstance(instance, dict) and 'critic_reports' in instance:
+                # Use EJE-specific counterfactual generator
+                mode = kwargs.get('mode', CounterfactualMode.NEAREST)
+                if isinstance(mode, str):
+                    mode = CounterfactualMode(mode.lower())
+
+                result = self.counterfactual_generator.generate(
+                    decision=instance,
+                    mode=mode,
+                    target_verdict=kwargs.get('target_verdict'),
+                )
+
+                return {
+                    'method': 'COUNTERFACTUAL',
+                    'counterfactuals': result['counterfactuals'],
+                    'key_factors': result['key_factors'],
+                    'generation_time': result['generation_time'],
+                    'within_timeout': result['within_timeout'],
+                    'confidence': 0.9 if result['within_timeout'] else 0.7,
+                    'visualizations': ['factor_changes', 'decision_tree']
+                }
+            else:
+                # Fallback for non-EJE models
+                if not self.available_methods['alibi']:
+                    return {
+                        'error': 'Alibi not available for counterfactuals. Install with: pip install alibi',
+                        'confidence': 0.0
+                    }
+
+                return {
+                    'method': 'COUNTERFACTUAL',
+                    'counterfactuals': [],
+                    'message': 'Counterfactual generation requires EJE Decision format or Alibi library',
+                    'confidence': 0.5,
+                    'visualizations': []
+                }
 
         except Exception as e:
             return {

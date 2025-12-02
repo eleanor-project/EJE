@@ -6,5 +6,13 @@ recommendations for transparency and interpretability.
 """
 
 from .xai_pipeline import XAIPipeline, ExplanationLevel, XAIMethod
+from .counterfactual_generator import CounterfactualGenerator, CounterfactualMode, Counterfactual
 
-__all__ = ['XAIPipeline', 'ExplanationLevel', 'XAIMethod']
+__all__ = [
+    'XAIPipeline',
+    'ExplanationLevel',
+    'XAIMethod',
+    'CounterfactualGenerator',
+    'CounterfactualMode',
+    'Counterfactual'
+]
