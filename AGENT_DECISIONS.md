@@ -190,5 +190,61 @@ This file tracks all technical decisions made by the autonomous development agen
 
 ---
 
+### Decision 010: AlertManager Integration Strategy
+**Issue**: #163
+**Decision**: Comprehensive alerting system with:
+- **7 alert groups** covering critics, performance, resources, decisions, quota, availability, fallbacks
+- **3 severity levels**: critical (PagerDuty + Slack), warning (Slack), info (Email)
+- **Notification channels**: Email (SMTP), Slack (webhooks), PagerDuty (integration key)
+- **Alert routing**: By severity first, then by component
+- **Inhibition rules**: Suppress redundant alerts (e.g., warning when critical fires)
+- **20+ detailed runbooks**: One for each alert type with investigation and resolution steps
+
+**Rationale**:
+- **Severity-based routing**: Ensures right urgency to right channel
+  - Critical: Immediate action needed -> PagerDuty wakes someone up
+  - Warning: Needs attention soon -> Slack for team visibility
+  - Info: Good to know -> Email for async review
+- **Component-specific teams**: Critic failures go to critic team, API issues to API team
+- **Runbook links in alerts**: Operators can immediately find resolution steps
+- **Inhibition reduces noise**: Only most severe alert fires, preventing alert fatigue
+- **Alert grouping**: Multiple related alerts grouped into one notification
+
+**Alert Design Decisions**:
+- **Thresholds chosen based on SLOs**:
+  - Critic failure rate >10% = critical (too many decisions degraded)
+  - Decision latency P95 >5s = critical (SLA breach risk)
+  - Memory >2GB = critical (OOM kill risk)
+  - Conflict rate >30% = critical (review queue overwhelmed)
+- **`for` durations prevent flapping**:
+  - Critical: 1-5 minutes (fast response, but avoid false positives)
+  - Warning: 5-15 minutes (trending issues, not transients)
+  - Info: 15-30 minutes (patterns, not spikes)
+- **Runbooks include**:
+  - Investigation steps (what to check)
+  - Resolution procedures (what to do)
+  - Impact assessment (why it matters)
+  - Related metrics and dashboards
+  - Escalation path
+
+**Testing Strategy**:
+- Automated test script (`test_alerts.sh`)
+- Tests alert routing, deduplication, resolution
+- Verifies all integrations working
+- Cleanup of test alerts
+
+**Files**:
+- `monitoring/prometheus/alert_rules.yml` (35 alert rules)
+- `monitoring/prometheus/prometheus.yml` (updated with alerting config)
+- `monitoring/alertmanager/alertmanager.yml` (routing and receivers)
+- `monitoring/alertmanager/templates/email.tmpl` (notification templates)
+- `docs/monitoring/runbooks.md` (20+ runbooks)
+- `docs/monitoring/alertmanager_setup.md` (setup guide)
+- `scripts/monitoring/test_alerts.sh` (testing automation)
+
+**Commit**: 12ae093
+
+---
+
 **Agent Version**: Claude Code v1.0
 **Last Updated**: 2025-12-02
