@@ -23,6 +23,12 @@ from .adversarial_testing import (
     TestSuiteResult,
     TestStatus
 )
+from .robustness_scoring import (
+    RobustnessScorer,
+    RobustnessMetrics,
+    CompositeScore,
+    BenchmarkResult
+)
 
 __all__ = [
     # Attack Patterns
@@ -35,5 +41,10 @@ __all__ = [
     'CICDIntegration',
     'TestResult',
     'TestSuiteResult',
-    'TestStatus'
+    'TestStatus',
+    # Robustness Scoring
+    'RobustnessScorer',
+    'RobustnessMetrics',
+    'CompositeScore',
+    'BenchmarkResult'
 ]
