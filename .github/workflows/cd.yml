@@ -1,0 +1,185 @@
+name: Continuous Delivery
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: "Environment to deploy"
+        type: choice
+        required: true
+        options: [staging, production]
+        default: staging
+      image_tag:
+        description: "Image tag to deploy (defaults to short SHA)"
+        required: false
+      rollback:
+        description: "Perform rollback instead of deploy"
+        type: boolean
+        default: false
+      rollback_environment:
+        description: "Environment to rollback"
+        type: choice
+        options: [staging, production]
+        default: staging
+      rollback_revision:
+        description: "Kubernetes rollout revision to restore"
+        required: false
+
+jobs:
+  build-and-push-image:
+    name: Build and Push Image
+    if: github.event_name == 'push' || inputs.rollback != 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set image metadata
+        id: meta
+        run: |
+          IMAGE_REPO="ghcr.io/eleanor-project/eje"
+          if [ -n "${{ inputs.image_tag }}" ]; then
+            TAG="${{ inputs.image_tag }}"
+          else
+            TAG="${GITHUB_SHA::7}"
+          fi
+          echo "image=${IMAGE_REPO}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.CR_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}
+            ${{ steps.meta.outputs.image }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-staging:
+    name: Deploy to Staging
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.target_environment == 'staging' && inputs.rollback != 'true')
+    needs: build-and-push-image
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      IMAGE: ${{ needs.build-and-push-image.outputs.image }}
+      TAG: ${{ needs.build-and-push-image.outputs.tag }}
+      KUBECONFIG: ${{ runner.temp }}/kubeconfig
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig (staging)
+        run: |
+          echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > "$KUBECONFIG"
+          chmod 600 "$KUBECONFIG"
+
+      - name: Apply staging overlay
+        run: |
+          kubectl kustomize deploy/k8s/overlays/staging | kubectl apply -f -
+
+      - name: Deploy image
+        run: |
+          kubectl -n eje-staging set image deployment/eje-api eje-api=${IMAGE}:${TAG}
+          kubectl -n eje-staging rollout status deployment/eje-api --timeout=120s
+
+      - name: Notify (Slack)
+        if: secrets.SLACK_WEBHOOK != ''
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"Staging deploy succeeded for ${GITHUB_SHA::7} (${IMAGE}:${TAG})\"}" ${{ secrets.SLACK_WEBHOOK }}
+
+  deploy-production:
+    name: Deploy to Production
+    if: github.event_name == 'workflow_dispatch' && inputs.target_environment == 'production' && inputs.rollback != 'true'
+    needs: build-and-push-image
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      IMAGE: ${{ needs.build-and-push-image.outputs.image }}
+      TAG: ${{ needs.build-and-push-image.outputs.tag }}
+      KUBECONFIG: ${{ runner.temp }}/kubeconfig
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig (production)
+        run: |
+          echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > "$KUBECONFIG"
+          chmod 600 "$KUBECONFIG"
+
+      - name: Apply production overlay
+        run: |
+          kubectl kustomize deploy/k8s/overlays/production | kubectl apply -f -
+
+      - name: Deploy image
+        run: |
+          kubectl -n eje-production set image deployment/eje-api eje-api=${IMAGE}:${TAG}
+          kubectl -n eje-production rollout status deployment/eje-api --timeout=180s
+
+      - name: Notify (Slack)
+        if: secrets.SLACK_WEBHOOK != ''
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"Production deploy triggered for ${GITHUB_SHA::7} (${IMAGE}:${TAG})\"}" ${{ secrets.SLACK_WEBHOOK }}
+
+  rollback:
+    name: Rollback Deployment
+    if: github.event_name == 'workflow_dispatch' && inputs.rollback == 'true'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.rollback_environment }}
+    env:
+      TARGET_ENV: ${{ inputs.rollback_environment }}
+      REVISION: ${{ inputs.rollback_revision }}
+      KUBECONFIG: ${{ runner.temp }}/kubeconfig
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig
+        run: |
+          if [ "$TARGET_ENV" = "production" ]; then
+            echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > "$KUBECONFIG"
+          else
+            echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > "$KUBECONFIG"
+          fi
+          chmod 600 "$KUBECONFIG"
+
+      - name: Rollback deployment
+        run: |
+          NAMESPACE="eje-${TARGET_ENV}"
+          if [ -z "$REVISION" ]; then
+            kubectl -n "$NAMESPACE" rollout undo deployment/eje-api
+          else
+            kubectl -n "$NAMESPACE" rollout undo deployment/eje-api --to-revision="$REVISION"
+          fi
+          kubectl -n "$NAMESPACE" rollout status deployment/eje-api --timeout=120s
+
+      - name: Notify (Slack)
+        if: secrets.SLACK_WEBHOOK != ''
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"Rollback executed in ${TARGET_ENV}. Revision=${REVISION:-latest}\"}" ${{ secrets.SLACK_WEBHOOK }}
