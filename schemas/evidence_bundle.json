@@ -72,11 +72,13 @@
         },
         "config_version": {
           "type": "string",
+          "minLength": 1,
           "description": "Version hash or tag of the critic configuration applied to this run.",
           "examples": ["config-v2.3.1"]
         },
         "run_id": {
           "type": "string",
+          "minLength": 1,
           "description": "Execution identifier tying the bundle to a specific pipeline run."
         },
         "latency_ms": {
@@ -91,14 +93,17 @@
           "properties": {
             "runtime": {
               "type": "string",
+              "minLength": 1,
               "description": "Runtime or container image identifier."
             },
             "model": {
               "type": "string",
+              "minLength": 1,
               "description": "Model or ruleset version used by the critic."
             },
             "geography": {
               "type": "string",
+              "minLength": 1,
               "description": "Physical or logical region of execution."
             }
           }
@@ -115,6 +120,7 @@
       "properties": {
         "prompt": {
           "type": "string",
+          "minLength": 1,
           "description": "Raw prompt or request text supplied to the critic."
         },
         "context": {
@@ -122,6 +128,46 @@
           "description": "Structured context provided to the critic (variables, metadata, constraints).",
           "additionalProperties": true
         },
+                "precedent_ids": {
+                    "type": "array",
+                    "description": "Identifiers of precedents surfaced to the critic.",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
+                },
+                "attachments": {
+                    "type": "array",
+                    "description": "Supplementary artifacts provided to the critic.",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                            "type",
+                            "uri"
+                        ],
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Attachment classification (e.g., pdf, screenshot, transcript)."
+                            },
+                            "uri": {
+                                "type": "string",
+                                "format": "uri",
+                                "minLength": 1,
+                                "description": "Location of the attachment."
+                            },
+                            "checksum": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Integrity hash for the attachment content."
+                            }
+                        }
+                    }
+                }
         "precedent_ids": {
           "type": "array",
           "description": "Identifiers of precedents surfaced to the critic.",
@@ -193,6 +239,23 @@
             "$ref": "#/definitions/Finding"
           }
         },
+                "recommended_actions": {
+                    "type": "array",
+                    "description": "Remediation or escalation steps proposed by the critic.",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    }
+                },
+                "labels": {
+                    "type": "array",
+                    "description": "Tags applied by the critic for downstream routing.",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    }
         "recommended_actions": {
           "type": "array",
           "description": "Remediation or escalation steps proposed by the critic.",
@@ -238,6 +301,16 @@
             "$ref": "#/definitions/ReasoningStep"
           }
         },
+                "uncertainties": {
+                    "type": "array",
+                    "description": "Known uncertainties or caveats noted by the critic.",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    }
+                }
+            }
+        }
         "uncertainties": {
           "type": "array",
           "description": "Known uncertainties or caveats noted by the critic.",
@@ -261,10 +334,12 @@
       "properties": {
         "code": {
           "type": "string",
+          "minLength": 1,
           "description": "Stable identifier for the type of finding (e.g., SAFETY_PHYSICAL_HARM)."
         },
         "description": {
           "type": "string",
+          "minLength": 1,
           "description": "Human-readable explanation of the detected issue or compliance result."
         },
         "severity": {
@@ -298,14 +373,20 @@
       "properties": {
         "type": {
           "type": "string",
+          "minLength": 1,
           "description": "Kind of evidence (quote, rule_reference, precedent, calculation)."
         },
         "content": {
           "type": "string",
+          "minLength": 1,
           "description": "Text of the evidence or citation reference."
         },
         "source": {
           "type": "string",
+          "minLength": 1,
+          "enum": ["input", "knowledge_base", "policy", "precedent_id", "system"],
+                "description": "Origin of the evidence (input, knowledge_base, policy, precedent_id, or system-generated)."
+            },
           "description": "Origin of the evidence (input, knowledge_base, policy, precedent_id)."
         },
         "span": {
@@ -328,12 +409,15 @@
       "properties": {
         "description": {
           "type": "string",
+          "minLength": 1,
           "description": "Narrative for a single reasoning step."
         },
         "linked_findings": {
           "type": "array",
           "description": "Finding codes that this reasoning step depends on.",
           "items": {
+            "type": "string",
+            "minLength": 1
             "type": "string"
           }
         },
