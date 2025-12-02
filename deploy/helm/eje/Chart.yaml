@@ -1,0 +1,29 @@
+apiVersion: v2
+name: eje
+version: 0.1.0
+description: Helm chart for the ELEANOR Justice Engine (EJE)
+type: application
+appVersion: "0.1.0"
+
+keywords:
+  - governance
+  - ai
+  - api
+  - justice
+
+maintainers:
+  - name: EJE Team
+    url: https://github.com/eleanor-project
+
+sources:
+  - https://github.com/eleanor-project/EJE
+
+dependencies:
+  - name: postgresql
+    version: 15.2.0
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: 19.5.4
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled

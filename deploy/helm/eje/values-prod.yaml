@@ -1,0 +1,36 @@
+config:
+  appEnv: "production"
+  logLevel: "warning"
+  enableBetaFeatures: false
+  rollbackWindow: 10
+
+service:
+  type: LoadBalancer
+
+postgresql:
+  enabled: true
+  auth:
+    username: eje
+    database: eje
+    password: ""
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: true
+    password: ""
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 1
+    memory: 2Gi
+
+replicaCount: 3

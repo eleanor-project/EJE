@@ -1,0 +1,23 @@
+1. Get the application URL by running these commands:
+{{- if .Values.ingress.enabled }}
+  Ingress configured on:
+  {{- range .Values.ingress.hosts }}
+    http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}{{ (index .paths 0).path }}
+  {{- end }}
+{{- else if eq .Values.service.type "LoadBalancer" }}
+  export SERVICE_IP=$(kubectl get svc {{ include "eje.fullname" . }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  echo "http://$SERVICE_IP:{{ .Values.service.port }}"
+{{- else }}
+  export POD_NAME=$(kubectl get pods -l "app.kubernetes.io/name={{ include "eje.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath='{.items[0].metadata.name}')
+  kubectl port-forward $POD_NAME 8080:{{ .Values.service.port }}
+  echo "http://127.0.0.1:8080"
+{{- end }}
+
+2. Database settings:
+   Host: {{ include "eje.postgresql.host" . }}
+   Database: {{ include "eje.postgresql.database" . }}
+   User: {{ include "eje.postgresql.user" . }}
+
+3. Redis settings:
+   Host: {{ include "eje.redis.host" . }}
+   Port: {{ include "eje.redis.port" . }}

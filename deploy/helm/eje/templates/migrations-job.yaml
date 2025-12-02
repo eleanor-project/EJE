@@ -1,0 +1,45 @@
+{{- if .Values.migrations.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "eje.fullname" . }}-migrations
+  labels:
+{{ include "eje.labels" . | indent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+{{- with .Values.migrations.annotations }}
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+  backoffLimit: {{ .Values.migrations.backoffLimit }}
+  template:
+    metadata:
+      labels:
+{{ include "eje.selectorLabels" . | indent 8 }}
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "eje.fullname" . }}-config
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "eje.postgresql.secretName" . }}
+                  key: {{ include "eje.postgresql.secretKey" . }}
+            {{- if or .Values.redis.auth.enabled .Values.redis.external.passwordSecretName }}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "eje.redis.secretName" . }}
+                  key: {{ include "eje.redis.secretKey" . }}
+            {{- end }}
+          command: {{ toYaml .Values.migrations.command | nindent 10 }}
+          resources:
+{{ toYaml .Values.migrations.resources | indent 12 }}
+{{- end }}
