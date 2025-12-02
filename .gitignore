@@ -46,3 +46,5 @@ eleanor_data/
 # OS
 .DS_Store
 Thumbs.db
+# Ignore local TypeScript dependencies
+sdk/typescript/node_modules/

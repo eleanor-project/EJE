@@ -16,6 +16,7 @@ Set GITHUB_TOKEN or GH_TOKEN to avoid passing --token explicitly.
 import argparse
 import csv
 import os
+from pathlib import Path
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence
 
@@ -32,27 +33,30 @@ class IssueRow:
 
 def parse_rows(csv_path: str) -> List[IssueRow]:
     rows: List[IssueRow] = []
-    with open(csv_path, newline="", encoding="utf-8") as handle:
-        reader = csv.DictReader(handle)
-        for line_number, raw in enumerate(reader, start=2):
-            label_string = raw.get("labels", "") or ""
-            labels = [label.strip() for label in label_string.split(",") if label.strip()]
-            milestone = (raw.get("milestone") or "").strip() or None
-            title = (raw.get("title") or "").strip()
-            body = (raw.get("body") or "").strip()
-            if not title:
-                raise ValueError(f"Row {line_number}: 'title' is required")
-            if not body:
-                raise ValueError(f"Row {line_number}: 'body' is required")
+    try:
+        with open(csv_path, newline="", encoding="utf-8") as handle:
+            reader = csv.DictReader(handle)
+            for line_number, raw in enumerate(reader, start=2):
+                label_string = raw.get("labels", "") or ""
+                labels = [label.strip() for label in label_string.split(",") if label.strip()]
+                milestone = (raw.get("milestone") or "").strip() or None
+                title = (raw.get("title") or "").strip()
+                body = (raw.get("body") or "").strip()
+                if not title:
+                    raise ValueError(f"Row {line_number}: 'title' is required")
+                if not body:
+                    raise ValueError(f"Row {line_number}: 'body' is required")
 
-            rows.append(
-                IssueRow(
-                    title=title,
-                    body=body,
-                    labels=labels,
-                    milestone=milestone,
+                rows.append(
+                    IssueRow(
+                        title=title,
+                        body=body,
+                        labels=labels,
+                        milestone=milestone,
+                    )
                 )
-            )
+    except FileNotFoundError as exc:  # pragma: no cover - thin wrapper for friendlier messaging
+        raise SystemExit(f"CSV file not found: {csv_path}") from exc
     return rows
 
 
@@ -176,7 +180,8 @@ def process_issues(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Upload GitHub issues from a CSV file.")
     parser.add_argument("--repo", required=True, help="Target repository in the form owner/name")
-    parser.add_argument("--csv", default="tools/data/v7_core_issue_list.csv", help="Path to CSV file")
+    default_csv = Path(__file__).resolve().parent / "data" / "v7_core_issue_list.csv"
+    parser.add_argument("--csv", default=str(default_csv), help="Path to CSV file")
     parser.add_argument("--token", help="GitHub token (falls back to GITHUB_TOKEN or GH_TOKEN env vars)")
     parser.add_argument("--dry-run", action="store_true", help="Print actions without creating issues")
     parser.add_argument(
