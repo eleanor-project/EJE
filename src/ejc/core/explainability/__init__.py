@@ -10,6 +10,7 @@ from .counterfactual_generator import CounterfactualGenerator, CounterfactualMod
 from .shap_explainer import SHAPExplainer, SHAPExplanation
 from .decision_visualizer import DecisionVisualizer, VisualizationType, ExportFormat
 from .multi_level_explainer import MultiLevelExplainer, AudienceLevel, MultiLevelExplanation
+from .precedent_analyzer import PrecedentAnalyzer, ComparisonType, PrecedentComparison
 
 __all__ = [
     'XAIPipeline',
@@ -25,5 +26,8 @@ __all__ = [
     'ExportFormat',
     'MultiLevelExplainer',
     'AudienceLevel',
-    'MultiLevelExplanation'
+    'MultiLevelExplanation',
+    'PrecedentAnalyzer',
+    'ComparisonType',
+    'PrecedentComparison'
 ]
