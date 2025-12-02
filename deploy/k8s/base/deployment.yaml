@@ -73,3 +73,5 @@ spec:
         - name: eje-data
           persistentVolumeClaim:
             claimName: eje-data
+              cpu: 500m
+              memory: 1Gi

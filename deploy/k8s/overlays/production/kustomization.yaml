@@ -3,11 +3,13 @@ kind: Kustomization
 namespace: eje-production
 resources:
   - ../../base
+  - configmap.yaml
   - namespace.yaml
 images:
   - name: ghcr.io/eleanor-project/eje
     newName: ghcr.io/eleanor-project/eje
     newTag: latest
+    newTag: stable
 patches:
   - target:
       kind: Deployment
@@ -99,3 +101,10 @@ patches:
         name: eje-api
       spec:
         type: LoadBalancer
+                resources:
+                  requests:
+                    cpu: 500m
+                    memory: 1Gi
+                  limits:
+                    cpu: 1
+                    memory: 2Gi
