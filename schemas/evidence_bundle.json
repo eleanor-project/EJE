@@ -26,35 +26,33 @@
       "description": "Unique identifier for this evidence bundle instance.",
       "examples": ["1b4e28ba-2fa1-11d2-883f-0016d3cca427"]
     },
-        "metadata": {
-          "type": "object",
-          "additionalProperties": false,
-          "description": "Provenance data describing when and how the critic produced this bundle.",
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Provenance data describing when and how the critic produced this bundle.",
       "required": [
         "critic",
         "timestamp",
         "config_version"
       ],
-          "properties": {
-            "critic": {
-              "type": "object",
-              "additionalProperties": false,
-              "description": "Critic identity and classification.",
+      "properties": {
+        "critic": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Critic identity and classification.",
           "required": [
             "name",
             "version"
           ],
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "minLength": 1,
-                  "description": "Human-readable critic name (e.g., SafetyCritic)."
-                },
-                "version": {
-                  "type": "string",
-                  "minLength": 1,
-                  "description": "Implementation or prompt version for the critic logic."
-                },
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Human-readable critic name (e.g., SafetyCritic)."
+            },
+            "version": {
+              "type": "string",
+              "description": "Implementation or prompt version for the critic logic."
+            },
             "priority": {
               "type": "string",
               "description": "Operational priority level used by the orchestrator.",
@@ -74,13 +72,11 @@
         },
         "config_version": {
           "type": "string",
-          "minLength": 1,
           "description": "Version hash or tag of the critic configuration applied to this run.",
           "examples": ["config-v2.3.1"]
         },
         "run_id": {
           "type": "string",
-          "minLength": 1,
           "description": "Execution identifier tying the bundle to a specific pipeline run."
         },
         "latency_ms": {
@@ -95,17 +91,14 @@
           "properties": {
             "runtime": {
               "type": "string",
-              "minLength": 1,
               "description": "Runtime or container image identifier."
             },
             "model": {
               "type": "string",
-              "minLength": 1,
               "description": "Model or ruleset version used by the critic."
             },
             "geography": {
               "type": "string",
-              "minLength": 1,
               "description": "Physical or logical region of execution."
             }
           }
@@ -122,7 +115,6 @@
       "properties": {
         "prompt": {
           "type": "string",
-          "minLength": 1,
           "description": "Raw prompt or request text supplied to the critic."
         },
         "context": {
@@ -151,18 +143,15 @@
             "properties": {
               "type": {
                 "type": "string",
-                "minLength": 1,
                 "description": "Attachment classification (e.g., pdf, screenshot, transcript)."
               },
               "uri": {
                 "type": "string",
                 "format": "uri",
-                "minLength": 1,
                 "description": "Location of the attachment."
               },
               "checksum": {
                 "type": "string",
-                "minLength": 1,
                 "description": "Integrity hash for the attachment content."
               }
             }
@@ -208,16 +197,14 @@
           "type": "array",
           "description": "Remediation or escalation steps proposed by the critic.",
           "items": {
-            "type": "string",
-            "minLength": 1
+            "type": "string"
           }
         },
         "labels": {
           "type": "array",
           "description": "Tags applied by the critic for downstream routing.",
           "items": {
-            "type": "string",
-            "minLength": 1
+            "type": "string"
           }
         }
       }
@@ -274,12 +261,10 @@
       "properties": {
         "code": {
           "type": "string",
-          "minLength": 1,
           "description": "Stable identifier for the type of finding (e.g., SAFETY_PHYSICAL_HARM)."
         },
         "description": {
           "type": "string",
-          "minLength": 1,
           "description": "Human-readable explanation of the detected issue or compliance result."
         },
         "severity": {
@@ -313,18 +298,14 @@
       "properties": {
         "type": {
           "type": "string",
-          "minLength": 1,
           "description": "Kind of evidence (quote, rule_reference, precedent, calculation)."
         },
         "content": {
           "type": "string",
-          "minLength": 1,
           "description": "Text of the evidence or citation reference."
         },
         "source": {
           "type": "string",
-          "minLength": 1,
-          "enum": ["input", "knowledge_base", "policy", "precedent_id", "system"],
           "description": "Origin of the evidence (input, knowledge_base, policy, precedent_id)."
         },
         "span": {
@@ -347,15 +328,13 @@
       "properties": {
         "description": {
           "type": "string",
-          "minLength": 1,
           "description": "Narrative for a single reasoning step."
         },
         "linked_findings": {
           "type": "array",
           "description": "Finding codes that this reasoning step depends on.",
           "items": {
-            "type": "string",
-            "minLength": 1
+            "type": "string"
           }
         },
         "confidence": {
