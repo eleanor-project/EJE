@@ -4,6 +4,7 @@
 **Date**: 2025-12-02
 **Branch**: `claude/resolve-issues-01AnuSMTw9E8cebkBQsAR1ux`
 **Status**: ✅ All HIGH priority gaps resolved, MEDIUM priority gaps remain
+**Live Issue Tracker**: https://github.com/eleanor-project/EJE/issues
 
 ---
 
