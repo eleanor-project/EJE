@@ -246,5 +246,162 @@ This file tracks all technical decisions made by the autonomous development agen
 
 ---
 
+### Decision 011: EJE-Specific Metrics Design
+**Issue**: #164
+**Decision**: Created specialized metrics beyond standard system metrics:
+- **Precedent matching**: `eje_precedent_match_rate`, `eje_precedent_query_latency_seconds`
+- **Critic agreement**: `eje_critic_agreement_ratio`, `eje_unanimous_verdicts_total`
+- **Audit trail**: `eje_audit_trail_size_bytes`, `eje_audit_entries_total`
+- **Cache performance**: `eje_cache_hits_total`, `eje_cache_misses_total`
+- **Compliance**: `eje_compliance_score`, `eje_governance_violations_total`
+- **Decision quality**: `eje_decision_override_total`, `eje_review_required_total`
+- **Confidence distribution**: Histogram with 10 buckets (0.0-1.0)
+
+**Rationale**:
+- **Precedent tracking**: Core EJE capability, needs visibility into match quality
+- **Agreement metrics**: Help identify critic calibration issues
+- **Audit trail size**: Critical for compliance, need to alert on growth
+- **Cache metrics**: Performance optimization requires cache visibility
+- **Compliance score**: Legal/regulatory requirements need tracking
+- **Override tracking**: Human interventions indicate model accuracy issues
+- **Confidence histograms**: Distribution shows if model is well-calibrated
+
+**Metric Design Choices**:
+- All metrics prefixed with "eje_" for namespacing
+- Labels kept low-cardinality (verdict type, conflict type, override reason)
+- Avoided user IDs or case IDs (unbounded cardinality)
+- Histogram buckets match expected distribution patterns
+- Counter names end in "_total" (Prometheus convention)
+
+**Files**:
+- `src/ejc/monitoring/eje_metrics.py`
+- `tests/monitoring/test_eje_metrics.py`
+- `docs/monitoring/eje_metrics_guide.md` (comprehensive reference)
+
+**Commit**: 52b8f59
+
+---
+
+### Decision 012: Deployment Infrastructure Strategy
+**Issue**: #165
+**Decision**: Multi-environment deployment with:
+- **Docker Compose**: Local development with auto-provisioning
+  - Single command startup/shutdown
+  - All dashboards and configs automatically loaded
+  - Persistent volumes for data retention
+  - .env file support for secrets
+- **Kubernetes**: Production-ready with HA
+  - StatefulSets for Prometheus (2 replicas), AlertManager (3-node cluster)
+  - Deployments for Grafana, Jaeger
+  - ConfigMaps for all configurations
+  - Secrets for credentials
+  - PersistentVolumeClaims for data persistence
+  - Service discovery and load balancing
+- **Makefile**: One-command operations
+  - `make local-up`, `make k8s-deploy`
+  - Backup/restore automation
+  - Configuration validation
+  - Port forwarding helpers
+
+**Rationale**:
+- **Docker Compose for dev**: Fast iteration, no K8s cluster required, realistic integration testing
+- **StatefulSets for stateful services**: Prometheus and AlertManager need stable network identities and persistent storage
+- **Multi-replica Prometheus**: HA for critical monitoring infrastructure
+- **3-node AlertManager cluster**: Gossip protocol requires odd number for quorum
+- **ConfigMaps vs Secrets**: Non-sensitive configs in ConfigMaps (version controlled), credentials in Secrets
+- **Makefile abstraction**: Hide complexity, provide discoverability (help command)
+
+**High Availability Design**:
+- Prometheus: 2 replicas scraping independently (eventually consistent)
+- AlertManager: 3-node cluster with gossip protocol (consistent state)
+- Grafana: Single replica (stateless, can scale horizontally)
+- Jaeger: Single collector (can scale with load balancer)
+
+**Resource Limits**:
+- Prometheus: 2Gi request, 4Gi limit (handles ~2M active series)
+- Grafana: 512Mi request, 1Gi limit (handles ~20 concurrent users)
+- AlertManager: 256Mi request, 512Mi limit (lightweight)
+- Based on production benchmarks and sizing formulas
+
+**Backup Strategy**:
+- Prometheus: TSDB snapshot via tar
+- Grafana: SQLite database backup
+- AlertManager: Silence/notification state backup
+- Automated with `make local-backup` / `make k8s-backup`
+
+**Files**:
+- `docker-compose.monitoring.yml` (complete stack)
+- `monitoring/kubernetes/namespace.yaml`
+- `monitoring/kubernetes/prometheus.yaml` (StatefulSet with HA)
+- `monitoring/kubernetes/grafana.yaml` (Deployment)
+- `monitoring/kubernetes/alertmanager.yaml` (3-node cluster)
+- `monitoring/kubernetes/jaeger.yaml` (with Elasticsearch)
+- `Makefile.monitoring` (operations automation)
+- `docs/monitoring/deployment_guide.md`
+
+**Commit**: d047c0c
+
+---
+
+### Decision 013: Observability Documentation Structure
+**Issue**: #166
+**Decision**: Comprehensive multi-document approach:
+1. **README.md**: Main entry point
+   - Architecture overview with ASCII diagrams
+   - Quick start (5-minute setup)
+   - Component guides with links
+   - Common queries and use cases
+2. **architecture_guide.md**: Deep technical details
+   - Component internals (TSDB, query engine, routing)
+   - Data flow diagrams
+   - Design patterns (instrumentation, storage, alerting)
+   - Scalability and HA considerations
+3. **performance_tuning_guide.md**: Optimization
+   - Resource sizing formulas
+   - Query optimization with recording rules
+   - Cardinality management
+   - Scaling thresholds
+4. **troubleshooting_guide.md**: Operations
+   - Common issues with diagnosis chains
+   - Step-by-step resolution procedures
+   - Tools and commands reference
+
+**Rationale**:
+- **Separation by audience**:
+  - README: All users (quick reference)
+  - Architecture: Engineers building/extending
+  - Performance: SREs optimizing
+  - Troubleshooting: On-call engineers debugging
+- **Actionable over theoretical**: Every section includes specific commands to run
+- **Diagnosis chains**: Step-by-step workflows from symptom to root cause
+- **Cross-references**: Extensive linking between related sections
+- **Production-ready**: All examples tested and realistic
+
+**Documentation Philosophy**:
+- **Show, don't tell**: Code examples over prose
+- **Copy-pasteable**: All commands ready to run
+- **Context-aware**: Examples use actual EJE metrics and alerts
+- **Complete coverage**: Every feature documented, every alert has a runbook
+- **Maintainable**: Automated validation where possible
+
+**Key Content**:
+- 50+ metric definitions with PromQL examples
+- 35+ alert rules with complete runbooks
+- 20+ troubleshooting scenarios with solutions
+- Resource sizing formulas for capacity planning
+- Performance benchmarks and optimization strategies
+- HA configuration patterns
+- Security considerations
+
+**Files**:
+- `docs/monitoring/README.md` (entry point)
+- `docs/monitoring/architecture_guide.md` (technical deep-dive)
+- `docs/monitoring/performance_tuning_guide.md` (optimization)
+- `docs/monitoring/troubleshooting_guide.md` (operations)
+
+**Commit**: 3fd32fb
+
+---
+
 **Agent Version**: Claude Code v1.0
 **Last Updated**: 2025-12-02
