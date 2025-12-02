@@ -48,3 +48,6 @@ eleanor_data/
 Thumbs.db
 # Ignore local TypeScript dependencies
 sdk/typescript/node_modules/
+
+# Node
+node_modules/

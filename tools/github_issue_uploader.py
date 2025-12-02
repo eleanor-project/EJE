@@ -57,6 +57,20 @@ def parse_rows(csv_path: str) -> List[IssueRow]:
                 )
     except FileNotFoundError as exc:  # pragma: no cover - thin wrapper for friendlier messaging
         raise SystemExit(f"CSV file not found: {csv_path}") from exc
+    with open(csv_path, newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        for raw in reader:
+            label_string = raw.get("labels", "") or ""
+            labels = [label.strip() for label in label_string.split(",") if label.strip()]
+            milestone = (raw.get("milestone") or "").strip() or None
+            rows.append(
+                IssueRow(
+                    title=(raw.get("title") or "").strip(),
+                    body=(raw.get("body") or "").strip(),
+                    labels=labels,
+                    milestone=milestone,
+                )
+            )
     return rows
 
 
@@ -182,6 +196,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--repo", required=True, help="Target repository in the form owner/name")
     default_csv = Path(__file__).resolve().parent / "data" / "v7_core_issue_list.csv"
     parser.add_argument("--csv", default=str(default_csv), help="Path to CSV file")
+    parser.add_argument("--csv", default="tools/data/v7_core_issue_list.csv", help="Path to CSV file")
     parser.add_argument("--token", help="GitHub token (falls back to GITHUB_TOKEN or GH_TOKEN env vars)")
     parser.add_argument("--dry-run", action="store_true", help="Print actions without creating issues")
     parser.add_argument(
