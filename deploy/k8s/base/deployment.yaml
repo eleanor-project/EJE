@@ -20,6 +20,7 @@ spec:
       labels:
         app: eje
     spec:
+      serviceAccountName: eje-api
       containers:
         - name: eje-api
           image: ghcr.io/eleanor-project/eje:latest
@@ -30,6 +31,25 @@ spec:
           envFrom:
             - configMapRef:
                 name: eje-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: eje-secrets
+                  key: DATABASE_URL
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: eje-secrets
+                  key: REDIS_URL
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: eje-secrets
+                  key: SECRET_KEY
+          volumeMounts:
+            - name: eje-data
+              mountPath: /var/lib/eje
           readinessProbe:
             httpGet:
               path: /health
@@ -47,5 +67,11 @@ spec:
               cpu: 250m
               memory: 512Mi
             limits:
+              cpu: 750m
+              memory: 1.5Gi
+      volumes:
+        - name: eje-data
+          persistentVolumeClaim:
+            claimName: eje-data
               cpu: 500m
               memory: 1Gi
