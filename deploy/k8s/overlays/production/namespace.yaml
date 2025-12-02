@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: eje-production
+  labels:
+    environment: production
+    app: eje

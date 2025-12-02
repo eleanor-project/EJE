@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: eje-api
+  labels:
+    app: eje
+spec:
+  selector:
+    app: eje
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  type: ClusterIP

@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eleanor-project/EJE/schemas/evidence_bundle.json",
+  "title": "Eleanor Justice Engine Evidence Bundle",
+  "description": "Schema for normalized critic evidence bundles capturing input context, critic outputs, justification, and metadata.",
+  "type": "object",
+  "required": [
+    "version",
+    "metadata",
+    "input_snapshot",
+    "critic_output",
+    "justification"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Schema version identifier for downstream routing and migrations.",
+      "pattern": "^v\\d+\\.\\d+(\\.\\d+)?$"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Run metadata describing the critic, timing, and platform context.",
+      "required": [
+        "bundle_id",
+        "critic_id",
+        "run_at",
+        "latency_ms",
+        "environment"
+      ],
+      "properties": {
+        "bundle_id": {
+          "type": "string",
+          "description": "Unique identifier for this evidence bundle.",
+          "format": "uuid"
+        },
+        "critic_id": {
+          "type": "string",
+          "description": "Logical critic name or identifier (e.g., policy_lint, bias_audit).",
+          "minLength": 1
+        },
+        "run_at": {
+          "type": "string",
+          "description": "RFC 3339 timestamp for when the critic executed.",
+          "format": "date-time"
+        },
+        "latency_ms": {
+          "type": "number",
+          "description": "Total latency for the critic run in milliseconds.",
+          "minimum": 0
+        },
+        "environment": {
+          "type": "string",
+          "description": "Runtime environment tag (e.g., dev, staging, prod).",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "description": "Model or ruleset version used by the critic.",
+          "minLength": 1
+        },
+        "trace_id": {
+          "type": "string",
+          "description": "Optional tracing identifier for correlation across services.",
+          "minLength": 1
+        },
+        "labels": {
+          "type": "array",
+          "description": "Optional labels for routing or analytics.",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "input_snapshot": {
+      "type": "object",
+      "description": "Frozen snapshot of the critic inputs for auditability and reproducibility.",
+      "required": [
+        "prompt",
+        "context",
+        "attachments"
+      ],
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "description": "Prompt or question presented to the critic.",
+          "minLength": 1
+        },
+        "context": {
+          "type": "object",
+          "description": "Key-value context passed to the critic (e.g., jurisdiction, user role).",
+          "additionalProperties": true
+        },
+        "attachments": {
+          "type": "array",
+          "description": "Supporting artifacts (documents, links, evidence) provided to the critic.",
+          "items": {
+            "type": "object",
+            "required": [
+              "type",
+              "uri"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Attachment type (file, url, excerpt, citation).",
+                "minLength": 1
+              },
+              "uri": {
+                "type": "string",
+                "description": "Resolvable reference to the attachment (path, URL, or opaque ID).",
+                "minLength": 1
+              },
+              "title": {
+                "type": "string",
+                "description": "Human-friendly label for the attachment.",
+                "minLength": 1
+              },
+              "hash": {
+                "type": "string",
+                "description": "Optional integrity hash of the attachment contents.",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "critic_output": {
+      "type": "object",
+      "description": "Normalized output from the critic, including findings and reasoning trace.",
+      "required": [
+        "summary",
+        "findings",
+        "reasoning_trace"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "description": "Short description of the critic's overall conclusion.",
+          "minLength": 1
+        },
+        "findings": {
+          "type": "array",
+          "description": "Discrete findings produced by the critic.",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "title",
+              "severity",
+              "details"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Stable identifier for cross-referencing with reasoning steps or attachments.",
+                "minLength": 1
+              },
+              "title": {
+                "type": "string",
+                "description": "Headline for the finding.",
+                "minLength": 1
+              },
+              "severity": {
+                "type": "string",
+                "description": "Severity level (info, warning, critical).",
+                "enum": ["info", "warning", "critical"]
+              },
+              "details": {
+                "type": "string",
+                "description": "Expanded description of the finding and relevant context.",
+                "minLength": 1
+              },
+              "evidence_refs": {
+                "type": "array",
+                "description": "References to attachments or reasoning steps that support this finding.",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "reasoning_trace": {
+          "type": "array",
+          "description": "Step-by-step reasoning used by the critic to reach conclusions.",
+          "items": {
+            "type": "object",
+            "required": [
+              "step",
+              "statement"
+            ],
+            "properties": {
+              "step": {
+                "type": "integer",
+                "description": "Ordinal position of the reasoning step (1-indexed).",
+                "minimum": 1
+              },
+              "statement": {
+                "type": "string",
+                "description": "Narrative explanation of the step.",
+                "minLength": 1
+              },
+              "supports": {
+                "type": "array",
+                "description": "Optional references to findings or attachments this step relies on.",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "raw_response": {
+          "type": "string",
+          "description": "Original critic response text before normalization.",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "justification": {
+      "type": "object",
+      "description": "Final justification used for governance decisions derived from the critic output.",
+      "required": [
+        "decision",
+        "rationale",
+        "confidence"
+      ],
+      "properties": {
+        "decision": {
+          "type": "string",
+          "description": "Outcome recommended by the critic (e.g., approve, block, needs_review).",
+          "enum": [
+            "approve",
+            "block",
+            "needs_review"
+          ]
+        },
+        "rationale": {
+          "type": "string",
+          "description": "Human-readable justification tying findings to the decision.",
+          "minLength": 1
+        },
+        "confidence": {
+          "type": "number",
+          "description": "Confidence score between 0 and 1 for the recommended decision.",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "policy_refs": {
+          "type": "array",
+          "description": "Identifiers of policies or rules that influence the decision.",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
