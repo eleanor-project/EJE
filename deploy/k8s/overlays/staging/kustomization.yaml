@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: eje-staging
 resources:
   - ../../base
+  - configmap.yaml
   - namespace.yaml
 images:
   - name: ghcr.io/eleanor-project/eje
