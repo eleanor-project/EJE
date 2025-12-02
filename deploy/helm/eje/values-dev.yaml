@@ -1,0 +1,29 @@
+config:
+  appEnv: "development"
+  logLevel: "debug"
+  enableBetaFeatures: true
+  rollbackWindow: 3
+
+service:
+  type: ClusterIP
+
+postgresql:
+  enabled: true
+  primary:
+    persistence:
+      enabled: false
+
+redis:
+  enabled: true
+  auth:
+    enabled: false
+
+resources:
+  requests:
+    cpu: 150m
+    memory: 256Mi
+  limits:
+    cpu: 300m
+    memory: 512Mi
+
+replicaCount: 1

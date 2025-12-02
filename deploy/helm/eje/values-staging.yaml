@@ -1,0 +1,29 @@
+config:
+  appEnv: "staging"
+  logLevel: "info"
+  enableBetaFeatures: false
+  rollbackWindow: 5
+
+service:
+  type: ClusterIP
+
+postgresql:
+  enabled: true
+  primary:
+    persistence:
+      enabled: false
+
+redis:
+  enabled: true
+  auth:
+    enabled: false
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
+
+replicaCount: 2
