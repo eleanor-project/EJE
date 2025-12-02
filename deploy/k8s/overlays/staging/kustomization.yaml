@@ -1,0 +1,37 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: eje-staging
+resources:
+  - ../../base
+  - configmap.yaml
+  - namespace.yaml
+images:
+  - name: ghcr.io/eleanor-project/eje
+    newName: ghcr.io/eleanor-project/eje
+    newTag: staging
+patches:
+  - target:
+      kind: Deployment
+      name: eje-api
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: eje-api
+      spec:
+        replicas: 2
+        template:
+          metadata:
+            annotations:
+              deploy.eje/last-updated: "staging"
+          spec:
+            containers:
+              - name: eje-api
+                env:
+                  - name: RUNTIME_ENVIRONMENT
+                    value: staging
+                  - name: FEATURE_FLAGS
+                    valueFrom:
+                      configMapKeyRef:
+                        name: eje-config
+                        key: ENABLE_BETA_FEATURES
