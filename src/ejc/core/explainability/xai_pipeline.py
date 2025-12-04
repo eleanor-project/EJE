@@ -27,6 +27,10 @@ project_root = str(Path(__file__).parent.parent.parent.parent.parent)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
+# Import counterfactual generator and SHAP explainer
+from .counterfactual_generator import CounterfactualGenerator, CounterfactualMode
+from .shap_explainer import SHAPExplainer, SHAPExplanation
+
 
 class ExplanationLevel(Enum):
     """Explanation detail levels per World Bank recommendations."""
@@ -57,6 +61,8 @@ class XAIPipeline:
     def __init__(self):
         """Initialize XAI Pipeline with available methods."""
         self.available_methods = self._check_available_methods()
+        self.counterfactual_generator = CounterfactualGenerator()
+        self.shap_explainer = SHAPExplainer(enable_caching=True)
 
     def _check_available_methods(self) -> Dict[str, bool]:
         """Check which XAI libraries are available."""
@@ -162,7 +168,43 @@ class XAIPipeline:
 
         SHAP (SHapley Additive exPlanations) uses game theory to assign
         importance scores to features.
+
+        For EJE decisions, instance should be a Decision dict.
         """
+        # Check if instance is an EJE decision
+        if isinstance(instance, dict) and 'critic_reports' in instance:
+            # Use EJE-specific SHAP explainer
+            try:
+                explanation = self.shap_explainer.explain_decision(
+                    decision=instance,
+                    explanation_type=kwargs.get('explanation_type', 'local'),
+                    background_data=background_data
+                )
+
+                if not explanation.get('available', False):
+                    return {
+                        'error': explanation.get('error', 'SHAP not available'),
+                        'confidence': 0.0
+                    }
+
+                return {
+                    'method': 'SHAP',
+                    'critic_explanations': explanation['critic_explanations'],
+                    'aggregate_explanation': explanation['aggregate_explanation'],
+                    'features': explanation['features'],
+                    'computation_time': explanation['computation_time'],
+                    'cached_count': explanation.get('cached_count', 0),
+                    'confidence': 0.9,
+                    'visualizations': ['waterfall', 'bar', 'force']
+                }
+
+            except Exception as e:
+                return {
+                    'error': f'SHAP generation failed: {str(e)}',
+                    'confidence': 0.0
+                }
+
+        # Fallback for non-EJE models
         if not self.available_methods['shap']:
             return {
                 'error': 'SHAP not available. Install with: pip install shap',
@@ -288,23 +330,47 @@ class XAIPipeline:
         Generate counterfactual explanation.
 
         Counterfactuals answer: "What would need to change for a different outcome?"
-        """
-        if not self.available_methods['alibi']:
-            return {
-                'error': 'Alibi not available for counterfactuals. Install with: pip install alibi',
-                'confidence': 0.0
-            }
 
+        For EJE decisions, instance should be a Decision dict.
+        """
         try:
-            # Placeholder for counterfactual generation
-            # Full implementation requires model-specific setup
-            return {
-                'method': 'COUNTERFACTUAL',
-                'counterfactuals': [],
-                'message': 'Counterfactual generation requires additional configuration',
-                'confidence': 0.5,
-                'visualizations': []
-            }
+            # Check if instance is an EJE decision
+            if isinstance(instance, dict) and 'critic_reports' in instance:
+                # Use EJE-specific counterfactual generator
+                mode = kwargs.get('mode', CounterfactualMode.NEAREST)
+                if isinstance(mode, str):
+                    mode = CounterfactualMode(mode.lower())
+
+                result = self.counterfactual_generator.generate(
+                    decision=instance,
+                    mode=mode,
+                    target_verdict=kwargs.get('target_verdict'),
+                )
+
+                return {
+                    'method': 'COUNTERFACTUAL',
+                    'counterfactuals': result['counterfactuals'],
+                    'key_factors': result['key_factors'],
+                    'generation_time': result['generation_time'],
+                    'within_timeout': result['within_timeout'],
+                    'confidence': 0.9 if result['within_timeout'] else 0.7,
+                    'visualizations': ['factor_changes', 'decision_tree']
+                }
+            else:
+                # Fallback for non-EJE models
+                if not self.available_methods['alibi']:
+                    return {
+                        'error': 'Alibi not available for counterfactuals. Install with: pip install alibi',
+                        'confidence': 0.0
+                    }
+
+                return {
+                    'method': 'COUNTERFACTUAL',
+                    'counterfactuals': [],
+                    'message': 'Counterfactual generation requires EJE Decision format or Alibi library',
+                    'confidence': 0.5,
+                    'visualizations': []
+                }
 
         except Exception as e:
             return {

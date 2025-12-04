@@ -1,0 +1,238 @@
+# EJE Monitoring Stack Makefile
+# Provides one-command deployment for local and production environments
+#
+# Usage:
+#   make -f Makefile.monitoring help
+
+.PHONY: help
+help: ## Show this help message
+	@echo "EJE Monitoring Stack Commands:"
+	@echo ""
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+.DEFAULT_GOAL := help
+
+# Local Development (Docker Compose)
+.PHONY: local-up
+local-up: ## Start local monitoring stack
+	@echo "Starting EJE monitoring stack..."
+	docker-compose -f docker-compose.monitoring.yml up -d
+	@echo "Waiting for services to be ready..."
+	@sleep 10
+	@echo ""
+	@echo "Services available at:"
+	@echo "  Prometheus:   http://localhost:9090"
+	@echo "  Grafana:      http://localhost:3000 (admin/admin)"
+	@echo "  AlertManager: http://localhost:9093"
+	@echo "  Jaeger:       http://localhost:16686"
+	@echo ""
+
+.PHONY: local-down
+local-down: ## Stop local monitoring stack
+	docker-compose -f docker-compose.monitoring.yml down
+
+.PHONY: local-restart
+local-restart: ## Restart local monitoring stack
+	docker-compose -f docker-compose.monitoring.yml restart
+
+.PHONY: local-logs
+local-logs: ## Show logs from local monitoring stack
+	docker-compose -f docker-compose.monitoring.yml logs -f
+
+.PHONY: local-ps
+local-ps: ## Show status of local monitoring services
+	docker-compose -f docker-compose.monitoring.yml ps
+
+.PHONY: local-clean
+local-clean: ## Stop and remove local monitoring stack (WARNING: deletes data)
+	@echo "WARNING: This will delete all monitoring data!"
+	@read -p "Are you sure? [y/N] " -n 1 -r; \
+	echo; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		docker-compose -f docker-compose.monitoring.yml down -v; \
+		echo "Monitoring stack removed"; \
+	fi
+
+.PHONY: local-backup
+local-backup: ## Backup local monitoring data
+	@mkdir -p backups/$$(date +%Y%m%d)
+	@echo "Backing up Prometheus data..."
+	@docker run --rm -v eje_prometheus_data:/data -v $$(pwd)/backups/$$(date +%Y%m%d):/backup alpine tar czf /backup/prometheus.tar.gz -C /data .
+	@echo "Backing up Grafana data..."
+	@docker run --rm -v eje_grafana_data:/data -v $$(pwd)/backups/$$(date +%Y%m%d):/backup alpine tar czf /backup/grafana.tar.gz -C /data .
+	@echo "Backing up AlertManager data..."
+	@docker run --rm -v eje_alertmanager_data:/data -v $$(pwd)/backups/$$(date +%Y%m%d):/backup alpine tar czf /backup/alertmanager.tar.gz -C /data .
+	@echo "Backup complete: backups/$$(date +%Y%m%d)/"
+
+# Kubernetes Production Deployment
+.PHONY: k8s-namespace
+k8s-namespace: ## Create Kubernetes namespace
+	kubectl apply -f monitoring/kubernetes/namespace.yaml
+
+.PHONY: k8s-secrets
+k8s-secrets: ## Create Kubernetes secrets (interactive)
+	@echo "Creating Kubernetes secrets..."
+	@read -p "Grafana admin password: " GRAFANA_PASSWORD; \
+	kubectl create secret generic grafana-credentials \
+		--from-literal=admin-user=admin \
+		--from-literal=admin-password=$$GRAFANA_PASSWORD \
+		-n eje-monitoring --dry-run=client -o yaml | kubectl apply -f -
+	@read -p "SMTP password: " SMTP_PASSWORD; \
+	read -p "Slack webhook URL: " SLACK_URL; \
+	read -p "PagerDuty service key: " PAGERDUTY_KEY; \
+	kubectl create secret generic alertmanager-secrets \
+		--from-literal=smtp-password=$$SMTP_PASSWORD \
+		--from-literal=slack-webhook-url=$$SLACK_URL \
+		--from-literal=pagerduty-service-key=$$PAGERDUTY_KEY \
+		-n eje-monitoring --dry-run=client -o yaml | kubectl apply -f -
+	@echo "Secrets created"
+
+.PHONY: k8s-configmaps
+k8s-configmaps: ## Create Kubernetes ConfigMaps
+	@echo "Creating ConfigMaps..."
+	kubectl create configmap prometheus-config \
+		--from-file=prometheus.yml=monitoring/prometheus/prometheus.yml \
+		-n eje-monitoring --dry-run=client -o yaml | kubectl apply -f -
+	kubectl create configmap prometheus-alert-rules \
+		--from-file=alert_rules.yml=monitoring/prometheus/alert_rules.yml \
+		-n eje-monitoring --dry-run=client -o yaml | kubectl apply -f -
+	kubectl create configmap alertmanager-config \
+		--from-file=alertmanager.yml=monitoring/alertmanager/alertmanager.yml \
+		-n eje-monitoring --dry-run=client -o yaml | kubectl apply -f -
+	kubectl create configmap alertmanager-templates \
+		--from-file=monitoring/alertmanager/templates/ \
+		-n eje-monitoring --dry-run=client -o yaml | kubectl apply -f -
+	kubectl create configmap grafana-datasources \
+		--from-file=datasources.yml=monitoring/grafana/provisioning/datasources.yml \
+		-n eje-monitoring --dry-run=client -o yaml | kubectl apply -f -
+	kubectl create configmap grafana-dashboards-config \
+		--from-file=dashboards.yml=monitoring/grafana/provisioning/dashboards.yml \
+		-n eje-monitoring --dry-run=client -o yaml | kubectl apply -f -
+	kubectl create configmap grafana-dashboards \
+		--from-file=monitoring/grafana/dashboards/ \
+		-n eje-monitoring --dry-run=client -o yaml | kubectl apply -f -
+	@echo "ConfigMaps created"
+
+.PHONY: k8s-deploy
+k8s-deploy: k8s-namespace k8s-configmaps ## Deploy monitoring stack to Kubernetes
+	@echo "Deploying Prometheus..."
+	kubectl apply -f monitoring/kubernetes/prometheus.yaml
+	@echo "Waiting for Prometheus..."
+	kubectl wait --for=condition=ready pod -l app=prometheus -n eje-monitoring --timeout=300s
+	@echo "Deploying Grafana..."
+	kubectl apply -f monitoring/kubernetes/grafana.yaml
+	@echo "Waiting for Grafana..."
+	kubectl wait --for=condition=ready pod -l app=grafana -n eje-monitoring --timeout=300s
+	@echo "Deploying AlertManager..."
+	kubectl apply -f monitoring/kubernetes/alertmanager.yaml
+	@echo "Waiting for AlertManager..."
+	kubectl wait --for=condition=ready pod -l app=alertmanager -n eje-monitoring --timeout=300s
+	@echo "Deploying Jaeger..."
+	kubectl apply -f monitoring/kubernetes/jaeger.yaml
+	@echo "Waiting for Jaeger..."
+	kubectl wait --for=condition=ready pod -l app=jaeger -n eje-monitoring --timeout=300s
+	@echo ""
+	@echo "Monitoring stack deployed successfully!"
+	@echo "Use 'make k8s-port-forward' to access services locally"
+
+.PHONY: k8s-status
+k8s-status: ## Show Kubernetes monitoring stack status
+	@echo "Pods:"
+	@kubectl get pods -n eje-monitoring
+	@echo ""
+	@echo "Services:"
+	@kubectl get services -n eje-monitoring
+	@echo ""
+	@echo "PVCs:"
+	@kubectl get pvc -n eje-monitoring
+
+.PHONY: k8s-logs
+k8s-logs: ## Show logs from Kubernetes monitoring stack
+	@echo "Select component to view logs:"
+	@echo "  1) Prometheus"
+	@echo "  2) Grafana"
+	@echo "  3) AlertManager"
+	@echo "  4) Jaeger"
+	@read -p "Choice: " choice; \
+	case $$choice in \
+		1) kubectl logs -l app=prometheus -n eje-monitoring --tail=100 -f ;; \
+		2) kubectl logs -l app=grafana -n eje-monitoring --tail=100 -f ;; \
+		3) kubectl logs -l app=alertmanager -n eje-monitoring --tail=100 -f ;; \
+		4) kubectl logs -l app=jaeger -n eje-monitoring --tail=100 -f ;; \
+		*) echo "Invalid choice" ;; \
+	esac
+
+.PHONY: k8s-port-forward
+k8s-port-forward: ## Forward Kubernetes services to localhost
+	@echo "Port forwarding monitoring services..."
+	@echo "Press Ctrl+C to stop"
+	@(kubectl port-forward -n eje-monitoring svc/prometheus 9090:9090 & \
+	 kubectl port-forward -n eje-monitoring svc/grafana 3000:3000 & \
+	 kubectl port-forward -n eje-monitoring svc/alertmanager-lb 9093:9093 & \
+	 kubectl port-forward -n eje-monitoring svc/jaeger 16686:16686 & \
+	 wait)
+
+.PHONY: k8s-delete
+k8s-delete: ## Delete monitoring stack from Kubernetes
+	@echo "WARNING: This will delete the entire monitoring stack!"
+	@read -p "Are you sure? [y/N] " -n 1 -r; \
+	echo; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		kubectl delete -f monitoring/kubernetes/jaeger.yaml; \
+		kubectl delete -f monitoring/kubernetes/alertmanager.yaml; \
+		kubectl delete -f monitoring/kubernetes/grafana.yaml; \
+		kubectl delete -f monitoring/kubernetes/prometheus.yaml; \
+		kubectl delete -f monitoring/kubernetes/namespace.yaml; \
+		echo "Monitoring stack deleted"; \
+	fi
+
+.PHONY: k8s-backup
+k8s-backup: ## Backup Kubernetes monitoring data
+	@mkdir -p backups/$$(date +%Y%m%d)
+	@echo "Backing up Prometheus..."
+	@kubectl exec -it prometheus-0 -n eje-monitoring -- tar czf - /prometheus > backups/$$(date +%Y%m%d)/prometheus.tar.gz
+	@echo "Backing up Grafana..."
+	@kubectl exec -it $$(kubectl get pod -l app=grafana -n eje-monitoring -o jsonpath='{.items[0].metadata.name}') -n eje-monitoring -- tar czf - /var/lib/grafana > backups/$$(date +%Y%m%d)/grafana.tar.gz
+	@echo "Backing up AlertManager..."
+	@kubectl exec -it alertmanager-0 -n eje-monitoring -- tar czf - /alertmanager > backups/$$(date +%Y%m%d)/alertmanager.tar.gz
+	@echo "Backing up configurations..."
+	@kubectl get configmaps -n eje-monitoring -o yaml > backups/$$(date +%Y%m%d)/configmaps.yaml
+	@kubectl get secrets -n eje-monitoring -o yaml > backups/$$(date +%Y%m%d)/secrets.yaml
+	@echo "Backup complete: backups/$$(date +%Y%m%d)/"
+
+# Testing and Validation
+.PHONY: test-alerts
+test-alerts: ## Run alert configuration tests
+	@echo "Testing alert configuration..."
+	@if [ -f scripts/monitoring/test_alerts.sh ]; then \
+		./scripts/monitoring/test_alerts.sh; \
+	else \
+		echo "Test script not found: scripts/monitoring/test_alerts.sh"; \
+	fi
+
+.PHONY: validate-config
+validate-config: ## Validate Prometheus and AlertManager configs
+	@echo "Validating Prometheus configuration..."
+	@docker run --rm -v $$(pwd)/monitoring/prometheus:/prometheus prom/prometheus:v2.47.0 \
+		promtool check config /prometheus/prometheus.yml
+	@echo "Validating Prometheus alert rules..."
+	@docker run --rm -v $$(pwd)/monitoring/prometheus:/prometheus prom/prometheus:v2.47.0 \
+		promtool check rules /prometheus/alert_rules.yml
+	@echo "Validating AlertManager configuration..."
+	@docker run --rm -v $$(pwd)/monitoring/alertmanager:/alertmanager prom/alertmanager:v0.26.0 \
+		amtool check-config /alertmanager/alertmanager.yml
+	@echo "All configurations valid!"
+
+# Utilities
+.PHONY: open-dashboards
+open-dashboards: ## Open all dashboards in browser (requires running stack)
+	@echo "Opening dashboards..."
+	@(sleep 2 && open http://localhost:9090) &
+	@(sleep 2 && open http://localhost:3000) &
+	@(sleep 2 && open http://localhost:9093) &
+	@(sleep 2 && open http://localhost:16686) &
+
+.PHONY: clean-backups
+clean-backups: ## Clean old backups (keeps last 7 days)
+	@find backups -type d -mtime +7 -exec rm -rf {} +
+	@echo "Old backups cleaned"

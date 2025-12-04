@@ -1,0 +1,92 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: eje-staging
+resources:
+  - ../../base
+  - configmap.yaml
+  - namespace.yaml
+images:
+  - name: ghcr.io/eleanor-project/eje
+    newName: ghcr.io/eleanor-project/eje
+    newTag: staging
+patches:
+  - target:
+      kind: Deployment
+      name: eje-api
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: eje-api
+      spec:
+        replicas: 2
+        template:
+          metadata:
+            annotations:
+              deploy.eje/last-updated: "staging"
+          spec:
+            containers:
+              - name: eje-api
+                env:
+                  - name: RUNTIME_ENVIRONMENT
+                    value: staging
+                  - name: FEATURE_FLAGS
+                    valueFrom:
+                      configMapKeyRef:
+                        name: eje-config
+                        key: ENABLE_BETA_FEATURES
+  - target:
+      kind: ConfigMap
+      name: eje-config
+    patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: eje-config
+        labels:
+          environment: staging
+      data:
+        APP_ENV: "staging"
+        LOG_LEVEL: "info"
+        ENABLE_BETA_FEATURES: "false"
+        ROLLBACK_WINDOW: "5"
+        HEALTHCHECK_PATH: "/health"
+        STORAGE_PATH: "/var/lib/eje"
+  - target:
+      kind: Secret
+      name: eje-secrets
+    patch: |-
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: eje-secrets
+      stringData:
+        DATABASE_URL: "postgresql://eje:staging-password@staging-postgres:5432/eje"
+        REDIS_URL: "redis://staging-redis:6379/0"
+        SECRET_KEY: "replace-with-staging-secret"
+  - target:
+      kind: Ingress
+      name: eje-api
+    patch: |-
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: eje-api
+        annotations:
+          cert-manager.io/cluster-issuer: "letsencrypt-staging"
+      spec:
+        rules:
+          - host: staging.eje.example.com
+            http:
+              paths:
+                - path: /
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: eje-api
+                      port:
+                        number: 80
+        tls:
+          - hosts:
+              - staging.eje.example.com
+            secretName: eje-staging-tls

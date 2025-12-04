@@ -1,0 +1,379 @@
+groups:
+  - name: eje_critic_alerts
+    interval: 30s
+    rules:
+      # Critical: High critic failure rate
+      - alert: HighCriticFailureRate
+        expr: |
+          (
+            rate(eje_critic_failures_total[5m])
+            /
+            rate(eje_critic_executions_total[5m])
+          ) > 0.10
+        for: 5m
+        labels:
+          severity: critical
+          component: critic
+          runbook: https://docs.eje.example.com/runbooks/high-critic-failure-rate
+        annotations:
+          summary: "High critic failure rate detected"
+          description: "Critic {{ $labels.critic_name }} has failure rate of {{ $value | humanizePercentage }} (threshold: 10%)"
+          impact: "Decision quality may be degraded. Some critics are failing repeatedly."
+          action: "Check critic logs, validate input data, review recent deployments"
+          dashboard: "http://grafana:3000/d/critic-performance"
+
+      # Critical: Specific critic completely failing
+      - alert: CriticCompletelyFailing
+        expr: |
+          rate(eje_critic_executions_total{status="success"}[5m]) == 0
+          and
+          rate(eje_critic_executions_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: critical
+          component: critic
+          runbook: https://docs.eje.example.com/runbooks/critic-completely-failing
+        annotations:
+          summary: "Critic {{ $labels.critic_name }} is completely failing"
+          description: "All executions of {{ $labels.critic_name }} are failing"
+          impact: "Critical decision functionality unavailable"
+          action: "Immediately investigate logs, check dependencies, consider circuit breaker"
+          dashboard: "http://grafana:3000/d/critic-performance"
+
+      # Warning: Elevated critic failure rate
+      - alert: ElevatedCriticFailureRate
+        expr: |
+          (
+            rate(eje_critic_failures_total[5m])
+            /
+            rate(eje_critic_executions_total[5m])
+          ) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          component: critic
+          runbook: https://docs.eje.example.com/runbooks/elevated-critic-failure-rate
+        annotations:
+          summary: "Elevated critic failure rate"
+          description: "Critic {{ $labels.critic_name }} has failure rate of {{ $value | humanizePercentage }} (threshold: 5%)"
+          impact: "Decision quality may be slightly degraded"
+          action: "Monitor trends, review error patterns, prepare to investigate"
+
+  - name: eje_performance_alerts
+    interval: 30s
+    rules:
+      # Critical: Decision latency spike (P95 > 5s)
+      - alert: DecisionLatencySpike
+        expr: |
+          histogram_quantile(0.95,
+            rate(eje_decision_latency_seconds_bucket[5m])
+          ) > 5.0
+        for: 5m
+        labels:
+          severity: critical
+          component: aggregator
+          runbook: https://docs.eje.example.com/runbooks/decision-latency-spike
+        annotations:
+          summary: "Decision latency P95 exceeds threshold"
+          description: "P95 decision latency is {{ $value | humanizeDuration }} (threshold: 5s)"
+          impact: "Users experiencing slow response times. SLA at risk."
+          action: "Check critic latencies, database performance, resource utilization"
+          dashboard: "http://grafana:3000/d/eje-overview"
+
+      # Critical: Decision latency P99 extreme
+      - alert: DecisionLatencyExtreme
+        expr: |
+          histogram_quantile(0.99,
+            rate(eje_decision_latency_seconds_bucket[5m])
+          ) > 10.0
+        for: 2m
+        labels:
+          severity: critical
+          component: aggregator
+          runbook: https://docs.eje.example.com/runbooks/decision-latency-extreme
+        annotations:
+          summary: "Decision latency P99 extremely high"
+          description: "P99 decision latency is {{ $value | humanizeDuration }} (threshold: 10s)"
+          impact: "Severe performance degradation. User experience severely impacted."
+          action: "Immediate investigation required. Check for hung critics, database locks, resource exhaustion"
+          dashboard: "http://grafana:3000/d/eje-overview"
+
+      # Warning: Critic latency high
+      - alert: CriticLatencyHigh
+        expr: |
+          histogram_quantile(0.95,
+            rate(eje_critic_execution_seconds_bucket[5m])
+          ) > 3.0
+        for: 10m
+        labels:
+          severity: warning
+          component: critic
+          runbook: https://docs.eje.example.com/runbooks/critic-latency-high
+        annotations:
+          summary: "Critic {{ $labels.critic_name }} latency elevated"
+          description: "P95 latency for {{ $labels.critic_name }} is {{ $value | humanizeDuration }} (threshold: 3s)"
+          impact: "Overall decision latency may increase"
+          action: "Review critic implementation, check external dependencies, consider optimization"
+          dashboard: "http://grafana:3000/d/critic-performance"
+
+      # Warning: High number of active operations
+      - alert: HighActiveOperations
+        expr: eje_active_operations > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+          runbook: https://docs.eje.example.com/runbooks/high-active-operations
+        annotations:
+          summary: "High number of concurrent operations"
+          description: "{{ $value }} active operations (threshold: 100)"
+          impact: "System under high load. May lead to resource exhaustion."
+          action: "Monitor memory usage, check for leaked goroutines, consider scaling"
+
+  - name: eje_resource_alerts
+    interval: 30s
+    rules:
+      # Critical: High memory usage
+      - alert: HighMemoryUsage
+        expr: eje_memory_usage_bytes > 2147483648  # 2GB
+        for: 5m
+        labels:
+          severity: critical
+          component: system
+          runbook: https://docs.eje.example.com/runbooks/high-memory-usage
+        annotations:
+          summary: "Memory usage exceeds threshold"
+          description: "Memory usage is {{ $value | humanize1024 }} (threshold: 2GB)"
+          impact: "Risk of OOM kill. System instability."
+          action: "Check for memory leaks, review caching strategy, consider increasing limits"
+          dashboard: "http://grafana:3000/d/eje-overview"
+
+      # Warning: Elevated memory usage
+      - alert: ElevatedMemoryUsage
+        expr: eje_memory_usage_bytes > 1610612736  # 1.5GB
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+          runbook: https://docs.eje.example.com/runbooks/elevated-memory-usage
+        annotations:
+          summary: "Memory usage elevated"
+          description: "Memory usage is {{ $value | humanize1024 }} (threshold: 1.5GB)"
+          impact: "Approaching memory limits"
+          action: "Monitor trend, review memory usage patterns"
+
+      # Critical: High CPU usage
+      - alert: HighCPUUsage
+        expr: rate(eje_cpu_usage_seconds_total[5m]) > 0.90
+        for: 10m
+        labels:
+          severity: critical
+          component: system
+          runbook: https://docs.eje.example.com/runbooks/high-cpu-usage
+        annotations:
+          summary: "CPU usage exceeds 90%"
+          description: "CPU usage at {{ $value | humanizePercentage }}"
+          impact: "System may be CPU-bound. Performance degradation likely."
+          action: "Check for CPU-intensive operations, review profiling data, consider scaling"
+
+  - name: eje_decision_alerts
+    interval: 30s
+    rules:
+      # Critical: High conflict rate
+      - alert: HighConflictRate
+        expr: |
+          (
+            rate(eje_decision_conflicts_total[5m])
+            /
+            rate(eje_decisions_total[5m])
+          ) > 0.30
+        for: 10m
+        labels:
+          severity: critical
+          component: aggregator
+          runbook: https://docs.eje.example.com/runbooks/high-conflict-rate
+        annotations:
+          summary: "High conflict rate in decisions"
+          description: "Conflict rate is {{ $value | humanizePercentage }} (threshold: 30%)"
+          impact: "Many decisions require human review. Increased review queue."
+          action: "Review critic configurations, check for model drift, validate input quality"
+          dashboard: "http://grafana:3000/d/decision-analysis"
+
+      # Warning: Anomalous verdict distribution
+      - alert: AnomalousVerdictDistribution
+        expr: |
+          (
+            rate(eje_decisions_total{verdict="DENY"}[1h])
+            /
+            rate(eje_decisions_total[1h])
+          ) > 0.80
+          or
+          (
+            rate(eje_decisions_total{verdict="APPROVE"}[1h])
+            /
+            rate(eje_decisions_total[1h])
+          ) > 0.95
+        for: 30m
+        labels:
+          severity: warning
+          component: aggregator
+          runbook: https://docs.eje.example.com/runbooks/anomalous-verdict-distribution
+        annotations:
+          summary: "Anomalous verdict distribution detected"
+          description: "Verdict distribution differs significantly from baseline"
+          impact: "May indicate data quality issues, model drift, or policy changes"
+          action: "Review recent policy changes, validate input data, check for data skew"
+          dashboard: "http://grafana:3000/d/decision-analysis"
+
+      # Warning: Low confidence decisions
+      - alert: LowConfidenceDecisions
+        expr: eje_decision_confidence_avg < 0.50
+        for: 15m
+        labels:
+          severity: warning
+          component: aggregator
+          runbook: https://docs.eje.example.com/runbooks/low-confidence-decisions
+        annotations:
+          summary: "Average decision confidence low"
+          description: "Average confidence is {{ $value | humanizePercentage }} (threshold: 50%)"
+          impact: "Decision quality may be questionable. More human reviews needed."
+          action: "Review critic weights, check input quality, validate critic models"
+
+      # Info: High review requirement rate
+      - alert: HighReviewRequirementRate
+        expr: |
+          (
+            rate(eje_human_reviews_required_total[5m])
+            /
+            rate(eje_decisions_total[5m])
+          ) > 0.50
+        for: 20m
+        labels:
+          severity: info
+          component: aggregator
+          runbook: https://docs.eje.example.com/runbooks/high-review-requirement-rate
+        annotations:
+          summary: "High rate of decisions requiring human review"
+          description: "{{ $value | humanizePercentage }} of decisions require review (threshold: 50%)"
+          impact: "Review queue growing. Manual review capacity may be exceeded."
+          action: "Monitor review queue, consider adjusting confidence thresholds"
+
+  - name: eje_quota_alerts
+    interval: 30s
+    rules:
+      # Critical: API quota approaching limit
+      - alert: APIQuotaApproachingLimit
+        expr: |
+          (
+            eje_api_requests_total
+            /
+            eje_api_quota_limit
+          ) > 0.90
+        for: 5m
+        labels:
+          severity: critical
+          component: api
+          runbook: https://docs.eje.example.com/runbooks/api-quota-approaching-limit
+        annotations:
+          summary: "API quota usage at {{ $value | humanizePercentage }}"
+          description: "API {{ $labels.api_name }} quota at {{ $value | humanizePercentage }} (threshold: 90%)"
+          impact: "Risk of API throttling or service interruption"
+          action: "Request quota increase, implement rate limiting, consider caching"
+
+      # Warning: API quota elevated
+      - alert: APIQuotaElevated
+        expr: |
+          (
+            eje_api_requests_total
+            /
+            eje_api_quota_limit
+          ) > 0.75
+        for: 10m
+        labels:
+          severity: warning
+          component: api
+          runbook: https://docs.eje.example.com/runbooks/api-quota-elevated
+        annotations:
+          summary: "API quota usage at {{ $value | humanizePercentage }}"
+          description: "API {{ $labels.api_name }} quota at {{ $value | humanizePercentage }} (threshold: 75%)"
+          impact: "Approaching API limits"
+          action: "Monitor usage trends, plan for quota increase if needed"
+
+  - name: eje_availability_alerts
+    interval: 30s
+    rules:
+      # Critical: EJE service down
+      - alert: EJEServiceDown
+        expr: up{job="eje"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: system
+          runbook: https://docs.eje.example.com/runbooks/service-down
+        annotations:
+          summary: "EJE service is down"
+          description: "EJE instance {{ $labels.instance }} is unreachable"
+          impact: "Service unavailable. No decisions can be processed."
+          action: "Check service logs, verify deployment, check infrastructure"
+
+      # Critical: High error rate
+      - alert: HighErrorRate
+        expr: |
+          rate(eje_errors_total[5m]) > 0.10
+        for: 5m
+        labels:
+          severity: critical
+          component: system
+          runbook: https://docs.eje.example.com/runbooks/high-error-rate
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors/second (threshold: 0.1/s)"
+          impact: "Many requests failing. Service degradation."
+          action: "Check logs for error patterns, review recent changes, check dependencies"
+          dashboard: "http://grafana:3000/d/alerting"
+
+      # Warning: Elevated error rate
+      - alert: ElevatedErrorRate
+        expr: |
+          rate(eje_errors_total[5m]) > 0.01
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+          runbook: https://docs.eje.example.com/runbooks/elevated-error-rate
+        annotations:
+          summary: "Elevated error rate"
+          description: "Error rate is {{ $value }} errors/second (threshold: 0.01/s)"
+          impact: "Some requests failing"
+          action: "Monitor error trends, review error types"
+
+  - name: eje_fallback_alerts
+    interval: 30s
+    rules:
+      # Warning: Fallback mode activated
+      - alert: FallbackModeActivated
+        expr: increase(eje_fallbacks_total[5m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+          component: system
+          runbook: https://docs.eje.example.com/runbooks/fallback-mode-activated
+        annotations:
+          summary: "Fallback mode activated"
+          description: "{{ $value }} fallback activations in last 5 minutes"
+          impact: "System operating in degraded mode. Some critics unavailable."
+          action: "Investigate primary service failures, check circuit breaker status"
+
+      # Info: High retry rate
+      - alert: HighRetryRate
+        expr: rate(eje_retries_total[5m]) > 0.50
+        for: 10m
+        labels:
+          severity: info
+          component: system
+          runbook: https://docs.eje.example.com/runbooks/high-retry-rate
+        annotations:
+          summary: "High retry rate detected"
+          description: "Retry rate is {{ $value }} retries/second"
+          impact: "Increased latency due to retries"
+          action: "Check for transient failures, review retry configuration"

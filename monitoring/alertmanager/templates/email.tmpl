@@ -1,0 +1,176 @@
+{{ define "email.html" }}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: {{ if eq .GroupLabels.severity "critical" }}#d32f2f{{ else if eq .GroupLabels.severity "warning" }}#f57c00{{ else }}#1976d2{{ end }};
+            color: white;
+            padding: 20px;
+            border-radius: 5px 5px 0 0;
+        }
+        .alert-group {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .alert {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            background-color: #f9f9f9;
+        }
+        .alert:last-child {
+            border-bottom: none;
+        }
+        .label {
+            font-weight: bold;
+            color: #555;
+        }
+        .value {
+            margin-left: 10px;
+        }
+        .annotation {
+            margin: 10px 0;
+        }
+        .status-firing {
+            color: #d32f2f;
+            font-weight: bold;
+        }
+        .status-resolved {
+            color: #388e3c;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 5px;
+            background-color: #1976d2;
+            color: white;
+            text-decoration: none;
+            border-radius: 3px;
+        }
+        .button:hover {
+            background-color: #1565c0;
+        }
+    </style>
+</head>
+<body>
+    <div class="alert-group">
+        <div class="header">
+            <h2>{{ .GroupLabels.severity | toUpper }}: {{ .GroupLabels.alertname }}</h2>
+            <p>{{ .Alerts | len }} alert(s) in this group</p>
+        </div>
+
+        {{ range .Alerts }}
+        <div class="alert">
+            <div class="annotation">
+                <span class="label">Status:</span>
+                <span class="value {{ if eq .Status "firing" }}status-firing{{ else }}status-resolved{{ end }}">
+                    {{ .Status | toUpper }}
+                </span>
+            </div>
+
+            {{ if .Annotations.summary }}
+            <div class="annotation">
+                <span class="label">Summary:</span>
+                <span class="value">{{ .Annotations.summary }}</span>
+            </div>
+            {{ end }}
+
+            {{ if .Annotations.description }}
+            <div class="annotation">
+                <span class="label">Description:</span>
+                <span class="value">{{ .Annotations.description }}</span>
+            </div>
+            {{ end }}
+
+            {{ if .Annotations.impact }}
+            <div class="annotation">
+                <span class="label">Impact:</span>
+                <span class="value">{{ .Annotations.impact }}</span>
+            </div>
+            {{ end }}
+
+            {{ if .Annotations.action }}
+            <div class="annotation">
+                <span class="label">Action Required:</span>
+                <span class="value">{{ .Annotations.action }}</span>
+            </div>
+            {{ end }}
+
+            <div class="annotation">
+                <span class="label">Started At:</span>
+                <span class="value">{{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}</span>
+            </div>
+
+            {{ if .EndsAt }}
+            <div class="annotation">
+                <span class="label">Ended At:</span>
+                <span class="value">{{ .EndsAt.Format "2006-01-02 15:04:05 MST" }}</span>
+            </div>
+            {{ end }}
+
+            <div class="annotation">
+                <span class="label">Labels:</span>
+                <span class="value">
+                    {{ range .Labels.SortedPairs }}
+                        {{ .Name }}={{ .Value }}{{ if not (last $.Labels) }}, {{ end }}
+                    {{ end }}
+                </span>
+            </div>
+
+            <div class="annotation" style="margin-top: 15px;">
+                {{ if .Annotations.runbook }}
+                <a href="{{ .Annotations.runbook }}" class="button">View Runbook</a>
+                {{ end }}
+                {{ if .Annotations.dashboard }}
+                <a href="{{ .Annotations.dashboard }}" class="button">View Dashboard</a>
+                {{ end }}
+                <a href="{{ .GeneratorURL }}" class="button">View in Prometheus</a>
+            </div>
+        </div>
+        {{ end }}
+    </div>
+
+    <div class="footer">
+        <p><strong>Alert Manager:</strong> {{ .ExternalURL }}</p>
+        <p><strong>Generated:</strong> {{ now.Format "2006-01-02 15:04:05 MST" }}</p>
+        <p>This is an automated alert from the EJE monitoring system.</p>
+    </div>
+</body>
+</html>
+{{ end }}
+
+{{ define "slack.title" }}
+{{ if eq .Status "firing" }}:fire:{{ else }}:white_check_mark:{{ end }} {{ .GroupLabels.severity | toUpper }}: {{ .GroupLabels.alertname }}
+{{ end }}
+
+{{ define "slack.text" }}
+{{ range .Alerts }}
+*Status:* {{ .Status | toUpper }}
+*Summary:* {{ .Annotations.summary }}
+*Description:* {{ .Annotations.description }}
+{{ if .Annotations.impact }}*Impact:* {{ .Annotations.impact }}{{ end }}
+{{ if .Annotations.action }}*Action:* {{ .Annotations.action }}{{ end }}
+*Started:* {{ .StartsAt.Format "15:04:05 MST" }}
+{{ if .Annotations.runbook }}<{{ .Annotations.runbook }}|Runbook>{{ end }} | {{ if .Annotations.dashboard }}<{{ .Annotations.dashboard }}|Dashboard>{{ end }}
+{{ end }}
+{{ end }}
