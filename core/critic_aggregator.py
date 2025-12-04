@@ -192,13 +192,20 @@ class CriticAggregator:
                 if v["verdict"] == "DENY"
             ]
 
-            conflicts.append({
+            conflict = {
                 "type": "opposing_verdicts",
                 "description": "Critics disagree on ALLOW vs DENY",
                 "allow_critics": allow_critics,
                 "deny_critics": deny_critics,
                 "severity": "high"
-            })
+            }
+            conflicts.append(conflict)
+
+            # Log for observability (Task 2.2)
+            logger.warning(
+                f"Conflict detected: {conflict['description']} | "
+                f"ALLOW: {', '.join(allow_critics)} | DENY: {', '.join(deny_critics)}"
+            )
 
         # Check for high-confidence disagreements
         high_conf_verdicts = [
@@ -209,13 +216,21 @@ class CriticAggregator:
         if len(high_conf_verdicts) >= 2:
             unique_verdicts = set(v["verdict"] for v in high_conf_verdicts)
             if len(unique_verdicts) > 1:
-                conflicts.append({
+                conflict = {
                     "type": "high_confidence_disagreement",
                     "description": "High-confidence critics disagree",
                     "critics": [v["critic_name"] for v in high_conf_verdicts],
                     "verdicts": list(unique_verdicts),
                     "severity": "medium"
-                })
+                }
+                conflicts.append(conflict)
+
+                # Log for observability (Task 2.2)
+                logger.info(
+                    f"Conflict detected: {conflict['description']} | "
+                    f"Critics: {', '.join(conflict['critics'])} | "
+                    f"Verdicts: {', '.join(conflict['verdicts'])}"
+                )
 
         return conflicts
 
@@ -326,7 +341,12 @@ class CriticAggregator:
         escalate_on_conflict: bool = True
     ) -> Tuple[AggregationResult, str]:
         """
-        Aggregate with synthesized justification.
+        Aggregate with synthesized justification (Task 2.3).
+
+        Produces a unified explanation that:
+        - Surfaces critic-level reasoning
+        - Merges into composite justification
+        - Highlights agreement vs disagreement
 
         Args:
             evidence_bundles: List of evidence bundles
@@ -340,13 +360,69 @@ class CriticAggregator:
         # Synthesize justification
         justification_parts = []
 
-        # Verdict summary
+        # 1. Verdict summary
         justification_parts.append(
             f"Final verdict: {result.final_verdict} "
             f"(confidence: {result.confidence:.2f})"
         )
 
-        # Weighted scores
+        # 2. Critic-level reasoning (surface individual justifications)
+        critic_reasonings = []
+        for bundle in evidence_bundles:
+            critic_output = bundle.get("critic_output", {})
+            critic_name = critic_output.get("critic_name", "Unknown")
+            verdict = critic_output.get("verdict", "UNKNOWN")
+            confidence = critic_output.get("confidence", 0.0)
+            justification = critic_output.get("justification", "No justification provided")
+
+            # Truncate long justifications
+            if len(justification) > 100:
+                justification = justification[:97] + "..."
+
+            critic_reasonings.append(
+                f"{critic_name} ({verdict}, {confidence:.2f}): {justification}"
+            )
+
+        if critic_reasonings:
+            justification_parts.append(
+                "Critic reasoning: " + " | ".join(critic_reasonings)
+            )
+
+        # 3. Highlight agreement vs disagreement
+        verdicts_by_type = {}
+        for bundle in evidence_bundles:
+            verdict = bundle.get("critic_output", {}).get("verdict", "UNKNOWN")
+            critic_name = bundle.get("critic_output", {}).get("critic_name", "Unknown")
+
+            if verdict not in verdicts_by_type:
+                verdicts_by_type[verdict] = []
+            verdicts_by_type[verdict].append(critic_name)
+
+        # Determine agreement level
+        if len(verdicts_by_type) == 1:
+            # Perfect agreement
+            unanimous_verdict = list(verdicts_by_type.keys())[0]
+            justification_parts.append(
+                f"Agreement: All {len(result.contributing_critics)} critics "
+                f"unanimously agreed on {unanimous_verdict}"
+            )
+        else:
+            # Disagreement
+            agreement_summary = []
+            for verdict, critics in sorted(
+                verdicts_by_type.items(),
+                key=lambda x: len(x[1]),
+                reverse=True
+            ):
+                agreement_summary.append(
+                    f"{verdict} ({len(critics)}): {', '.join(critics)}"
+                )
+
+            justification_parts.append(
+                f"Disagreement: " + " vs ".join(agreement_summary)
+            )
+
+        # 4. Weighted scores
         score_summary = ", ".join(
             f"{verdict}: {score:.2f}"
             for verdict, score in sorted(
@@ -357,18 +433,16 @@ class CriticAggregator:
         )
         justification_parts.append(f"Weighted scores: {score_summary}")
 
-        # Contributing critics
-        justification_parts.append(
-            f"Based on {len(result.contributing_critics)} critics: "
-            f"{', '.join(result.contributing_critics)}"
-        )
-
-        # Conflicts
+        # 5. Conflicts
         if result.conflicts_detected:
-            conflict_summary = ", ".join(
-                c["description"] for c in result.conflicts_detected
+            conflict_details = []
+            for conflict in result.conflicts_detected:
+                conflict_details.append(
+                    f"{conflict['description']} (severity: {conflict['severity']})"
+                )
+            justification_parts.append(
+                f"Conflicts: {'; '.join(conflict_details)}"
             )
-            justification_parts.append(f"Conflicts detected: {conflict_summary}")
 
         justification = ". ".join(justification_parts) + "."
 

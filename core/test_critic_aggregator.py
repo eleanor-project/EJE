@@ -273,27 +273,162 @@ def test_convenience_function():
     print("✅ Convenience function works")
 
 
+def test_fallback_single_critic():
+    """Test fallback behavior with single critic (Task 2.4)."""
+    print("\n[Test 12] Fallback - single critic...")
+
+    bundles = [
+        create_evidence_bundle("OnlyCritic", "DENY", 0.75)
+    ]
+
+    aggregator = CriticAggregator()
+    result = aggregator.aggregate(bundles, escalate_on_conflict=False)
+
+    assert result.final_verdict == "DENY", "Should use single critic's verdict"
+    assert result.total_weight == 1.0
+
+    print("✅ Single critic fallback works")
+
+
+def test_fallback_missing_critic_output():
+    """Test handling of missing critic output (Task 2.4)."""
+    print("\n[Test 13] Fallback - missing critic output...")
+
+    # Bundle with missing critic_name
+    invalid_bundle = {
+        "bundle_id": "test-invalid",
+        "version": "1.0",
+        "critic_output": {
+            # Missing critic_name
+            "verdict": "ALLOW",
+            "confidence": 0.9,
+            "justification": "Test"
+        },
+        "metadata": {},
+        "input_snapshot": {"prompt": "Test"}
+    }
+
+    valid_bundle = create_evidence_bundle("ValidCritic", "ALLOW", 0.8)
+
+    aggregator = CriticAggregator()
+
+    # Should skip invalid and use valid
+    result = aggregator.aggregate([invalid_bundle, valid_bundle], escalate_on_conflict=False)
+
+    assert result.final_verdict == "ALLOW"
+    assert len(result.contributing_critics) == 1
+    assert "ValidCritic" in result.contributing_critics
+
+    print("✅ Missing critic output handled gracefully")
+
+
+def test_fallback_all_invalid():
+    """Test error handling when all critics invalid (Task 2.4)."""
+    print("\n[Test 14] Fallback - all critics invalid...")
+
+    invalid_bundle = {
+        "bundle_id": "test-invalid",
+        "version": "1.0",
+        "critic_output": {},  # Empty
+        "metadata": {},
+        "input_snapshot": {"prompt": "Test"}
+    }
+
+    aggregator = CriticAggregator()
+
+    try:
+        result = aggregator.aggregate([invalid_bundle], escalate_on_conflict=False)
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "No valid critic outputs" in str(e)
+        print("✅ Error raised for all invalid critics")
+
+
+def test_weighted_zero_weight():
+    """Test critic with zero weight (Task 2.4)."""
+    print("\n[Test 15] Weighted - zero weight...")
+
+    bundles = [
+        create_evidence_bundle("ZeroWeight", "DENY", 0.9),
+        create_evidence_bundle("NormalWeight", "ALLOW", 0.8)
+    ]
+
+    weights = {
+        "ZeroWeight": 0.0,  # Should be ignored
+        "NormalWeight": 1.0
+    }
+
+    aggregator = CriticAggregator(weights=weights)
+    result = aggregator.aggregate(bundles, escalate_on_conflict=False)
+
+    # Zero weight critic should contribute 0, so ALLOW should win
+    assert result.final_verdict == "ALLOW"
+    assert result.weighted_scores["DENY"] == 0.0
+
+    print("✅ Zero weight handled correctly")
+
+
+def test_enhanced_justification():
+    """Test enhanced justification synthesis (Task 2.3)."""
+    print("\n[Test 16] Enhanced justification synthesis...")
+
+    bundles = [
+        create_evidence_bundle("PrivacyCritic", "ALLOW", 0.9),
+        create_evidence_bundle("SafetyCritic", "DENY", 0.85),
+    ]
+
+    # Add detailed justifications
+    bundles[0]["critic_output"]["justification"] = "Privacy requirements are fully met with explicit user consent."
+    bundles[1]["critic_output"]["justification"] = "Safety concerns detected due to potential harmful content."
+
+    aggregator = CriticAggregator()
+    result, justification = aggregator.aggregate_with_justification(bundles, escalate_on_conflict=False)
+
+    # Check that justification includes key elements
+    assert "PrivacyCritic" in justification, "Should mention critic names"
+    assert "SafetyCritic" in justification, "Should mention critic names"
+    assert "ALLOW" in justification, "Should mention verdicts"
+    assert "DENY" in justification, "Should mention verdicts"
+    assert "Disagreement" in justification, "Should highlight disagreement"
+    assert "Privacy requirements" in justification, "Should include critic reasoning"
+
+    print("✅ Enhanced justification includes all required elements")
+    print(f"   Sample: {justification[:150]}...")
+
+
 def main():
     """Run all tests."""
     print("=" * 60)
-    print("Critic Aggregator Tests (Task 2.1)")
+    print("Critic Aggregator Tests (Tasks 2.1-2.4)")
     print("=" * 60)
 
     try:
+        # Task 2.1: Critic Weighting
         test_basic_aggregation()
         test_weighted_aggregation()
         test_equal_weights_tie_breaking()
         test_weight_override()
         test_explicit_escalation()
+        test_weight_management()
+
+        # Task 2.2: Conflict Detection
         test_conflict_detection()
         test_no_escalation_on_conflict()
         test_unanimous_verdict()
-        test_weight_management()
+
+        # Task 2.3: Justification Synthesis
         test_aggregation_with_justification()
+        test_enhanced_justification()
+
+        # Task 2.4: Comprehensive Coverage
         test_convenience_function()
+        test_fallback_single_critic()
+        test_fallback_missing_critic_output()
+        test_fallback_all_invalid()
+        test_weighted_zero_weight()
 
         print("\n" + "=" * 60)
-        print("✅ All tests passed!")
+        print("✅ All 16 tests passed!")
         print("=" * 60)
 
         return True
