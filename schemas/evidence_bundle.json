@@ -1,0 +1,383 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://eleanor-project.org/schemas/evidence_bundle.json",
+  "title": "Evidence Bundle Schema",
+  "description": "Formal schema for evidence bundles containing critic outputs, metadata, input snapshots, and versioning. Evidence bundles are the atomic unit of reasoning across critics in the ELEANOR system.",
+  "type": "object",
+  "required": [
+    "bundle_id",
+    "version",
+    "critic_output",
+    "metadata",
+    "input_snapshot"
+  ],
+  "properties": {
+    "bundle_id": {
+      "type": "string",
+      "description": "Unique identifier for this evidence bundle",
+      "pattern": "^[a-zA-Z0-9_-]{8,64}$",
+      "examples": ["bundle-abc123xyz", "evidence-2025-001"]
+    },
+    "version": {
+      "type": "string",
+      "description": "Schema version for this evidence bundle",
+      "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$",
+      "examples": ["1.0", "2.1.0"],
+      "default": "1.0"
+    },
+    "critic_output": {
+      "type": "object",
+      "description": "Output from a single critic evaluation",
+      "required": [
+        "critic_name",
+        "verdict",
+        "confidence",
+        "justification"
+      ],
+      "properties": {
+        "critic_name": {
+          "type": "string",
+          "description": "Name of the critic that produced this output",
+          "examples": ["AnthropicCritic", "OpenAICritic", "PrivacyCritic", "SafetyCritic"]
+        },
+        "verdict": {
+          "type": "string",
+          "description": "The critic's verdict on the input case",
+          "enum": ["ALLOW", "DENY", "ESCALATE", "ABSTAIN", "ERROR"],
+          "examples": ["ALLOW", "DENY"]
+        },
+        "confidence": {
+          "type": "number",
+          "description": "Confidence score for this verdict (0.0 to 1.0)",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "examples": [0.85, 0.92, 0.67]
+        },
+        "justification": {
+          "type": "string",
+          "description": "Detailed justification for the verdict",
+          "minLength": 10,
+          "examples": [
+            "Request aligns with privacy principles and contains valid user consent.",
+            "Content contains potential safety risks that require escalation to human review."
+          ]
+        },
+        "risk_flags": {
+          "type": "array",
+          "description": "Optional list of risk flags identified by the critic",
+          "items": {
+            "type": "string",
+            "enum": [
+              "privacy_concern",
+              "safety_risk",
+              "rights_violation",
+              "novel_case",
+              "high_stakes",
+              "ambiguous",
+              "precedent_conflict",
+              "jurisdiction_issue"
+            ]
+          },
+          "default": []
+        },
+        "sub_verdicts": {
+          "type": "object",
+          "description": "Optional sub-verdicts for multi-dimensional evaluation",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "verdict": {
+                "type": "string",
+                "enum": ["ALLOW", "DENY", "ESCALATE", "ABSTAIN"]
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0.0,
+                "maximum": 1.0
+              },
+              "reasoning": {
+                "type": "string"
+              }
+            }
+          },
+          "examples": [
+            {
+              "privacy": {"verdict": "ALLOW", "confidence": 0.9, "reasoning": "User provided explicit consent"},
+              "safety": {"verdict": "ESCALATE", "confidence": 0.7, "reasoning": "Content requires human safety review"}
+            }
+          ]
+        },
+        "precedents_referenced": {
+          "type": "array",
+          "description": "List of precedent IDs that informed this verdict",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "model_info": {
+          "type": "object",
+          "description": "Information about the model used by this critic",
+          "properties": {
+            "model_name": {
+              "type": "string",
+              "examples": ["claude-3-opus-20240229", "gpt-4-turbo"]
+            },
+            "model_version": {
+              "type": "string",
+              "examples": ["20240229", "0613"]
+            },
+            "temperature": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 2.0
+            },
+            "max_tokens": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "System metadata for observability, audit trails, and policy checks",
+      "required": [
+        "timestamp",
+        "critic_name",
+        "config_version"
+      ],
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "description": "ISO 8601 timestamp when bundle was created",
+          "format": "date-time",
+          "examples": ["2025-12-04T10:30:00Z", "2025-12-04T10:30:00.123456Z"]
+        },
+        "critic_name": {
+          "type": "string",
+          "description": "Name of the critic that generated this bundle (same as critic_output.critic_name for consistency)",
+          "examples": ["AnthropicCritic", "SafetyCritic"]
+        },
+        "config_version": {
+          "type": "string",
+          "description": "Version of the critic configuration used",
+          "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$",
+          "examples": ["1.0", "2.3.1"]
+        },
+        "aggregator_run_id": {
+          "type": "string",
+          "description": "ID of the aggregator run that will consume this bundle",
+          "examples": ["agg-run-2025-001", "decision-batch-abc123"]
+        },
+        "execution_time_ms": {
+          "type": "number",
+          "description": "Critic execution time in milliseconds",
+          "minimum": 0,
+          "examples": [145.7, 2341.2, 89.5]
+        },
+        "system_info": {
+          "type": "object",
+          "description": "System information for debugging and audit",
+          "properties": {
+            "hostname": {
+              "type": "string"
+            },
+            "process_id": {
+              "type": "integer"
+            },
+            "node_id": {
+              "type": "string",
+              "description": "Federated node identifier if applicable"
+            }
+          }
+        },
+        "trace_id": {
+          "type": "string",
+          "description": "Distributed tracing ID for correlation across services",
+          "examples": ["trace-abc123xyz", "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"]
+        },
+        "request_id": {
+          "type": "string",
+          "description": "Original request ID that triggered this evaluation",
+          "examples": ["req-2025-001", "user-request-abc"]
+        }
+      }
+    },
+    "input_snapshot": {
+      "type": "object",
+      "description": "Snapshot of the input that was evaluated by the critic",
+      "required": [
+        "prompt"
+      ],
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "description": "The input prompt or case description",
+          "minLength": 1,
+          "examples": [
+            "User requests to delete their account data",
+            "Share user email with third-party marketing service"
+          ]
+        },
+        "context": {
+          "type": "object",
+          "description": "Additional context about the input",
+          "properties": {
+            "user_id": {
+              "type": "string",
+              "description": "User identifier (may be pseudonymized)"
+            },
+            "session_id": {
+              "type": "string",
+              "description": "Session identifier"
+            },
+            "jurisdiction": {
+              "type": "string",
+              "description": "Legal jurisdiction",
+              "examples": ["US", "EU", "UK", "CA"]
+            },
+            "domain": {
+              "type": "string",
+              "description": "Application domain",
+              "examples": ["healthcare", "finance", "social_media", "education"]
+            },
+            "user_consent": {
+              "type": "boolean",
+              "description": "Whether user provided explicit consent"
+            },
+            "privacy_sensitive": {
+              "type": "boolean",
+              "description": "Whether data is privacy-sensitive"
+            },
+            "high_stakes": {
+              "type": "boolean",
+              "description": "Whether this is a high-stakes decision"
+            }
+          },
+          "additionalProperties": true
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Additional metadata about the input",
+          "additionalProperties": true
+        },
+        "input_hash": {
+          "type": "string",
+          "description": "SHA-256 hash of the canonical input for deduplication",
+          "pattern": "^[a-f0-9]{64}$",
+          "examples": ["e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"]
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "description": "Validation results for this evidence bundle",
+      "properties": {
+        "is_valid": {
+          "type": "boolean",
+          "description": "Whether this bundle passes validation"
+        },
+        "validation_errors": {
+          "type": "array",
+          "description": "List of validation errors if any",
+          "items": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string",
+                "description": "Field that failed validation"
+              },
+              "error": {
+                "type": "string",
+                "description": "Error message"
+              },
+              "severity": {
+                "type": "string",
+                "enum": ["error", "warning", "info"]
+              }
+            }
+          }
+        },
+        "validated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When validation was performed"
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "bundle_id": "bundle-abc123",
+      "version": "1.0",
+      "critic_output": {
+        "critic_name": "PrivacyCritic",
+        "verdict": "ALLOW",
+        "confidence": 0.92,
+        "justification": "Request aligns with privacy principles. User has provided explicit consent for data processing, and the requested action is within the scope of the original consent agreement.",
+        "risk_flags": [],
+        "precedents_referenced": ["prec-2025-001", "prec-2025-045"]
+      },
+      "metadata": {
+        "timestamp": "2025-12-04T10:30:00.123Z",
+        "critic_name": "PrivacyCritic",
+        "config_version": "2.1.0",
+        "aggregator_run_id": "agg-2025-001",
+        "execution_time_ms": 247.3,
+        "request_id": "req-user-abc-001"
+      },
+      "input_snapshot": {
+        "prompt": "User requests to download a copy of all their personal data stored in the system",
+        "context": {
+          "jurisdiction": "EU",
+          "user_consent": true,
+          "privacy_sensitive": true,
+          "domain": "social_media"
+        },
+        "input_hash": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2"
+      }
+    },
+    {
+      "bundle_id": "bundle-xyz789",
+      "version": "1.0",
+      "critic_output": {
+        "critic_name": "SafetyCritic",
+        "verdict": "ESCALATE",
+        "confidence": 0.78,
+        "justification": "Content contains potential safety risks. While not explicitly harmful, the context suggests this requires human review to assess nuanced safety implications.",
+        "risk_flags": ["safety_risk", "ambiguous"],
+        "sub_verdicts": {
+          "physical_safety": {
+            "verdict": "ALLOW",
+            "confidence": 0.9,
+            "reasoning": "No direct physical safety concerns"
+          },
+          "psychological_safety": {
+            "verdict": "ESCALATE",
+            "confidence": 0.65,
+            "reasoning": "Potential psychological impact requires review"
+          }
+        }
+      },
+      "metadata": {
+        "timestamp": "2025-12-04T10:31:15.456Z",
+        "critic_name": "SafetyCritic",
+        "config_version": "1.5.2",
+        "aggregator_run_id": "agg-2025-001",
+        "execution_time_ms": 312.8,
+        "request_id": "req-user-def-002"
+      },
+      "input_snapshot": {
+        "prompt": "Publish user-generated content about mental health struggles",
+        "context": {
+          "jurisdiction": "US",
+          "high_stakes": true,
+          "domain": "healthcare"
+        },
+        "input_hash": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3"
+      }
+    }
+  ]
+}
