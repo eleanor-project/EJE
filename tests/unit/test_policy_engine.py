@@ -730,3 +730,449 @@ class TestPolicyEngineIntegration:
         report = formatter.format_compliance_report(flags)
 
         assert len(report['compliance_report']['violations']) > 0
+
+    def test_threshold_failures_integration(self):
+        """Test integration scenario with multiple threshold failures"""
+        # Create engine with multiple threshold rules
+        engine = PolicyEngine([
+            ThresholdRule(
+                name="min_confidence",
+                metric_path="avg_confidence",
+                threshold=0.8,
+                operator="<",
+                action=RuleAction.REVIEW,
+                priority=RulePriority.HIGH
+            ),
+            ThresholdRule(
+                name="max_ambiguity",
+                metric_path="ambiguity",
+                threshold=0.2,
+                operator=">",
+                action=RuleAction.ESCALATE,
+                priority=RulePriority.HIGH
+            ),
+            ThresholdRule(
+                name="min_critics",
+                metric_path="critic_count",
+                threshold=3,
+                operator="<",
+                action=RuleAction.REVIEW,
+                priority=RulePriority.MEDIUM
+            )
+        ])
+
+        # Decision data that fails all thresholds
+        decision_data = {
+            'avg_confidence': 0.5,  # Below 0.8 - fails
+            'ambiguity': 0.4,       # Above 0.2 - fails
+            'critic_count': 2       # Below 3 - fails
+        }
+
+        # Evaluate all rules
+        results = engine.evaluate_all(decision_data, stop_on_critical=False)
+        triggered = [r for r in results if r.triggered]
+
+        # All 3 rules should trigger
+        assert len(triggered) == 3
+        assert all(r.triggered for r in triggered)
+
+        # Verify each rule has proper metadata
+        for result in triggered:
+            assert result.reason != ""
+            assert 'metric_value' in result.metadata or 'threshold' in result.metadata
+
+        # Get recommended action (ESCALATE should win)
+        action = engine.get_recommended_action(decision_data)
+        assert action == RuleAction.ESCALATE
+
+        # Format results
+        formatter = PolicyOutcomeFormatter(verbose=True)
+        output = formatter.format_policy_results(results, decision_data)
+
+        assert output['policy_evaluation']['rules_triggered'] == 3
+        assert output['policy_evaluation']['recommended_action'] == 'ESCALATE'
+        assert 'decision_context' in output['policy_evaluation']
+
+    def test_rule_conflicts_integration(self):
+        """Test integration scenario with conflicting rule recommendations"""
+        # Create rules with different priority levels and conflicting actions
+        engine = PolicyEngine([
+            ThresholdRule(
+                name="critical_deny",
+                metric_path="risk_score",
+                threshold=0.9,
+                operator=">",
+                action=RuleAction.DENY,
+                priority=RulePriority.CRITICAL
+            ),
+            ThresholdRule(
+                name="high_review",
+                metric_path="confidence",
+                threshold=0.7,
+                operator="<",
+                action=RuleAction.REVIEW,
+                priority=RulePriority.HIGH
+            ),
+            ThresholdRule(
+                name="medium_warn",
+                metric_path="ambiguity",
+                threshold=0.3,
+                operator=">",
+                action=RuleAction.WARN,
+                priority=RulePriority.MEDIUM
+            )
+        ])
+
+        # Decision data that triggers all rules
+        decision_data = {
+            'risk_score': 0.95,  # Triggers DENY
+            'confidence': 0.6,   # Triggers REVIEW
+            'ambiguity': 0.4     # Triggers WARN
+        }
+
+        # Evaluate - should stop on critical
+        results_stop = engine.evaluate_all(decision_data, stop_on_critical=True)
+        assert len(results_stop) == 1  # Only critical rule evaluated
+        assert results_stop[0].priority == RulePriority.CRITICAL
+
+        # Evaluate without stop - all should trigger
+        results_all = engine.evaluate_all(decision_data, stop_on_critical=False)
+        triggered = [r for r in results_all if r.triggered]
+        assert len(triggered) == 3
+
+        # DENY should be recommended (highest priority)
+        action = engine.get_recommended_action(decision_data)
+        assert action == RuleAction.DENY
+
+        # Format and verify
+        formatter = PolicyOutcomeFormatter()
+        output = formatter.format_policy_results(results_all, decision_data)
+
+        assert output['policy_evaluation']['recommended_action'] == 'DENY'
+        # Verify critical rule is first in triggered list
+        assert output['policy_evaluation']['triggered_rules'][0]['priority'] == 'critical'
+
+    def test_complete_workflow_all_components(self):
+        """Test complete workflow integrating rules, compliance, and formatting"""
+        # Step 1: Create policy engine with rules
+        engine = PolicyEngine([
+            create_confidence_threshold_rule(threshold=0.75),
+            create_ambiguity_threshold_rule(threshold=0.25)
+        ])
+
+        # Step 2: Create compliance checker
+        checker = ComplianceChecker(
+            jurisdiction="EU",
+            applicable_standards=[
+                ComplianceStandard.GDPR,
+                ComplianceStandard.EU_AI_ACT
+            ]
+        )
+
+        # Step 3: Decision data with both policy and compliance issues
+        decision_data = {
+            'avg_confidence': 0.65,  # Below threshold
+            'ambiguity': 0.3,        # Above threshold
+            'request_id': 'test-123',
+            # GDPR-related
+            'uses_personal_data': True,
+            'data_minimization_applied': False,  # GDPR issue
+            'requires_consent': True,
+            'user_consent_obtained': True,
+            'is_automated_decision': True,
+            'explanation_available': True,
+            # EU AI Act-related
+            'is_high_risk_ai': True,
+            'risk_management_system': False,  # Violation
+            'human_oversight_enabled': True
+        }
+
+        # Step 4: Evaluate policy rules
+        rule_results = engine.evaluate_all(decision_data)
+        triggered_rules = [r for r in rule_results if r.triggered]
+        assert len(triggered_rules) == 2  # confidence and ambiguity
+
+        # Step 5: Check compliance
+        compliance_flags = checker.check_compliance(decision_data)
+        assert compliance_flags.overall_status == ComplianceStatus.NON_COMPLIANT
+        violations = compliance_flags.get_non_compliant_flags()
+        assert len(violations) >= 1
+
+        # Step 6: Format combined outcome
+        formatter = PolicyOutcomeFormatter(include_metadata=True, verbose=True)
+        combined_outcome = formatter.format_combined_outcome(
+            rule_results,
+            compliance_flags,
+            decision_data
+        )
+
+        # Verify combined outcome structure
+        assert 'governance_outcome' in combined_outcome
+        gov = combined_outcome['governance_outcome']
+
+        assert 'final_action' in gov
+        assert 'policy_evaluation' in gov
+        assert 'compliance_report' in gov
+        assert 'executive_summary' in gov
+        assert 'requires_human_review' in gov
+
+        # Final action should be DENY due to compliance violation
+        assert gov['final_action'] == 'DENY'
+        assert gov['requires_human_review'] is True
+
+        # Verify executive summary is present
+        assert 'compliance violation' in gov['executive_summary'].lower()
+
+    def test_explainability_output_integration(self):
+        """Test explainability and human-readable formatting"""
+        # Create rules
+        engine = PolicyEngine([
+            ThresholdRule(
+                name="confidence_check",
+                metric_path="confidence",
+                threshold=0.8,
+                operator="<",
+                action=RuleAction.REVIEW,
+                priority=RulePriority.HIGH,
+                custom_reason="Confidence is too low for automated decision"
+            ),
+            ThresholdRule(
+                name="error_check",
+                metric_path="error_rate",
+                threshold=0.1,
+                operator=">",
+                action=RuleAction.ESCALATE,
+                priority=RulePriority.CRITICAL,
+                custom_reason="Error rate exceeds acceptable threshold"
+            )
+        ])
+
+        # Decision data triggering both rules
+        decision_data = {
+            'confidence': 0.6,
+            'error_rate': 0.15
+        }
+
+        # Evaluate
+        results = engine.evaluate_all(decision_data, stop_on_critical=False)
+
+        # Create compliance flags
+        compliance_flags = ComplianceFlags(jurisdiction="US")
+        compliance_flags.add_flag(ComplianceFlag(
+            standard=ComplianceStandard.FCRA,
+            requirement="adverse_action_notice",
+            triggered=True,
+            status=ComplianceStatus.REQUIRES_REVIEW,
+            risk_level=RiskLevel.HIGH,
+            reason="Denial requires adverse action notice under FCRA"
+        ))
+
+        # Test human-readable formatting
+        formatter = PolicyOutcomeFormatter()
+        human_readable = formatter.format_human_readable(results, compliance_flags)
+
+        # Verify human-readable output contains key information
+        assert "POLICY EVALUATION REPORT" in human_readable
+        assert "TRIGGERED RULES" in human_readable
+        assert "COMPLIANCE STATUS" in human_readable
+        assert "confidence_check" in human_readable
+        assert "error_check" in human_readable
+        assert "CRITICAL" in human_readable
+        assert "REQUIRES_REVIEW" in human_readable  # Compliance status should be present
+
+        # Test JSON formatting
+        json_output = formatter.format_policy_results(results, decision_data)
+        json_str = formatter.export_to_json(json_output, pretty=True)
+
+        assert '"policy_evaluation"' in json_str
+        assert '"triggered_rules"' in json_str
+        assert 'Confidence is too low' in json_str
+
+    def test_edge_cases_integration(self):
+        """Test edge cases and error handling in integration"""
+        # Test 1: Empty rules - should pass
+        engine = PolicyEngine([])
+        results = engine.evaluate_all({'test': 'data'})
+        assert len(results) == 0
+
+        action = engine.get_recommended_action({'test': 'data'})
+        assert action == RuleAction.ALLOW
+
+        # Test 2: Missing metrics - rules should handle gracefully
+        engine = PolicyEngine([
+            ThresholdRule(
+                name="missing_metric",
+                metric_path="nonexistent.field",
+                threshold=0.5,
+                operator=">"
+            )
+        ])
+
+        results = engine.evaluate_all({'other_field': 0.9})
+        assert len(results) == 1
+        assert results[0].triggered is False
+        assert "not found" in results[0].reason.lower()
+
+        # Test 3: Disabled rules - should not trigger
+        rule = ThresholdRule(
+            name="disabled",
+            metric_path="value",
+            threshold=0.5,
+            operator=">",
+            enabled=False
+        )
+        engine = PolicyEngine([rule])
+
+        results = engine.evaluate_all({'value': 0.9})
+        assert len(results) == 1
+        assert results[0].triggered is False
+
+        # Test 4: Lambda rule integration
+        engine = PolicyEngine([
+            LambdaRule(
+                name="custom_check",
+                evaluator=lambda data: data.get('status') == 'BLOCKED',
+                action=RuleAction.DENY,
+                reason_generator=lambda data: f"Status is {data.get('status')}",
+                priority=RulePriority.HIGH
+            )
+        ])
+
+        results = engine.evaluate_all({'status': 'BLOCKED'})
+        assert len(results) == 1
+        assert results[0].triggered is True
+        assert 'BLOCKED' in results[0].reason
+
+    def test_compliance_and_policy_combined_scenarios(self):
+        """Test various combined policy and compliance scenarios"""
+        # Scenario 1: Policy passes, compliance fails
+        engine = PolicyEngine([
+            create_confidence_threshold_rule(threshold=0.6)
+        ])
+
+        checker = ComplianceChecker(
+            jurisdiction="US",
+            applicable_standards=[ComplianceStandard.HIPAA]
+        )
+
+        decision_data = {
+            'avg_confidence': 0.9,  # Policy OK
+            'uses_protected_health_info': True,
+            'data_encrypted': False  # Compliance violation
+        }
+
+        rule_results = engine.evaluate_all(decision_data)
+        compliance_flags = checker.check_compliance(decision_data)
+
+        triggered_rules = [r for r in rule_results if r.triggered]
+        assert len(triggered_rules) == 0  # No policy violations
+        assert compliance_flags.overall_status == ComplianceStatus.NON_COMPLIANT
+
+        formatter = PolicyOutcomeFormatter()
+        outcome = formatter.format_combined_outcome(rule_results, compliance_flags, decision_data)
+
+        # Final action should be DENY due to compliance
+        assert outcome['governance_outcome']['final_action'] == 'DENY'
+
+        # Scenario 2: Policy fails, compliance passes
+        decision_data2 = {
+            'avg_confidence': 0.4,  # Policy violation
+            'uses_protected_health_info': True,
+            'data_encrypted': True,  # Compliance OK
+            'access_controls_enabled': True
+        }
+
+        rule_results2 = engine.evaluate_all(decision_data2)
+        compliance_flags2 = checker.check_compliance(decision_data2)
+
+        triggered_rules2 = [r for r in rule_results2 if r.triggered]
+        assert len(triggered_rules2) == 1  # Policy violation
+        assert compliance_flags2.overall_status == ComplianceStatus.COMPLIANT
+
+        outcome2 = formatter.format_combined_outcome(rule_results2, compliance_flags2, decision_data2)
+
+        # Final action should be REVIEW (from policy)
+        assert outcome2['governance_outcome']['final_action'] == 'REVIEW'
+
+        # Scenario 3: Both pass
+        decision_data3 = {
+            'avg_confidence': 0.9,  # Policy OK
+            'uses_protected_health_info': True,
+            'data_encrypted': True,  # Compliance OK
+            'access_controls_enabled': True
+        }
+
+        rule_results3 = engine.evaluate_all(decision_data3)
+        compliance_flags3 = checker.check_compliance(decision_data3)
+
+        triggered_rules3 = [r for r in rule_results3 if r.triggered]
+        assert len(triggered_rules3) == 0
+        assert compliance_flags3.overall_status == ComplianceStatus.COMPLIANT
+
+        outcome3 = formatter.format_combined_outcome(rule_results3, compliance_flags3, decision_data3)
+
+        # Final action should be ALLOW
+        assert outcome3['governance_outcome']['final_action'] == 'ALLOW'
+
+    def test_multi_jurisdiction_compliance_integration(self):
+        """Test compliance checks across multiple jurisdictions"""
+        # EU jurisdiction with strict requirements
+        eu_checker = ComplianceChecker(
+            jurisdiction="EU",
+            applicable_standards=[
+                ComplianceStandard.GDPR,
+                ComplianceStandard.EU_AI_ACT
+            ]
+        )
+
+        # US jurisdiction
+        us_checker = ComplianceChecker(
+            jurisdiction="US",
+            applicable_standards=[
+                ComplianceStandard.HIPAA,
+                ComplianceStandard.FCRA
+            ]
+        )
+
+        # Decision data
+        decision_data = {
+            'request_id': 'multi-jurisdic-001',
+            # GDPR
+            'uses_personal_data': True,
+            'data_minimization_applied': True,
+            'requires_consent': True,
+            'user_consent_obtained': True,
+            'is_automated_decision': True,
+            'explanation_available': True,
+            # EU AI Act
+            'is_high_risk_ai': True,
+            'risk_management_system': True,
+            'human_oversight_enabled': True,
+            # HIPAA
+            'uses_protected_health_info': True,
+            'data_encrypted': True,
+            'access_controls_enabled': True,
+            # FCRA
+            'is_credit_decision': False
+        }
+
+        # Check EU compliance
+        eu_flags = eu_checker.check_compliance(decision_data)
+        assert eu_flags.overall_status == ComplianceStatus.COMPLIANT
+        assert ComplianceStandard.GDPR in eu_flags.applicable_standards
+        assert ComplianceStandard.EU_AI_ACT in eu_flags.applicable_standards
+
+        # Check US compliance
+        us_flags = us_checker.check_compliance(decision_data)
+        assert us_flags.overall_status == ComplianceStatus.COMPLIANT
+        assert ComplianceStandard.HIPAA in us_flags.applicable_standards
+
+        # Format both reports
+        formatter = PolicyOutcomeFormatter()
+        eu_report = formatter.format_compliance_report(eu_flags, decision_data)
+        us_report = formatter.format_compliance_report(us_flags, decision_data)
+
+        assert eu_report['compliance_report']['jurisdiction'] == 'EU'
+        assert us_report['compliance_report']['jurisdiction'] == 'US'
+        assert len(eu_report['compliance_report']['violations']) == 0
+        assert len(us_report['compliance_report']['violations']) == 0
