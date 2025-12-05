@@ -11,6 +11,14 @@ from .shap_explainer import SHAPExplainer, SHAPExplanation
 from .decision_visualizer import DecisionVisualizer, VisualizationType, ExportFormat
 from .multi_level_explainer import MultiLevelExplainer, AudienceLevel, MultiLevelExplanation
 from .precedent_analyzer import PrecedentAnalyzer, ComparisonType, PrecedentComparison
+from .critic_explanation_formatter import (
+    CriticExplanationFormatter,
+    CriticExplanation,
+    ExplanationStyle,
+    ConfidenceLevel,
+    format_critic_output,
+    format_multiple_critics
+)
 from .xai_performance import (
     XAIPerformanceOptimizer,
     ExplanationMode,
@@ -39,6 +47,12 @@ __all__ = [
     'PrecedentAnalyzer',
     'ComparisonType',
     'PrecedentComparison',
+    'CriticExplanationFormatter',
+    'CriticExplanation',
+    'ExplanationStyle',
+    'ConfidenceLevel',
+    'format_critic_output',
+    'format_multiple_critics',
     'XAIPerformanceOptimizer',
     'ExplanationMode',
     'PerformanceMetrics',
