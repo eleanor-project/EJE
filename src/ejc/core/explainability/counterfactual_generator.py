@@ -568,5 +568,242 @@ class CounterfactualGenerator:
         return validation
 
 
+class CounterfactualTemplatePlaceholder:
+    """
+    Simple template-based counterfactual explanation generator.
+
+    Task 5.3: Counterfactual Placeholder
+    Provides basic template generation without model-based reasoning.
+    Generates simple "Decision would change if X differed" explanations.
+
+    This is a lightweight alternative to CounterfactualGenerator for cases
+    where full counterfactual analysis is not needed or too expensive.
+    """
+
+    # Predefined templates for different scenarios
+    TEMPLATES = {
+        'critic_flip': "The decision would change from {original} to {target} if the {critic} critic's verdict changed from {from_verdict} to {to_verdict}.",
+        'confidence_change': "If the overall confidence {direction} from {original_conf:.0%} to {target_conf:.0%}, the decision might change to {target}.",
+        'factor_change': "Decision would change to {target} if {factor} changed from {from_value} to {to_value}.",
+        'threshold': "If the decision threshold were {direction}, this case would be {target} instead of {original}.",
+        'consensus': "With {consensus_level} consensus among critics, the decision would be {target} instead of {original}.",
+        'generic': "The decision would change from {original} to {target} if key factors differed."
+    }
+
+    def __init__(self):
+        """Initialize template placeholder."""
+        pass
+
+    def generate_simple_counterfactual(
+        self,
+        original_verdict: str,
+        target_verdict: Optional[str] = None,
+        context: Optional[Dict[str, Any]] = None
+    ) -> str:
+        """
+        Generate a simple template-based counterfactual explanation.
+
+        Args:
+            original_verdict: The current verdict
+            target_verdict: Desired alternative verdict (if None, uses generic)
+            context: Optional context dict with:
+                - critic: Critic name for critic_flip template
+                - from_verdict: Original critic verdict
+                - to_verdict: Target critic verdict
+                - factor: Factor name for factor_change template
+                - from_value: Original factor value
+                - to_value: Target factor value
+                - original_conf: Original confidence
+                - target_conf: Target confidence
+                - direction: "higher" or "lower"
+                - consensus_level: Consensus level description
+
+        Returns:
+            Template-based counterfactual explanation string
+        """
+        context = context or {}
+
+        # If no target verdict, use generic template
+        if not target_verdict:
+            target_verdict = "a different outcome"
+            return self.TEMPLATES['generic'].format(
+                original=original_verdict,
+                target=target_verdict
+            )
+
+        # Select template based on available context
+        if 'critic' in context and 'from_verdict' in context:
+            template = self.TEMPLATES['critic_flip']
+            return template.format(
+                original=original_verdict,
+                target=target_verdict,
+                critic=context['critic'],
+                from_verdict=context['from_verdict'],
+                to_verdict=context.get('to_verdict', 'a different verdict')
+            )
+
+        elif 'original_conf' in context and 'target_conf' in context:
+            template = self.TEMPLATES['confidence_change']
+            direction = context.get('direction', 'increased' if context['target_conf'] > context['original_conf'] else 'decreased')
+            return template.format(
+                original=original_verdict,
+                target=target_verdict,
+                direction=direction,
+                original_conf=context['original_conf'],
+                target_conf=context['target_conf']
+            )
+
+        elif 'factor' in context and 'from_value' in context:
+            template = self.TEMPLATES['factor_change']
+            return template.format(
+                original=original_verdict,
+                target=target_verdict,
+                factor=context['factor'],
+                from_value=context['from_value'],
+                to_value=context.get('to_value', 'a different value')
+            )
+
+        elif 'direction' in context:
+            template = self.TEMPLATES['threshold']
+            return template.format(
+                original=original_verdict,
+                target=target_verdict,
+                direction=context['direction']
+            )
+
+        elif 'consensus_level' in context:
+            template = self.TEMPLATES['consensus']
+            return template.format(
+                original=original_verdict,
+                target=target_verdict,
+                consensus_level=context['consensus_level']
+            )
+
+        else:
+            # Generic fallback
+            template = self.TEMPLATES['generic']
+            return template.format(
+                original=original_verdict,
+                target=target_verdict
+            )
+
+    def generate_multiple_counterfactuals(
+        self,
+        original_verdict: str,
+        possible_verdicts: List[str],
+        context: Optional[Dict[str, Any]] = None
+    ) -> List[str]:
+        """
+        Generate multiple counterfactual explanations for different target verdicts.
+
+        Args:
+            original_verdict: Current verdict
+            possible_verdicts: List of alternative verdicts
+            context: Optional context for template generation
+
+        Returns:
+            List of counterfactual explanation strings
+        """
+        counterfactuals = []
+
+        for target in possible_verdicts:
+            if target != original_verdict:
+                cf = self.generate_simple_counterfactual(
+                    original_verdict,
+                    target,
+                    context
+                )
+                counterfactuals.append(cf)
+
+        return counterfactuals
+
+    def generate_from_decision(
+        self,
+        decision: Dict[str, Any],
+        max_counterfactuals: int = 3
+    ) -> List[str]:
+        """
+        Generate counterfactual explanations from a decision object.
+
+        Args:
+            decision: EJE Decision object (as dict)
+            max_counterfactuals: Maximum number to generate
+
+        Returns:
+            List of counterfactual explanation strings
+        """
+        counterfactuals = []
+
+        # Extract verdict
+        original_verdict = self._extract_verdict(decision)
+
+        # Get possible verdicts
+        possible_verdicts = ['ALLOW', 'DENY', 'ESCALATE', 'REVIEW']
+
+        # Get critic information
+        critic_reports = decision.get('critic_reports', [])
+
+        # Generate counterfactuals based on critics
+        for report in critic_reports[:max_counterfactuals]:
+            critic_name = report.get('critic_name', 'unknown')
+            critic_verdict = report.get('verdict', 'UNKNOWN')
+
+            # Find what would happen if this critic changed
+            if critic_verdict != original_verdict:
+                # This critic disagrees - what if it agreed?
+                context = {
+                    'critic': critic_name,
+                    'from_verdict': critic_verdict,
+                    'to_verdict': original_verdict
+                }
+                cf = self.generate_simple_counterfactual(
+                    original_verdict,
+                    original_verdict,  # Would strengthen current verdict
+                    context
+                )
+            else:
+                # This critic agrees - what if it disagreed?
+                target = next((v for v in possible_verdicts if v != original_verdict), 'DENY')
+                context = {
+                    'critic': critic_name,
+                    'from_verdict': critic_verdict,
+                    'to_verdict': target
+                }
+                cf = self.generate_simple_counterfactual(
+                    original_verdict,
+                    target,
+                    context
+                )
+
+            counterfactuals.append(cf)
+
+            if len(counterfactuals) >= max_counterfactuals:
+                break
+
+        # If no critic-based counterfactuals, add generic one
+        if not counterfactuals:
+            for target in possible_verdicts:
+                if target != original_verdict:
+                    cf = self.generate_simple_counterfactual(original_verdict, target)
+                    counterfactuals.append(cf)
+                    if len(counterfactuals) >= max_counterfactuals:
+                        break
+
+        return counterfactuals[:max_counterfactuals]
+
+    def _extract_verdict(self, decision: Dict[str, Any]) -> str:
+        """Extract the verdict from decision."""
+        if 'governance_outcome' in decision and decision['governance_outcome']:
+            return decision['governance_outcome'].get('verdict', 'UNKNOWN')
+        elif 'aggregation' in decision and decision['aggregation']:
+            return decision['aggregation'].get('verdict', 'UNKNOWN')
+        return 'UNKNOWN'
+
+
 # Export
-__all__ = ['CounterfactualGenerator', 'CounterfactualMode', 'Counterfactual']
+__all__ = [
+    'CounterfactualGenerator',
+    'CounterfactualMode',
+    'Counterfactual',
+    'CounterfactualTemplatePlaceholder'
+]

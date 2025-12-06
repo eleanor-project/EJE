@@ -6,7 +6,12 @@ recommendations for transparency and interpretability.
 """
 
 from .xai_pipeline import XAIPipeline, ExplanationLevel, XAIMethod
-from .counterfactual_generator import CounterfactualGenerator, CounterfactualMode, Counterfactual
+from .counterfactual_generator import (
+    CounterfactualGenerator,
+    CounterfactualMode,
+    Counterfactual,
+    CounterfactualTemplatePlaceholder
+)
 from .shap_explainer import SHAPExplainer, SHAPExplanation
 from .decision_visualizer import DecisionVisualizer, VisualizationType, ExportFormat
 from .multi_level_explainer import MultiLevelExplainer, AudienceLevel, MultiLevelExplanation
@@ -45,6 +50,7 @@ __all__ = [
     'CounterfactualGenerator',
     'CounterfactualMode',
     'Counterfactual',
+    'CounterfactualTemplatePlaceholder',
     'SHAPExplainer',
     'SHAPExplanation',
     'DecisionVisualizer',
