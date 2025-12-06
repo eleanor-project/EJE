@@ -16,6 +16,12 @@ from .override_request import (
     ReviewerRole,
     OverrideRequestBatch
 )
+from .override_handler import (
+    OverrideHandler,
+    OverrideValidationError,
+    apply_override,
+    validate_override
+)
 
 __all__ = [
     'apply_governance_rules',
@@ -31,5 +37,9 @@ __all__ = [
     'OverrideOutcome',
     'OverrideReason',
     'ReviewerRole',
-    'OverrideRequestBatch'
+    'OverrideRequestBatch',
+    'OverrideHandler',
+    'OverrideValidationError',
+    'apply_override',
+    'validate_override'
 ]
