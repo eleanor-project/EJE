@@ -9,6 +9,13 @@ from .governance_modes import (
     RiskLevel,
     OversightLevel
 )
+from .override_request import (
+    OverrideRequest,
+    OverrideOutcome,
+    OverrideReason,
+    ReviewerRole,
+    OverrideRequestBatch
+)
 
 __all__ = [
     'apply_governance_rules',
@@ -19,5 +26,10 @@ __all__ = [
     'GovernanceModeConfig',
     'GovernanceMode',
     'RiskLevel',
-    'OversightLevel'
+    'OversightLevel',
+    'OverrideRequest',
+    'OverrideOutcome',
+    'OverrideReason',
+    'ReviewerRole',
+    'OverrideRequestBatch'
 ]
