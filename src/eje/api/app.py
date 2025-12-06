@@ -5,13 +5,13 @@ import logging
 import time
 from typing import Optional
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import ValidationError
 
 from eje.api import endpoints
+from eje.api.auth import create_auth_dependency, security
 from eje.api.validation import validation_exception_handler, pydantic_exception_handler
 from eje.config.settings import Settings, get_settings
 from eje.db import escalation_log
@@ -20,31 +20,14 @@ from eje.learning.context_model import DissentAwareContextModel
 logger = logging.getLogger(__name__)
 
 
-security = HTTPBearer(auto_error=False)
-
-
-def verify_bearer(settings: Settings):
-    """Create a dependency that verifies API token authentication."""
-    def dependency(credentials: HTTPAuthorizationCredentials = Depends(security)):
-        if not settings.api_token and settings.require_api_token:
-            raise HTTPException(status_code=500, detail="API token not configured")
-        if not settings.api_token:
-            return None
-        if not credentials or credentials.credentials != settings.api_token:
-            raise HTTPException(status_code=401, detail="Invalid or missing API token")
-        return credentials
-
-    return dependency
-
-
 def create_app(settings: Optional[Settings] = None) -> FastAPI:
     """Build a production-ready FastAPI app with full validation and monitoring.
     
     Features:
+    - OAuth2 Bearer token authentication with audit trail (Task 10.4)
     - Strict Pydantic validation (Task 10.2)
     - Custom error handlers with clear messages
     - CORS middleware
-    - API token authentication
     - Database initialization
     - Learning model integration
     - Uptime tracking
@@ -62,7 +45,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
     app = FastAPI(
         title="ELEANOR Moral Ops Center",
         version="1.0.0",
-        description="Ethical AI governance and decision-making API",
+        description="Ethical AI governance and decision-making API with OAuth2 Bearer authentication",
         docs_url="/docs",
         redoc_url="/redoc",
     )
@@ -106,6 +89,12 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         app.state.engine = engine
         logger.info(f"Database initialized at {settings.db_path}")
         
+        # Log authentication status
+        if settings.require_api_token:
+            logger.info("API authentication ENABLED - Bearer token required")
+        else:
+            logger.warning("API authentication DISABLED - All requests allowed")
+        
         logger.info("Ops Center startup complete")
 
     @app.on_event("shutdown")
@@ -113,10 +102,14 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         """Clean up resources on shutdown."""
         logger.info("Shutting down ELEANOR Moral Ops Center...")
 
+    # Create authentication dependency (Task 10.4)
+    auth_dependency = create_auth_dependency(settings)
+    
     # Include API router with authentication
+    # The security parameter makes FastAPI display the auth in OpenAPI docs
     app.include_router(
         endpoints.router,
-        dependencies=[Depends(verify_bearer(settings))],
+        dependencies=[Depends(security), Depends(auth_dependency)],
     )
     
     return app

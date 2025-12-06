@@ -40,6 +40,7 @@ def get_engine(request: Request):
 
 
 # Routes -----------------------------------------------------------------------
+# Note: All routes are protected by authentication via app.py dependencies
 
 @router.post("/decision", response_model=models.DecisionResponse)
 async def decision(
@@ -51,6 +52,8 @@ async def decision(
     engine=Depends(get_engine),
 ):
     """Run the adjudication pipeline and return complete DecisionOutput.
+    
+    🔒 **Authentication Required**: Bearer token via Authorization header
     
     This endpoint performs full ethical evaluation using the configured
     critics, aggregates their outputs, consults precedents, and returns
@@ -189,6 +192,8 @@ async def evaluate(
 ):
     """Legacy endpoint - provides backward compatibility.
     
+    🔒 **Authentication Required**: Bearer token via Authorization header
+    
     Returns data in the old CaseResult format. New integrations should
     use the /decision endpoint for full DecisionOutput.
     """
@@ -217,6 +222,8 @@ async def get_precedents(
     engine=Depends(get_engine),
 ):
     """Retrieve recent precedent records from the database.
+    
+    🔒 **Authentication Required**: Bearer token via Authorization header
     
     Returns historical decisions with full critic reports and metadata.
     Useful for precedent analysis and system auditing.
@@ -288,6 +295,8 @@ async def get_critics(
 ):
     """List all configured critics with their settings.
     
+    🔒 **Authentication Required**: Bearer token via Authorization header
+    
     Returns information about each critic including type, enabled status,
     and weight. Useful for understanding system configuration and debugging.
     
@@ -342,6 +351,8 @@ async def escalate(
 ):
     """Record manual escalations for offline follow-up.
     
+    🔒 **Authentication Required**: Bearer token via Authorization header
+    
     Allows humans to flag cases that require additional review or
     intervention beyond the automated decision process.
     
@@ -383,6 +394,9 @@ async def escalate(
 async def health(request: Request):
     """Return comprehensive health check with component status.
     
+    ℹ️ **Note**: This endpoint may be exempted from authentication for
+    load balancer health checks. Configure via middleware if needed.
+    
     Checks configuration, database, and tracks error rates and uptime.
     Used by monitoring systems and load balancers.
     
@@ -417,6 +431,7 @@ async def health(request: Request):
             "config": "loaded" if config_loaded else "missing",
             "database": "ready" if db_ready else "unavailable",
             "learning_model": "ready" if hasattr(request.app.state, "context_model") else "unavailable",
+            "authentication": "enabled" if request.app.state.settings.require_api_token else "disabled",
         },
         version=request.app.state.version,
         timestamp=datetime.utcnow(),
