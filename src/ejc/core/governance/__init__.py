@@ -22,6 +22,12 @@ from .override_handler import (
     apply_override,
     validate_override
 )
+from .override_event_logger import (
+    log_override_event,
+    log_override_event_simple,
+    create_override_event_bundle,
+    get_override_events_for_decision
+)
 
 __all__ = [
     'apply_governance_rules',
@@ -41,5 +47,9 @@ __all__ = [
     'OverrideHandler',
     'OverrideValidationError',
     'apply_override',
-    'validate_override'
+    'validate_override',
+    'log_override_event',
+    'log_override_event_simple',
+    'create_override_event_bundle',
+    'get_override_events_for_decision'
 ]
