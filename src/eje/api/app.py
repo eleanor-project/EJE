@@ -79,6 +79,10 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
     app.add_exception_handler(ValidationError, pydantic_exception_handler)
 
     # CORS middleware
+    # Register custom validation exception handlers
+    app.add_exception_handler(RequestValidationError, validation_exception_handler)
+    app.add_exception_handler(ValidationError, pydantic_exception_handler)
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins,
