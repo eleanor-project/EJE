@@ -8,11 +8,23 @@ for error scenarios and graceful degradation.
 from .fallback_engine import FallbackEngine, FallbackStrategy, FallbackTrigger
 from .fallback_bundle import create_fallback_evidence_bundle
 from .fallback_explainer import FallbackExplainer
+from .fallback_evidence_schema import (
+    FallbackType,
+    FailedCriticInfo,
+    SystemStateAtTrigger,
+    FallbackDecision,
+    FallbackEvidenceBundle
+)
 
 __all__ = [
     'FallbackEngine',
     'FallbackStrategy',
     'FallbackTrigger',
     'create_fallback_evidence_bundle',
-    'FallbackExplainer'
+    'FallbackExplainer',
+    'FallbackType',
+    'FailedCriticInfo',
+    'SystemStateAtTrigger',
+    'FallbackDecision',
+    'FallbackEvidenceBundle'
 ]
