@@ -37,9 +37,45 @@ class CaseResult(BaseModel):
 
 
 class EvaluationResponse(BaseModel):
-    """Wrapper response for /evaluate."""
+    """Wrapper response for /evaluate and /decision."""
 
     result: CaseResult
+
+
+class PrecedentRecord(BaseModel):
+    """Single precedent record from the database."""
+
+    case_id: str
+    prompt: str
+    verdict: str
+    confidence: float
+    escalated: bool
+    precedents: List[str] = Field(default_factory=list)
+    critic_reports: List[CriticReport] = Field(default_factory=list)
+    created_at: datetime
+
+
+class PrecedentsResponse(BaseModel):
+    """Response model for GET /precedents."""
+
+    precedents: List[PrecedentRecord]
+    count: int
+
+
+class CriticInfo(BaseModel):
+    """Information about a configured critic."""
+
+    name: str
+    type: str
+    enabled: bool = True
+    weight: Optional[float] = None
+
+
+class CriticsResponse(BaseModel):
+    """Response model for GET /critics."""
+
+    critics: List[CriticInfo]
+    count: int
 
 
 class EscalationRequest(BaseModel):
