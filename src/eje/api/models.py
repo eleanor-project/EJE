@@ -46,8 +46,45 @@ class CriticReport(BaseModel):
     execution_time_ms: float = Field(0.0, ge=0.0)
 
 
+class EvidenceBundle(BaseModel):
+    """Evidence bundle containing critic reports and justifications."""
+    
+    model_config = ConfigDict(strict=True)
+    
+    critic_reports: List[CriticReport] = Field(default_factory=list, description="Individual critic evaluations")
+    aggregation_method: str = Field(..., description="Method used to aggregate critic outputs")
+    total_critics: int = Field(..., ge=0, description="Total number of critics evaluated")
+    successful_critics: int = Field(..., ge=0, description="Number of critics that completed successfully")
+    failed_critics: int = Field(0, ge=0, description="Number of critics that failed")
+
+
+class PrecedentBundle(BaseModel):
+    """Bundle of precedents used in the decision."""
+    
+    model_config = ConfigDict(strict=True)
+    
+    precedent_ids: List[str] = Field(default_factory=list, description="IDs of precedents consulted")
+    count: int = Field(0, ge=0, description="Number of precedents used")
+    relevance_scores: Optional[List[float]] = Field(None, description="Relevance scores for each precedent")
+
+
+class DecisionOutput(BaseModel):
+    """Complete decision output from the adjudication pipeline."""
+    
+    model_config = ConfigDict(strict=True)
+
+    case_id: str = Field(..., description="Unique identifier for this decision")
+    verdict: str = Field(..., min_length=1, description="Final verdict")
+    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence level of the decision")
+    escalated: bool = Field(..., description="Whether this case was escalated for human review")
+    timestamp: datetime = Field(..., description="When the decision was made")
+    evidence: EvidenceBundle = Field(..., description="Evidence supporting the decision")
+    precedents: PrecedentBundle = Field(..., description="Precedents consulted")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional decision metadata")
+
+
 class CaseResult(BaseModel):
-    """Aggregated decision payload returned to callers."""
+    """Aggregated decision payload returned to callers (legacy)."""
     
     model_config = ConfigDict(strict=True)
 
@@ -66,6 +103,14 @@ class EvaluationResponse(BaseModel):
     model_config = ConfigDict(strict=True)
 
     result: CaseResult
+
+
+class DecisionResponse(BaseModel):
+    """Response for /decision endpoint with full DecisionOutput."""
+    
+    model_config = ConfigDict(strict=True)
+    
+    decision: DecisionOutput
 
 
 class PrecedentRecord(BaseModel):
@@ -141,8 +186,21 @@ class EscalationResponse(BaseModel):
     timestamp: datetime
 
 
+class HealthCheck(BaseModel):
+    """Complete health check response with component status."""
+    
+    model_config = ConfigDict(strict=True)
+
+    status: str = Field(..., pattern="^(ok|degraded|error)$", description="Overall system status")
+    components: Dict[str, str] = Field(..., description="Status of individual components")
+    version: str = Field(..., description="Application version")
+    timestamp: datetime = Field(..., description="Time of health check")
+    error_rate: float = Field(0.0, ge=0.0, le=1.0, description="Recent error rate")
+    uptime_seconds: Optional[float] = Field(None, ge=0.0, description="System uptime in seconds")
+
+
 class HealthResponse(BaseModel):
-    """Service health report."""
+    """Service health report (legacy alias for HealthCheck)."""
     
     model_config = ConfigDict(strict=True)
 
