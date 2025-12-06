@@ -19,6 +19,15 @@ from .critic_explanation_formatter import (
     format_critic_output,
     format_multiple_critics
 )
+from .aggregated_explanation_builder import (
+    AggregatedExplanationBuilder,
+    AggregatedExplanation,
+    AggregationMode,
+    ConsensusLevel,
+    VerdictAnalysis,
+    ConsistencyAnalysis,
+    aggregate_explanations
+)
 from .xai_performance import (
     XAIPerformanceOptimizer,
     ExplanationMode,
@@ -53,6 +62,13 @@ __all__ = [
     'ConfidenceLevel',
     'format_critic_output',
     'format_multiple_critics',
+    'AggregatedExplanationBuilder',
+    'AggregatedExplanation',
+    'AggregationMode',
+    'ConsensusLevel',
+    'VerdictAnalysis',
+    'ConsistencyAnalysis',
+    'aggregate_explanations',
     'XAIPerformanceOptimizer',
     'ExplanationMode',
     'PerformanceMetrics',
