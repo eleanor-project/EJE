@@ -1,0 +1,71 @@
+# ==============================================================================
+# EJE Docker Compose - Local Development
+# ==============================================================================
+# Lightweight stack for local development with hot reload
+#
+# Usage:
+#   docker-compose -f docker-compose.dev.yml up
+#   docker-compose -f docker-compose.dev.yml down
+# ==============================================================================
+
+version: '3.9'
+
+services:
+  eje-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    image: eje:dev
+    container_name: eje-dev
+    ports:
+      - "8000:8000"
+      - "9090:9090"
+    environment:
+      APP_ENV: development
+      LOG_LEVEL: debug
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: eje_dev
+      DB_USER: eje
+      DB_PASSWORD: dev_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    volumes:
+      - ./src:/app/src:ro
+      - ./config:/app/config:ro
+      - ./data:/app/data
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - eje-dev
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: eje-postgres-dev
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: eje_dev
+      POSTGRES_USER: eje
+      POSTGRES_PASSWORD: dev_password
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    networks:
+      - eje-dev
+
+  redis:
+    image: redis:7-alpine
+    container_name: eje-redis-dev
+    ports:
+      - "6380:6379"
+    networks:
+      - eje-dev
+
+networks:
+  eje-dev:
+    driver: bridge
+
+volumes:
+  postgres-dev-data:

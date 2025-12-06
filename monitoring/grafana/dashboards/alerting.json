@@ -1,0 +1,20 @@
+{
+  "annotations": {"list": []},
+  "description": "EJE Alerting Dashboard - Active alerts, alert trends, and system health warnings",
+  "editable": true,
+  "title": "EJE Alerting Dashboard",
+  "uid": "eje-alerting",
+  "version": 1,
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "gridPos": {"h": 6, "w": 6, "x": 0, "y": 0},
+      "id": 1,
+      "targets": [{"expr": "count(ALERTS{alertstate=\"firing\", job=\"eje\"})", "refId": "A"}],
+      "title": "Active Alerts",
+      "type": "stat"
+    }
+  ],
+  "refresh": "10s",
+  "tags": ["eje", "alerts", "monitoring"]
+}

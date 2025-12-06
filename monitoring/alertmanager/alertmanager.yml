@@ -1,0 +1,226 @@
+global:
+  # Default SMTP configuration for email notifications
+  smtp_smarthost: 'smtp.example.com:587'
+  smtp_from: 'eje-alerts@example.com'
+  smtp_auth_username: 'eje-alerts@example.com'
+  smtp_auth_password: '${SMTP_PASSWORD}'  # Set via environment variable
+  smtp_require_tls: true
+
+  # Slack webhook URL (set via environment variable)
+  slack_api_url: '${SLACK_WEBHOOK_URL}'
+
+  # PagerDuty integration key (set via environment variable)
+  pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+
+  # Default resolve timeout
+  resolve_timeout: 5m
+
+# Templates for notification formatting
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Alert routing configuration
+route:
+  # Default receiver for all alerts
+  receiver: 'eje-ops-team'
+
+  # Group alerts by cluster, alertname, and severity
+  group_by: ['cluster', 'alertname', 'severity']
+
+  # Wait 30s before sending first notification (for grouping)
+  group_wait: 30s
+
+  # Wait 5m before sending update on existing alert group
+  group_interval: 5m
+
+  # Wait 4h before re-sending alert if still firing
+  repeat_interval: 4h
+
+  # Child routes with specific receivers
+  routes:
+    # Critical alerts go to PagerDuty and Slack
+    - match:
+        severity: critical
+      receiver: 'eje-critical-pagerduty'
+      continue: true  # Also match subsequent routes
+      group_wait: 10s  # Send critical alerts faster
+      repeat_interval: 30m
+
+    # Critical alerts also go to Slack
+    - match:
+        severity: critical
+      receiver: 'eje-critical-slack'
+      group_wait: 10s
+
+    # Warning alerts go to Slack only
+    - match:
+        severity: warning
+      receiver: 'eje-warning-slack'
+      repeat_interval: 2h
+
+    # Info alerts go to email only
+    - match:
+        severity: info
+      receiver: 'eje-info-email'
+      repeat_interval: 12h
+
+    # Component-specific routing
+    - match:
+        component: critic
+      receiver: 'eje-critic-team'
+      routes:
+        - match:
+            severity: critical
+          receiver: 'eje-critical-pagerduty'
+
+    - match:
+        component: api
+      receiver: 'eje-api-team'
+
+    # Business hours vs off-hours routing (example)
+    # - match_re:
+    #     severity: warning
+    #   receiver: 'eje-business-hours'
+    #   active_time_intervals:
+    #     - business_hours
+
+# Inhibition rules (suppress alerts when others are firing)
+inhibit_rules:
+  # Suppress warning alerts if critical alert is firing for same component
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['component', 'instance']
+
+  # Suppress specific alerts if service is down
+  - source_match:
+      alertname: 'EJEServiceDown'
+    target_match_re:
+      alertname: '.*'
+    equal: ['instance']
+
+  # Suppress elevated rates if high rates are firing
+  - source_match:
+      alertname: 'HighCriticFailureRate'
+    target_match:
+      alertname: 'ElevatedCriticFailureRate'
+    equal: ['critic_name']
+
+  - source_match:
+      alertname: 'HighErrorRate'
+    target_match:
+      alertname: 'ElevatedErrorRate'
+
+  - source_match:
+      alertname: 'HighMemoryUsage'
+    target_match:
+      alertname: 'ElevatedMemoryUsage'
+
+# Receiver definitions
+receivers:
+  # Default ops team (email + Slack)
+  - name: 'eje-ops-team'
+    email_configs:
+      - to: 'eje-ops@example.com'
+        headers:
+          Subject: '[EJE] {{ .GroupLabels.severity | toUpper }}: {{ .GroupLabels.alertname }}'
+        html: '{{ template "email.html" . }}'
+    slack_configs:
+      - channel: '#eje-alerts'
+        title: '{{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        color: '{{ if eq .GroupLabels.severity "critical" }}danger{{ else if eq .GroupLabels.severity "warning" }}warning{{ else }}good{{ end }}'
+
+  # Critical alerts - PagerDuty
+  - name: 'eje-critical-pagerduty'
+    pagerduty_configs:
+      - service_key: '${PAGERDUTY_SERVICE_KEY}'
+        description: '{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.summary }}'
+        details:
+          severity: '{{ .GroupLabels.severity }}'
+          component: '{{ .GroupLabels.component }}'
+          summary: '{{ .CommonAnnotations.summary }}'
+          description: '{{ .CommonAnnotations.description }}'
+          impact: '{{ .CommonAnnotations.impact }}'
+          action: '{{ .CommonAnnotations.action }}'
+          runbook: '{{ .CommonAnnotations.runbook }}'
+          dashboard: '{{ .CommonAnnotations.dashboard }}'
+        client: 'EJE AlertManager'
+        client_url: 'http://alertmanager:9093'
+
+  # Critical alerts - Slack
+  - name: 'eje-critical-slack'
+    slack_configs:
+      - channel: '#eje-critical'
+        username: 'EJE AlertManager'
+        icon_emoji: ':rotating_light:'
+        title: ':rotating_light: CRITICAL: {{ .GroupLabels.alertname }}'
+        title_link: '{{ .CommonAnnotations.dashboard }}'
+        text: |
+          {{ range .Alerts }}
+          *Summary*: {{ .Annotations.summary }}
+          *Description*: {{ .Annotations.description }}
+          *Impact*: {{ .Annotations.impact }}
+          *Action Required*: {{ .Annotations.action }}
+          *Runbook*: {{ .Annotations.runbook }}
+          *Dashboard*: {{ .Annotations.dashboard }}
+          {{ end }}
+        color: 'danger'
+        send_resolved: true
+
+  # Warning alerts - Slack
+  - name: 'eje-warning-slack'
+    slack_configs:
+      - channel: '#eje-alerts'
+        username: 'EJE AlertManager'
+        icon_emoji: ':warning:'
+        title: ':warning: {{ .GroupLabels.alertname }}'
+        title_link: '{{ .CommonAnnotations.dashboard }}'
+        text: |
+          {{ range .Alerts }}
+          *Summary*: {{ .Annotations.summary }}
+          *Description*: {{ .Annotations.description }}
+          *Action*: {{ .Annotations.action }}
+          *Runbook*: {{ .Annotations.runbook }}
+          {{ end }}
+        color: 'warning'
+        send_resolved: true
+
+  # Info alerts - Email
+  - name: 'eje-info-email'
+    email_configs:
+      - to: 'eje-ops@example.com'
+        headers:
+          Subject: '[EJE] INFO: {{ .GroupLabels.alertname }}'
+        html: '{{ template "email.html" . }}'
+
+  # Critic team
+  - name: 'eje-critic-team'
+    email_configs:
+      - to: 'eje-critic-team@example.com'
+        headers:
+          Subject: '[EJE Critic] {{ .GroupLabels.severity | toUpper }}: {{ .GroupLabels.alertname }}'
+        html: '{{ template "email.html" . }}'
+    slack_configs:
+      - channel: '#eje-critics'
+        title: '{{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+
+  # API team
+  - name: 'eje-api-team'
+    email_configs:
+      - to: 'eje-api-team@example.com'
+        headers:
+          Subject: '[EJE API] {{ .GroupLabels.severity | toUpper }}: {{ .GroupLabels.alertname }}'
+        html: '{{ template "email.html" . }}'
+
+# Optional: Time intervals for business hours routing
+# time_intervals:
+#   - name: business_hours
+#     time_intervals:
+#       - times:
+#           - start_time: '09:00'
+#             end_time: '17:00'
+#         weekdays: ['monday:friday']
+#         location: 'America/New_York'

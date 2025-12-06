@@ -100,6 +100,11 @@ class GovernanceException(EJEBaseException):
     pass
 
 
+class PolicyException(EJEBaseException):
+    """Raised when policy evaluation fails or rules are invalid."""
+    pass
+
+
 class HumanEscalationRequired(EJEBaseException):
     """Raised when a case requires mandatory human review.
     
@@ -578,6 +583,7 @@ __all__ = [
     'AuditLogException',
     'ConfigurationException',
     'GovernanceException',
+    'PolicyException',
     'HumanEscalationRequired',
     # Severity
     'ErrorSeverity',

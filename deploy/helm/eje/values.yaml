@@ -1,0 +1,104 @@
+replicaCount: 2
+
+image:
+  repository: ghcr.io/eleanor-project/eje
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+  annotations: {}
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+podAnnotations: {}
+podSecurityContext: {}
+securityContext: {}
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
+
+affinity: {}
+nodeSelector: {}
+tolerations: []
+
+config:
+  appEnv: "staging"
+  logLevel: "info"
+  enableBetaFeatures: false
+  rollbackWindow: 5
+  healthcheckPath: "/health"
+  extraEnv: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: eje.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+postgresql:
+  enabled: true
+  auth:
+    username: eje
+    database: eje
+    password: changeme
+  primary:
+    persistence:
+      enabled: false
+  external:
+    host: ""
+    port: 5432
+    user: ""
+    database: ""
+    passwordSecretName: ""
+    passwordSecretKey: "postgres-password"
+
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+    password: ""
+  external:
+    host: ""
+    port: 6379
+    passwordSecretName: ""
+    passwordSecretKey: "redis-password"
+
+migrations:
+  enabled: true
+  annotations: {}
+  command:
+    - bash
+    - -c
+    - echo "No migrations configured; override migrations.command to run database migrations"
+  resources: {}
+  backoffLimit: 1
+
+livenessProbe:
+  path: /health
+  initialDelaySeconds: 15
+  periodSeconds: 20
+
+readinessProbe:
+  path: /health
+  initialDelaySeconds: 5
+  periodSeconds: 10
