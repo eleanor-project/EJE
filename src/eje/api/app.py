@@ -5,10 +5,13 @@ import logging
 from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import ValidationError
 
 from eje.api import endpoints
+from eje.api.validation import validation_exception_handler, pydantic_exception_handler
 from eje.config.settings import Settings, get_settings
 from eje.db import escalation_log
 from eje.learning.context_model import DissentAwareContextModel
@@ -42,6 +45,10 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
     app.state.version = "1.0.0"
     app.logger = logger
     app.state.error_stats = {"errors": 0, "total": 0, "last_error_rate": 0.0}
+
+    # Register custom validation exception handlers
+    app.add_exception_handler(RequestValidationError, validation_exception_handler)
+    app.add_exception_handler(ValidationError, pydantic_exception_handler)
 
     app.add_middleware(
         CORSMiddleware,
