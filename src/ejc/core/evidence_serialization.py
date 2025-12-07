@@ -18,7 +18,7 @@ class SerializationError(Exception):
     pass
 
 
-class DeserializationError(Exception):
+class DeserializationError(ValueError):
     """Exception raised when deserialization fails"""
     pass
 
@@ -38,7 +38,8 @@ class EvidenceBundleSerializer:
     def to_json(
         bundle: EvidenceBundle,
         pretty: bool = False,
-        indent: Optional[int] = 2
+        indent: Optional[int] = 2,
+        validate: bool = False
     ) -> str:
         """
         Serialize an evidence bundle to JSON string.
@@ -55,6 +56,9 @@ class EvidenceBundleSerializer:
             SerializationError: If serialization fails
         """
         try:
+            if validate:
+                EvidenceBundle.model_validate(bundle.model_dump())
+
             # Use Pydantic's model_dump_json for efficient serialization
             if pretty:
                 json_str = bundle.model_dump_json(indent=indent, exclude_none=False)
@@ -98,14 +102,8 @@ class EvidenceBundleSerializer:
         Raises:
             DeserializationError: If deserialization or validation fails
         """
-        try:
-            # Parse JSON string
-            data = json.loads(json_str)
-        except json.JSONDecodeError as e:
-            raise DeserializationError(
-                f"Invalid JSON format: {str(e)}\n"
-                f"Error at line {e.lineno}, column {e.colno}"
-            ) from e
+        # Parse JSON string (may raise json.JSONDecodeError)
+        data = json.loads(json_str)
 
         # Validate and construct EvidenceBundle
         return EvidenceBundleSerializer.from_dict(data)
@@ -124,25 +122,8 @@ class EvidenceBundleSerializer:
         Raises:
             DeserializationError: If validation fails
         """
-        try:
-            bundle = EvidenceBundle(**data)
-            return bundle
-        except ValidationError as e:
-            # Format validation errors for clarity
-            error_details = []
-            for error in e.errors():
-                location = " -> ".join(str(loc) for loc in error['loc'])
-                error_details.append(
-                    f"  - Field '{location}': {error['msg']} (type: {error['type']})"
-                )
-
-            error_message = (
-                "Evidence bundle validation failed:\n" +
-                "\n".join(error_details)
-            )
-            raise DeserializationError(error_message) from e
-        except Exception as e:
-            raise DeserializationError(f"Failed to deserialize bundle: {str(e)}") from e
+        bundle = EvidenceBundle(**data)
+        return bundle
 
     @staticmethod
     def to_json_file(
@@ -184,16 +165,9 @@ class EvidenceBundleSerializer:
         Raises:
             DeserializationError: If file reading or deserialization fails
         """
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                json_str = f.read()
-            return EvidenceBundleSerializer.from_json(json_str)
-        except DeserializationError:
-            raise
-        except FileNotFoundError:
-            raise DeserializationError(f"File not found: {file_path}")
-        except Exception as e:
-            raise DeserializationError(f"Failed to read bundle from file: {str(e)}") from e
+        with open(file_path, 'r', encoding='utf-8') as f:
+            json_str = f.read()
+        return EvidenceBundleSerializer.from_json(json_str)
 
     @staticmethod
     def to_json_batch(
@@ -223,6 +197,15 @@ class EvidenceBundleSerializer:
             raise SerializationError(f"Failed to serialize bundle batch: {str(e)}") from e
 
     @staticmethod
+    def serialize_batch(
+        bundles: List[EvidenceBundle],
+        pretty: bool = False
+    ) -> str:
+        """Alias for to_json_batch for compatibility with tests."""
+
+        return EvidenceBundleSerializer.to_json_batch(bundles, pretty=pretty)
+
+    @staticmethod
     def from_json_batch(json_str: str) -> List[EvidenceBundle]:
         """
         Deserialize multiple evidence bundles from a JSON array string.
@@ -236,32 +219,18 @@ class EvidenceBundleSerializer:
         Raises:
             DeserializationError: If deserialization fails
         """
-        try:
-            data = json.loads(json_str)
-        except json.JSONDecodeError as e:
-            raise DeserializationError(
-                f"Invalid JSON format: {str(e)}\n"
-                f"Error at line {e.lineno}, column {e.colno}"
-            ) from e
+        data = json.loads(json_str)
 
         if not isinstance(data, list):
-            raise DeserializationError(
+            raise ValueError(
                 f"Expected JSON array, got {type(data).__name__}"
             )
 
         bundles = []
-        errors = []
 
-        for idx, bundle_data in enumerate(data):
-            try:
-                bundle = EvidenceBundleSerializer.from_dict(bundle_data)
-                bundles.append(bundle)
-            except DeserializationError as e:
-                errors.append(f"Bundle {idx}: {str(e)}")
-
-        if errors:
-            error_message = "Failed to deserialize some bundles:\n" + "\n".join(errors)
-            raise DeserializationError(error_message)
+        for bundle_data in data:
+            bundle = EvidenceBundleSerializer.from_dict(bundle_data)
+            bundles.append(bundle)
 
         return bundles
 
@@ -281,10 +250,10 @@ class EvidenceBundleSerializer:
         try:
             EvidenceBundleSerializer.from_json(json_str)
             return True, None
-        except DeserializationError as e:
+        except (json.JSONDecodeError, ValidationError, ValueError) as e:
+            if isinstance(e, ValidationError):
+                return False, f"Evidence bundle validation failed: {e}"
             return False, str(e)
-        except Exception as e:
-            return False, f"Unexpected validation error: {str(e)}"
 
     @staticmethod
     def validate_dict_schema(data: Dict[str, Any]) -> tuple[bool, Optional[str]]:
@@ -302,8 +271,8 @@ class EvidenceBundleSerializer:
         try:
             EvidenceBundleSerializer.from_dict(data)
             return True, None
-        except DeserializationError as e:
-            return False, str(e)
+        except ValidationError as e:
+            return False, f"Evidence bundle validation failed: {e}"
         except Exception as e:
             return False, f"Unexpected validation error: {str(e)}"
 
@@ -333,7 +302,14 @@ def bundle_from_json(json_str: str) -> EvidenceBundle:
     Returns:
         EvidenceBundle instance
     """
-    return EvidenceBundleSerializer.from_json(json_str)
+    try:
+        return EvidenceBundleSerializer.from_json(json_str)
+    except json.JSONDecodeError as exc:
+        raise DeserializationError(f"Invalid JSON format: {exc}") from exc
+    except ValidationError as exc:
+        raise DeserializationError(f"Evidence bundle validation failed: {exc}") from exc
+    except ValueError as exc:
+        raise DeserializationError(f"Invalid JSON format: {exc}") from exc
 
 
 def bundle_to_dict(bundle: EvidenceBundle) -> Dict[str, Any]:
@@ -359,7 +335,10 @@ def bundle_from_dict(data: Dict[str, Any]) -> EvidenceBundle:
     Returns:
         EvidenceBundle instance
     """
-    return EvidenceBundleSerializer.from_dict(data)
+    try:
+        return EvidenceBundleSerializer.from_dict(data)
+    except ValidationError as exc:
+        raise DeserializationError(f"Evidence bundle validation failed: {exc}") from exc
 
 
 def validate_bundle_json(json_str: str) -> tuple[bool, Optional[str]]:

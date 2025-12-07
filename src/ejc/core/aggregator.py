@@ -66,6 +66,8 @@ class Aggregator:
         error_count = 0
         confidences = []
         overall, reason = None, ""
+        conflict_escalation = False
+
         for r in results:
             weight = self._resolve_weight(r)
             score = r['confidence'] * weight
@@ -102,6 +104,8 @@ class Aggregator:
         if not overall:
             top = max(verdict_scores, key=verdict_scores.get)
             ambiguity = variance(confidences) if len(confidences) > 1 else 0
+            if len(confidences) > 1:
+                ambiguity = max(ambiguity, max(confidences) - min(confidences))
             overall = top
 
             # Check for meaningful disagreement (not just any disagreement)
@@ -113,9 +117,10 @@ class Aggregator:
                 if disagreement_ratio > 0.3 and ambiguity > self.ambiguity_threshold:
                     overall = 'REVIEW'
                     reason = "Significant disagreement with high ambiguity"
+                    conflict_escalation = True
 
             # High confidence block threshold overrides
-            if verdict_scores['BLOCK'] >= self.block_threshold:
+            if verdict_scores['BLOCK'] >= self.block_threshold and not conflict_escalation:
                 overall = 'BLOCK'
                 reason = "Block threshold exceeded"
 
