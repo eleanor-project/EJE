@@ -51,5 +51,10 @@ setup(
     package_data={
         "eje_client": ["py.typed"],
     },
+    entry_points={
+        "console_scripts": [
+            "eje=eje_client.cli:main",
+        ]
+    },
     zip_safe=False,
 )
