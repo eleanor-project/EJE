@@ -37,12 +37,15 @@
 
 ### ✅ Issue #140 - Sample Decision Run Documentation (Completed)
 **Status**: COMPLETED
+- Added walkthrough showing example request/response flows and surfaced it from the getting started guide.
 
-### ✅ Activity 22.x - Production CLI and Safeguards (Completed)
+### ✅ Activity 22.x - Production CLI and Safeguards (Completed - 2 issues)
 **Status**: COMPLETED
 - Added `eje` CLI with evaluate/search/health commands, environment overrides, and JSON validation.
 - Hardened context file handling, base URL validation, and output persistence options.
 - Exposed console entry point and bundled unit tests for offline verification.
+- [x] Activity 22.3 - Add production-ready `eje` CLI with evaluate/search/health commands
+- [x] Activity 22.4 - Harden CLI inputs for base URL validation, context files, and output persistence
 
 ### ✅ Issue Tracker Automation - GitHub Issue Closer (Completed)
 **Status**: COMPLETED
@@ -59,14 +62,6 @@
 - [x] #140 - Add sample decision run walkthrough and link from getting started
 
 **Commit**: `f74179b` - "Lazy load ejc package exports to avoid heavy dependencies" (includes documentation walkthrough)
-
----
-
-### ✅ Activity 22.x - Python CLI and Context Handling (Completed - 2 issues)
-**Status**: COMPLETED
-
-- [x] Activity 22.3 - Add production-ready `eje` CLI with evaluate/search/health commands
-- [x] Activity 22.4 - Harden CLI inputs for base URL validation, context files, and output persistence
 
 **Commit**: `f74179b` - "Lazy load ejc package exports to avoid heavy dependencies" (includes CLI and validation updates)
 
