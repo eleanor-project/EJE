@@ -8,9 +8,9 @@
 
 ## 🎯 Overall Progress
 
-**Completed**: 22/32 issues (69%)
+**Completed**: 26/32 issues (81%)
 **In Progress**: 0 issues
-**Remaining**: 10 issues
+**Remaining**: 6 issues
 
 ---
 
@@ -32,6 +32,35 @@
 - [x] #53 - Aggregator Test Suite
 
 **Commit**: `fed3d46` - "Implement Tier 1 & Tier 2 core engine features"
+
+---
+
+### ✅ Issue #140 - Sample Decision Run Documentation (Completed)
+**Status**: COMPLETED
+- Added walkthrough showing example request/response flows and surfaced it from the getting started guide.
+- Linked the getting started guide to the new walkthrough for easier discovery.
+
+### ✅ Activity 22.x - Production CLI and Safeguards (Completed - 2 issues)
+**Status**: COMPLETED
+- Added `eje` CLI with evaluate/search/health commands, environment overrides, and JSON validation.
+- Hardened context file handling, base URL validation, and output persistence options.
+- Exposed console entry point and bundled unit tests for offline verification.
+- [x] Activity 22.3 - Add production-ready `eje` CLI with evaluate/search/health commands
+- [x] Activity 22.4 - Harden CLI inputs for base URL validation, context files, and output persistence
+
+### ✅ Issue Tracker Automation - GitHub Issue Closer (Completed)
+**Status**: COMPLETED
+- Added utility to close GitHub issues with token resolution, dry-run safety, and validation.
+- Supports optional state reasons and ensures HTTP sessions close cleanly after use.
+- Documented closure workflow alongside uploader tooling with comprehensive tests.
+
+### ✅ Escalation Dissent Insights - Review Bundle Enhancements (Completed)
+**Status**: COMPLETED
+- Escalation bundles now summarize dissent reasoning divergence and rights impacts.
+- Reviewer checklists and safety-critical context feed priority selection and metadata.
+- Added tests covering dissent summaries, rights impact extraction, and divergence handling.
+
+**Commit**: `f74179b` - "Lazy load ejc package exports to avoid heavy dependencies" (includes documentation walkthrough and CLI validation updates)
 
 ---
 
@@ -85,11 +114,11 @@
 ---
 
 ## 📝 Notes
-- Working on local repository: `/Users/Bill/GitHub/EJE`
+- Working on local repository: `/workspace/EJE`
 - All commits use conventional commit format
 - Tests written for all new features
 - Documentation included inline
 
 ---
 
-**Last Updated**: 2025-12-02 (Auto-updated by agent)
+**Last Updated**: 2025-12-07 (Auto-updated by agent)
