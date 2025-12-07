@@ -172,8 +172,8 @@ class EvidenceNormalizer:
 
     def normalize(
         self,
-        input_text: str,
-        critic_outputs: List[Dict[str, Any]],
+        input_text: Optional[str] = None,
+        critic_outputs: Optional[List[Dict[str, Any]]] = None,
         input_context: Optional[Dict[str, Any]] = None,
         input_metadata: Optional[Dict[str, Any]] = None,
         correlation_id: Optional[str] = None,
@@ -184,10 +184,12 @@ class EvidenceNormalizer:
         Normalize raw critic outputs into an evidence bundle.
 
         Args:
-            input_text: The primary text being evaluated
+            input_text: Explicit text to evaluate (preferred if provided)
             critic_outputs: List of raw critic output dictionaries
-            input_context: Additional context information
-            input_metadata: Input-level metadata
+            input_context: Optional block containing `text`, `context`, and `metadata`
+                           If both input_text and input_context['text'] are supplied, they
+                           must match.
+            input_metadata: Input-level metadata (overrides metadata in input_context)
             correlation_id: Correlation ID for distributed tracing
             precedent_refs: References to precedent cases
             processing_time_ms: Total processing time in milliseconds
@@ -200,12 +202,39 @@ class EvidenceNormalizer:
         """
         validation_errors = []
 
+        if not critic_outputs:
+            raise ValueError("No valid critic outputs provided")
+
+        # Resolve input text and supporting context/metadata
+        context_block = input_context if isinstance(input_context, dict) else {}
+        context_from_block: Dict[str, Any] = {}
+        metadata_from_block: Optional[Dict[str, Any]] = None
+        text_from_block: Optional[str] = None
+
+        if context_block:
+            if any(key in context_block for key in ("text", "context", "metadata")):
+                text_from_block = context_block.get("text")
+                context_from_block = context_block.get("context", {})
+                metadata_from_block = context_block.get("metadata")
+            else:
+                context_from_block = context_block
+
+        if input_text and text_from_block and text_from_block != input_text:
+            raise ValueError("Input text conflict between input_text and input_context['text']")
+
+        text = input_text or text_from_block
+        if text is None:
+            raise ValueError("Input text is required for normalization")
+
+        context = context_from_block
+        metadata = input_metadata or metadata_from_block or {}
+
         # Normalize input snapshot
         try:
             input_snapshot = self._normalize_input_snapshot(
-                input_text,
-                input_context or {},
-                input_metadata or {}
+                text,
+                context,
+                metadata
             )
         except Exception as e:
             validation_errors.append(
@@ -217,9 +246,9 @@ class EvidenceNormalizer:
             )
             # Create minimal input snapshot as fallback
             input_snapshot = InputSnapshot(
-                text=input_text,
-                context=input_context or {},
-                metadata=InputMetadata(**(input_metadata or {})),
+                text=text,
+                context=context,
+                metadata=InputMetadata(**metadata),
                 context_hash=""  # Will be auto-computed
             )
 
@@ -288,6 +317,12 @@ class EvidenceNormalizer:
         Returns:
             Normalized CriticOutput
         """
+        required_fields = ["verdict", "confidence"]
+        missing_fields = [field for field in required_fields if field not in raw_output]
+
+        if missing_fields:
+            raise ValueError(f"Missing required fields: {', '.join(missing_fields)}")
+
         # Ensure required fields have defaults
         normalized = {
             'critic': raw_output.get('critic', 'unknown'),
@@ -368,9 +403,9 @@ class EvidenceNormalizer:
         for input_data in inputs:
             try:
                 bundle = self.normalize(
-                    input_text=input_data['input_text'],
-                    critic_outputs=input_data['critic_outputs'],
+                    critic_outputs=input_data.get('critic_outputs', []),
                     input_context=input_data.get('input_context'),
+                    input_text=input_data.get('input_text'),
                     input_metadata=input_data.get('input_metadata'),
                     correlation_id=input_data.get('correlation_id'),
                     precedent_refs=input_data.get('precedent_refs'),
