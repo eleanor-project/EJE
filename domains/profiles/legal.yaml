@@ -1,0 +1,134 @@
+# Legal/Compliance Domain Profile
+# Configuration for legal and compliance governance
+
+name: legal
+domain_type: legal
+description: Legal/compliance domain configuration with GDPR, EU AI Act, and multi-jurisdiction support
+version: 1.0.0
+author: EJE Team
+tags:
+  - legal
+  - compliance
+  - gdpr
+  - contracts
+  - regulatory
+
+# Critics to load for this domain
+critics:
+  - LegalGDPRComplianceCritic
+  - LegalEUAIActComplianceCritic
+  - LegalContractAnalysisCritic
+  - LegalRegulatoryMonitoringCritic
+  - LegalMultiJurisdictionCritic
+
+# Critic-specific configuration
+critic_config:
+  gdpr_compliance:
+    lawful_basis_verification: required
+    data_subject_rights_enforcement: automated
+    breach_notification_hours: 72
+    dpo_designation_required: true
+  eu_ai_act:
+    risk_classification: automated
+    high_risk_requirements: enforced
+    transparency_obligations: required
+    conformity_assessment: documented
+  contract_analysis:
+    unconscionable_terms_detection: enabled
+    liability_limitation_review: active
+    indemnification_clause_analysis: required
+    ambiguity_detection: enabled
+
+# Precedent namespaces
+precedent_namespaces:
+  - legal.gdpr
+  - legal.eu_ai_act
+  - legal.contracts
+  - legal.intellectual_property
+  - legal.regulatory_compliance
+
+# Precedent configuration
+precedent_config:
+  case_law_sources:
+    - "CJEU Decisions"
+    - "National Data Protection Authority Rulings"
+    - "Contract Law Precedents"
+    - "Regulatory Enforcement Actions"
+  update_frequency: monthly
+  require_citations: true
+
+# Regulatory frameworks
+regulatory_frameworks:
+  - "General Data Protection Regulation (GDPR) EU 2016/679"
+  - "EU AI Act (2024/1689)"
+  - "ePrivacy Directive (2002/58/EC)"
+  - "NIS2 Directive (EU 2022/2555)"
+  - "Digital Services Act (DSA)"
+  - "Digital Markets Act (DMA)"
+  - "California Consumer Privacy Act (CCPA)"
+  - "UK Data Protection Act 2018"
+  - "PIPL (China Personal Information Protection Law)"
+  - "LGPD (Brazil General Data Protection Law)"
+
+# Compliance requirements
+compliance_requirements:
+  data_protection:
+    lawful_basis_documentation: required
+    data_minimization: enforced
+    purpose_limitation: strict
+    storage_limitation: time_bound
+  privacy_rights:
+    right_to_access: within_30_days
+    right_to_erasure: automated
+    right_to_portability: machine_readable
+    right_to_object: honored
+  ai_governance:
+    risk_assessment: mandatory
+    human_oversight: required_for_high_risk
+    transparency_documentation: comprehensive
+    conformity_assessment: third_party_for_high_risk
+  contract_governance:
+    essential_terms_verification: required
+    unconscionability_check: automated
+    choice_of_law_analysis: multi_jurisdiction
+    dispute_resolution_clause: recommended
+
+# Multi-jurisdiction support
+jurisdictions:
+  - name: "European Union"
+    frameworks:
+      - GDPR
+      - EU AI Act
+      - ePrivacy Directive
+    data_residency: required
+  - name: "United States"
+    frameworks:
+      - CCPA
+      - HIPAA
+      - FCRA
+    data_residency: sector_specific
+  - name: "United Kingdom"
+    frameworks:
+      - UK GDPR
+      - Data Protection Act 2018
+    data_residency: post_brexit_rules
+  - name: "Canada"
+    frameworks:
+      - PIPEDA
+      - AIDA
+    data_residency: provincial_rules
+  - name: "China"
+    frameworks:
+      - PIPL
+      - Cybersecurity Law
+    data_residency: strict_localization
+
+# Feature flags
+features:
+  gdpr_compliance: true
+  eu_ai_act_compliance: true
+  contract_analysis: true
+  multi_jurisdiction_support: true
+  regulatory_monitoring: true
+  legal_precedent_search: true
+  compliance_reporting: true
