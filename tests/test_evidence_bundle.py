@@ -258,7 +258,34 @@ class TestEvidenceNormalizer:
         critic = bundle.critic_outputs[0]
         assert critic.weight == 1.0
         assert critic.timestamp is not None
-        assert isinstance(critic.evidence_sources, list)
+
+    def test_invalid_critic_outputs_record_validation_errors(self, normalizer, sample_input_context):
+        """Malformed critic outputs should be captured as validation warnings."""
+        critic_outputs = [
+            {
+                "critic": "valid",
+                "verdict": "ALLOW",
+                "confidence": 0.9,
+                "justification": "ok",
+            },
+            {
+                "critic": "invalid",
+                "verdict": "ALLOW",
+                "confidence": "not-a-number",
+                "justification": "broken",
+            },
+        ]
+
+        bundle = normalizer.normalize(
+            input_text=sample_input_context["text"],
+            critic_outputs=critic_outputs,
+            input_context=sample_input_context,
+        )
+
+        assert len(bundle.critic_outputs) == 1
+        assert bundle.critic_outputs[0].critic == "valid"
+        assert any(err.field == "critic_outputs[1]" for err in bundle.validation_errors)
+        assert isinstance(bundle.critic_outputs[0].evidence_sources, list)
 
     def test_context_hash_generation(self, normalizer, sample_critic_output, sample_input_context):
         """Test that context hash is properly generated"""
