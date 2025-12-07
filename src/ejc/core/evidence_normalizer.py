@@ -175,6 +175,7 @@ class EvidenceNormalizer:
         input_text: Optional[str] = None,
         critic_outputs: Optional[List[Dict[str, Any]]] = None,
         input_context: Optional[Dict[str, Any]] = None,
+        input_text: Optional[str] = None,
         input_metadata: Optional[Dict[str, Any]] = None,
         correlation_id: Optional[str] = None,
         precedent_refs: Optional[List[Dict[str, Any]]] = None,
