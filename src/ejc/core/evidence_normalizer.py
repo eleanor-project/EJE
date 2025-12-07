@@ -172,7 +172,8 @@ class EvidenceNormalizer:
 
     def normalize(
         self,
-        critic_outputs: List[Dict[str, Any]],
+        input_text: Optional[str] = None,
+        critic_outputs: Optional[List[Dict[str, Any]]] = None,
         input_context: Optional[Dict[str, Any]] = None,
         input_text: Optional[str] = None,
         input_metadata: Optional[Dict[str, Any]] = None,
@@ -184,9 +185,11 @@ class EvidenceNormalizer:
         Normalize raw critic outputs into an evidence bundle.
 
         Args:
+            input_text: Explicit text to evaluate (preferred if provided)
             critic_outputs: List of raw critic output dictionaries
             input_context: Optional block containing `text`, `context`, and `metadata`
-            input_text: Explicit text to evaluate; falls back to `input_context['text']`
+                           If both input_text and input_context['text'] are supplied, they
+                           must match.
             input_metadata: Input-level metadata (overrides metadata in input_context)
             correlation_id: Correlation ID for distributed tracing
             precedent_refs: References to precedent cases
@@ -201,16 +204,31 @@ class EvidenceNormalizer:
         validation_errors = []
 
         if not critic_outputs:
-            raise ValueError("Normalization requires at least one critic output")
+            raise ValueError("No valid critic outputs provided")
 
         # Resolve input text and supporting context/metadata
-        context_block = input_context or {}
-        text = input_text or context_block.get("text")
+        context_block = input_context if isinstance(input_context, dict) else {}
+        context_from_block: Dict[str, Any] = {}
+        metadata_from_block: Optional[Dict[str, Any]] = None
+        text_from_block: Optional[str] = None
+
+        if context_block:
+            if any(key in context_block for key in ("text", "context", "metadata")):
+                text_from_block = context_block.get("text")
+                context_from_block = context_block.get("context", {})
+                metadata_from_block = context_block.get("metadata")
+            else:
+                context_from_block = context_block
+
+        if input_text and text_from_block and text_from_block != input_text:
+            raise ValueError("Input text conflict between input_text and input_context['text']")
+
+        text = input_text or text_from_block
         if text is None:
             raise ValueError("Input text is required for normalization")
 
-        context = context_block.get("context", {}) if isinstance(context_block, dict) else {}
-        metadata = input_metadata or (context_block.get("metadata") if isinstance(context_block, dict) else {}) or {}
+        context = context_from_block
+        metadata = input_metadata or metadata_from_block or {}
 
         # Normalize input snapshot
         try:
@@ -300,6 +318,12 @@ class EvidenceNormalizer:
         Returns:
             Normalized CriticOutput
         """
+        required_fields = ["verdict", "confidence"]
+        missing_fields = [field for field in required_fields if field not in raw_output]
+
+        if missing_fields:
+            raise ValueError(f"Missing required fields: {', '.join(missing_fields)}")
+
         # Ensure required fields have defaults
         normalized = {
             'critic': raw_output.get('critic', 'unknown'),

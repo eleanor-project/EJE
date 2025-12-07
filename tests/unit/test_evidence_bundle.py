@@ -128,6 +128,27 @@ class TestEvidenceBundleNormalization:
         # Should still have valid critic output
         assert len(bundle.critic_outputs) >= 1
 
+    def test_conflicting_input_text_sources(self):
+        """Ensure conflicting text inputs raise a clear error"""
+        normalizer = EvidenceNormalizer()
+
+        critic_output = {
+            "critic": "test_critic",
+            "verdict": "ALLOW",
+            "confidence": 0.8,
+            "justification": "Valid",
+        }
+
+        with pytest.raises(ValueError, match="Input text conflict"):
+            normalizer.normalize(
+                input_text="explicit text",
+                critic_outputs=[critic_output],
+                input_context={
+                    "text": "different text",
+                    "context": {},
+                },
+            )
+
     def test_normalize_batch(self):
         """Test batch normalization"""
         normalizer = EvidenceNormalizer()
