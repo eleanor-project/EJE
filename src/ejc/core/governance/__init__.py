@@ -28,6 +28,13 @@ from .override_event_logger import (
     create_override_event_bundle,
     get_override_events_for_decision
 )
+from .override_workflow import (
+    apply_decision_override,
+    apply_batch_overrides,
+    get_escalated_decisions,
+    create_override_from_review,
+    get_override_summary_for_decision
+)
 
 __all__ = [
     'apply_governance_rules',
@@ -51,5 +58,10 @@ __all__ = [
     'log_override_event',
     'log_override_event_simple',
     'create_override_event_bundle',
-    'get_override_events_for_decision'
+    'get_override_events_for_decision',
+    'apply_decision_override',
+    'apply_batch_overrides',
+    'get_escalated_decisions',
+    'create_override_from_review',
+    'get_override_summary_for_decision'
 ]
