@@ -8,9 +8,9 @@
 
 ## 🎯 Overall Progress
 
-**Completed**: 22/32 issues (69%)
+**Completed**: 26/32 issues (81%)
 **In Progress**: 0 issues
-**Remaining**: 10 issues
+**Remaining**: 6 issues
 
 ---
 
@@ -32,6 +32,25 @@
 - [x] #53 - Aggregator Test Suite
 
 **Commit**: `fed3d46` - "Implement Tier 1 & Tier 2 core engine features"
+
+---
+
+### ✅ Issue #140 - Sample Decision Run Documentation (Completed)
+**Status**: COMPLETED
+
+- [x] #140 - Add sample decision run walkthrough and link from getting started
+
+**Commit**: `f74179b` - "Lazy load ejc package exports to avoid heavy dependencies" (includes documentation walkthrough)
+
+---
+
+### ✅ Activity 22.x - Python CLI and Context Handling (Completed - 2 issues)
+**Status**: COMPLETED
+
+- [x] Activity 22.3 - Add production-ready `eje` CLI with evaluate/search/health commands
+- [x] Activity 22.4 - Harden CLI inputs for base URL validation, context files, and output persistence
+
+**Commit**: `f74179b` - "Lazy load ejc package exports to avoid heavy dependencies" (includes CLI and validation updates)
 
 ---
 
@@ -92,4 +111,4 @@
 
 ---
 
-**Last Updated**: 2025-12-02 (Auto-updated by agent)
+**Last Updated**: 2025-12-07 (Auto-updated by agent)
