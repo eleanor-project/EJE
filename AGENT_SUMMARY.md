@@ -38,6 +38,7 @@
 ### ✅ Issue #140 - Sample Decision Run Documentation (Completed)
 **Status**: COMPLETED
 - Added walkthrough showing example request/response flows and surfaced it from the getting started guide.
+- Linked the getting started guide to the new walkthrough for easier discovery.
 
 ### ✅ Activity 22.x - Production CLI and Safeguards (Completed - 2 issues)
 **Status**: COMPLETED
@@ -59,11 +60,7 @@
 - Reviewer checklists and safety-critical context feed priority selection and metadata.
 - Added tests covering dissent summaries, rights impact extraction, and divergence handling.
 
-- [x] #140 - Add sample decision run walkthrough and link from getting started
-
-**Commit**: `f74179b` - "Lazy load ejc package exports to avoid heavy dependencies" (includes documentation walkthrough)
-
-**Commit**: `f74179b` - "Lazy load ejc package exports to avoid heavy dependencies" (includes CLI and validation updates)
+**Commit**: `f74179b` - "Lazy load ejc package exports to avoid heavy dependencies" (includes documentation walkthrough and CLI validation updates)
 
 ---
 
@@ -117,7 +114,7 @@
 ---
 
 ## 📝 Notes
-- Working on local repository: `/Users/Bill/GitHub/EJE`
+- Working on local repository: `/workspace/EJE`
 - All commits use conventional commit format
 - Tests written for all new features
 - Documentation included inline
