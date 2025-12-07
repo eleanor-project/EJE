@@ -14,6 +14,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+from .evidence_normalizer import BundleMetadata, EvidenceBundle
+
 
 class ExecutionStats(BaseModel):
     """Statistics about critic execution"""
@@ -75,6 +77,36 @@ class MetadataEnricher:
         self.environment = environment
         self.deployment_id = deployment_id or str(uuid.uuid4())
         self.system_metadata = self._capture_system_metadata()
+
+    def enrich(
+        self,
+        bundle: EvidenceBundle,
+        correlation_id: Optional[str] = None,
+        start_time: Optional[float] = None,
+        critic_versions: Optional[Dict[str, str]] = None,
+    ) -> EvidenceBundle:
+        """Enrich an evidence bundle with metadata and timing information."""
+
+        enriched = bundle.model_copy(deep=True)
+        metadata = enriched.metadata.model_dump()
+
+        now = self.create_timestamp()
+        metadata.setdefault("created_at", now)
+        metadata["updated_at"] = now
+        metadata["system_version"] = self.system_version
+        metadata["environment"] = self.environment
+
+        if correlation_id:
+            metadata["correlation_id"] = correlation_id
+
+        if critic_versions:
+            metadata["critic_config_versions"] = critic_versions
+
+        if start_time is not None:
+            metadata["processing_time_ms"] = max(0.0, (time.time() - start_time) * 1000)
+
+        enriched.metadata = BundleMetadata(**metadata)
+        return enriched
 
     def _capture_system_metadata(self) -> SystemMetadata:
         """Capture system-level metadata"""

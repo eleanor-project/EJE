@@ -61,6 +61,23 @@ asyncio.run(main())
 - **Comprehensive**: All EJE API endpoints supported
 - **Dependencies**: Minimal dependencies (requests, aiohttp)
 
+## Command Line Interface
+
+The Python SDK ships with an ``eje`` CLI for quick interaction with a running
+EJE deployment.
+
+```bash
+eje --base-url https://api.example.com --api-key $EJE_API_KEY \
+  evaluate "Share user location data" --context '{"jurisdiction": "GDPR"}'
+
+eje --base-url https://api.example.com \
+  evaluate "Share user location data" --context-file ./context.json --output result.json
+
+eje --base-url https://api.example.com search "privacy" --top-k 5
+
+eje --base-url https://api.example.com health
+```
+
 ## API Reference
 
 ### Client Initialization

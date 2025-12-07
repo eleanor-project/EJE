@@ -102,3 +102,28 @@ class TestAggregator:
         output = agg.aggregate(results)
         # Average of 0.8 and 0.6 should be 0.7
         assert output['avg_confidence'] == pytest.approx(0.7, rel=0.01)
+
+    def test_missing_critic_results_returns_review(self):
+        """No critic output should trigger REVIEW with informative reason."""
+        agg = Aggregator()
+
+        output = agg.aggregate([])
+
+        assert output['overall_verdict'] == 'REVIEW'
+        assert output['reason'] == 'No critic results available'
+        assert output['verdict_scores'] == {'ALLOW': 0, 'BLOCK': 0, 'REVIEW': 0}
+        assert output['errors'] == {'count': 0, 'rate': 0.0}
+
+    def test_conflict_detection_escalates_review(self):
+        """Significant disagreement with high ambiguity should return REVIEW."""
+        agg = Aggregator({'ambiguity_threshold': 0.05})
+
+        results = [
+            {'critic': 'fairness', 'verdict': 'ALLOW', 'confidence': 0.9, 'weight': 1.0, 'priority': None},
+            {'critic': 'safety', 'verdict': 'BLOCK', 'confidence': 0.82, 'weight': 1.0, 'priority': None},
+        ]
+
+        output = agg.aggregate(results)
+
+        assert output['overall_verdict'] == 'REVIEW'
+        assert 'ambiguity' in output and output['ambiguity'] > 0
