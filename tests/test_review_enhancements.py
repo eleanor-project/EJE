@@ -113,7 +113,13 @@ class TestEscalationBundle:
         assert bundle.case_id == "case_001"
         assert len(bundle.critic_votes) == 3
         assert bundle.dissent_analysis.dissent_index > 0.0
+        assert bundle.dissent_analysis.reasoning_divergence > 0.0
+        assert bundle.dissent_analysis.summary.startswith("Majority verdict")
         assert bundle.priority in ["critical", "high", "medium", "low"]
+        assert any(
+            impact["right"] == "Privacy and Data Protection" for impact in bundle.rights_impact
+        )
+        assert "review_checklist" in bundle.metadata
 
     def test_dissent_index_unanimous(self, unanimous_critic_results):
         """Test dissent index for unanimous verdict."""
@@ -125,6 +131,7 @@ class TestEscalationBundle:
         assert dissent.dissent_index == 0.0
         assert dissent.disagreement_type == "unanimous"
         assert dissent.majority_verdict == "blocked"
+        assert dissent.reasoning_divergence == 0.0
 
     def test_dissent_index_split(self, sample_critic_results):
         """Test dissent index for split verdict."""
@@ -136,6 +143,21 @@ class TestEscalationBundle:
         assert dissent.dissent_index > 0.5  # Significant disagreement
         assert dissent.disagreement_type in ["split", "majority", "deadlock"]  # 1:1:1 is deadlock
         assert len(dissent.minority_verdicts) > 0
+        assert dissent.reasoning_divergence >= 0.0
+
+    def test_rights_impact_escalates_safety(self, sample_input_data, sample_critic_results):
+        """Safety-critical context should raise rights impact severity."""
+        builder = EscalationBundleBuilder()
+        data = {**sample_input_data, "context": {**sample_input_data.get("context", {})}}
+        data["context"]["safety_critical"] = True
+
+        bundle = builder.build_bundle(
+            case_id="case_004",
+            input_data=data,
+            critic_results=sample_critic_results,
+        )
+
+        assert any(impact["severity"] == "critical" for impact in bundle.rights_impact)
 
     def test_conflicting_principles_detection(self, sample_critic_results):
         """Test detection of conflicting principles."""
