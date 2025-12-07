@@ -13,6 +13,7 @@ from pydantic import ValidationError
 from eje.api import endpoints
 from eje.api.auth import create_auth_dependency, security
 from eje.api.validation import validation_exception_handler, pydantic_exception_handler
+from eje.api.rate_limit import create_rate_limit_middleware
 from eje.config.settings import Settings, get_settings
 from eje.db import escalation_log
 from eje.learning.context_model import DissentAwareContextModel
@@ -28,6 +29,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
     - Strict Pydantic validation (Task 10.2)
     - Custom error handlers with clear messages
     - CORS middleware
+        - Rate limiting with exponential backoff (Task 10.5)
     - Database initialization
     - Learning model integration
     - Uptime tracking
@@ -73,6 +75,9 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["Authorization", "Content-Type"],
     )
+    
+    # Rate limiting middleware (Task 10.5)
+    app.add_middleware(create_rate_limit_middleware(settings))
 
     @app.on_event("startup")
     async def _startup():
