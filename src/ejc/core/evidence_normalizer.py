@@ -172,9 +172,9 @@ class EvidenceNormalizer:
 
     def normalize(
         self,
-        input_text: str,
         critic_outputs: List[Dict[str, Any]],
         input_context: Optional[Dict[str, Any]] = None,
+        input_text: Optional[str] = None,
         input_metadata: Optional[Dict[str, Any]] = None,
         correlation_id: Optional[str] = None,
         precedent_refs: Optional[List[Dict[str, Any]]] = None,
@@ -184,10 +184,10 @@ class EvidenceNormalizer:
         Normalize raw critic outputs into an evidence bundle.
 
         Args:
-            input_text: The primary text being evaluated
             critic_outputs: List of raw critic output dictionaries
-            input_context: Additional context information
-            input_metadata: Input-level metadata
+            input_context: Optional block containing `text`, `context`, and `metadata`
+            input_text: Explicit text to evaluate; falls back to `input_context['text']`
+            input_metadata: Input-level metadata (overrides metadata in input_context)
             correlation_id: Correlation ID for distributed tracing
             precedent_refs: References to precedent cases
             processing_time_ms: Total processing time in milliseconds
@@ -200,12 +200,24 @@ class EvidenceNormalizer:
         """
         validation_errors = []
 
+        if not critic_outputs:
+            raise ValueError("Normalization requires at least one critic output")
+
+        # Resolve input text and supporting context/metadata
+        context_block = input_context or {}
+        text = input_text or context_block.get("text")
+        if text is None:
+            raise ValueError("Input text is required for normalization")
+
+        context = context_block.get("context", {}) if isinstance(context_block, dict) else {}
+        metadata = input_metadata or (context_block.get("metadata") if isinstance(context_block, dict) else {}) or {}
+
         # Normalize input snapshot
         try:
             input_snapshot = self._normalize_input_snapshot(
-                input_text,
-                input_context or {},
-                input_metadata or {}
+                text,
+                context,
+                metadata
             )
         except Exception as e:
             validation_errors.append(
@@ -217,9 +229,9 @@ class EvidenceNormalizer:
             )
             # Create minimal input snapshot as fallback
             input_snapshot = InputSnapshot(
-                text=input_text,
-                context=input_context or {},
-                metadata=InputMetadata(**(input_metadata or {})),
+                text=text,
+                context=context,
+                metadata=InputMetadata(**metadata),
                 context_hash=""  # Will be auto-computed
             )
 
@@ -368,9 +380,9 @@ class EvidenceNormalizer:
         for input_data in inputs:
             try:
                 bundle = self.normalize(
-                    input_text=input_data['input_text'],
-                    critic_outputs=input_data['critic_outputs'],
+                    critic_outputs=input_data.get('critic_outputs', []),
                     input_context=input_data.get('input_context'),
+                    input_text=input_data.get('input_text'),
                     input_metadata=input_data.get('input_metadata'),
                     correlation_id=input_data.get('correlation_id'),
                     precedent_refs=input_data.get('precedent_refs'),
