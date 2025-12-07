@@ -37,20 +37,30 @@
 
 ### ✅ Issue #140 - Sample Decision Run Documentation (Completed)
 **Status**: COMPLETED
+- Added walkthrough showing example request/response flows and surfaced it from the getting started guide.
+- Linked the getting started guide to the new walkthrough for easier discovery.
 
-- [x] #140 - Add sample decision run walkthrough and link from getting started
-
-**Commit**: `f74179b` - "Lazy load ejc package exports to avoid heavy dependencies" (includes documentation walkthrough)
-
----
-
-### ✅ Activity 22.x - Python CLI and Context Handling (Completed - 2 issues)
+### ✅ Activity 22.x - Production CLI and Safeguards (Completed - 2 issues)
 **Status**: COMPLETED
-
+- Added `eje` CLI with evaluate/search/health commands, environment overrides, and JSON validation.
+- Hardened context file handling, base URL validation, and output persistence options.
+- Exposed console entry point and bundled unit tests for offline verification.
 - [x] Activity 22.3 - Add production-ready `eje` CLI with evaluate/search/health commands
 - [x] Activity 22.4 - Harden CLI inputs for base URL validation, context files, and output persistence
 
-**Commit**: `f74179b` - "Lazy load ejc package exports to avoid heavy dependencies" (includes CLI and validation updates)
+### ✅ Issue Tracker Automation - GitHub Issue Closer (Completed)
+**Status**: COMPLETED
+- Added utility to close GitHub issues with token resolution, dry-run safety, and validation.
+- Supports optional state reasons and ensures HTTP sessions close cleanly after use.
+- Documented closure workflow alongside uploader tooling with comprehensive tests.
+
+### ✅ Escalation Dissent Insights - Review Bundle Enhancements (Completed)
+**Status**: COMPLETED
+- Escalation bundles now summarize dissent reasoning divergence and rights impacts.
+- Reviewer checklists and safety-critical context feed priority selection and metadata.
+- Added tests covering dissent summaries, rights impact extraction, and divergence handling.
+
+**Commit**: `f74179b` - "Lazy load ejc package exports to avoid heavy dependencies" (includes documentation walkthrough and CLI validation updates)
 
 ---
 
@@ -104,7 +114,7 @@
 ---
 
 ## 📝 Notes
-- Working on local repository: `/Users/Bill/GitHub/EJE`
+- Working on local repository: `/workspace/EJE`
 - All commits use conventional commit format
 - Tests written for all new features
 - Documentation included inline

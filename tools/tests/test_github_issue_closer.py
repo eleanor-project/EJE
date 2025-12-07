@@ -1,10 +1,9 @@
 import sys
-import requests
 from pathlib import Path
 from types import SimpleNamespace
-from unittest import mock
 
 import pytest
+import requests
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
@@ -45,6 +44,21 @@ def test_parse_issue_numbers_rejects_invalid_input():
         closer.parse_issue_numbers(["abc", "123"])
 
 
+def test_parse_issue_numbers_rejects_non_positive_values():
+    with pytest.raises(ValueError):
+        closer.parse_issue_numbers(["0", "-1"])
+
+
+def test_validate_repo_requires_owner_and_name():
+    with pytest.raises(ValueError):
+        closer.validate_repo("invalid")
+
+    with pytest.raises(ValueError):
+        closer.validate_repo("owner/repo/extra")
+
+    assert closer.validate_repo("owner/repo") == "owner/repo"
+
+
 def test_resolve_token_prefers_explicit_and_env_fallback(monkeypatch):
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     monkeypatch.delenv("GH_TOKEN", raising=False)
@@ -64,6 +78,12 @@ def test_close_issue_dry_run_prints_and_skips_network(capsys):
     assert "Would close issue #99" in out
 
 
+def test_close_issue_applies_state_reason():
+    session = DummySession(DummyResponse())
+    closer.close_issue(session, "owner/repo", 10, state_reason="completed")
+    assert session.patched[0].payload["state_reason"] == "completed"
+
+
 def test_close_issue_handles_not_found():
     session = DummySession(DummyResponse(status_code=404))
     with pytest.raises(closer.IssueClosingError):
@@ -77,9 +97,19 @@ def test_close_issue_raises_on_http_error():
         closer.close_issue(session, "owner/repo", 6)
 
 
+def test_close_issue_rejects_unknown_state_reason():
+    session = DummySession(DummyResponse())
+    with pytest.raises(ValueError):
+        closer.close_issue(session, "owner/repo", 7, state_reason="other")
+
+
 def test_close_issues_invokes_patch_for_each(monkeypatch):
-    responses = [DummyResponse(), DummyResponse()]
-    dummy_session = DummySession(responses[0])
+    dummy_session = DummySession(DummyResponse())
+    dummy_session.closed = False
+
+    def fake_close():
+        dummy_session.closed = True
+    dummy_session.close = fake_close
 
     def fake_make_session(token):
         assert token == "token"
@@ -87,7 +117,10 @@ def test_close_issues_invokes_patch_for_each(monkeypatch):
 
     monkeypatch.setattr(closer, "make_session", fake_make_session)
 
-    closer.close_issues("owner/repo", [1, 2], token="token", dry_run=False)
+    closer.close_issues(
+        "owner/repo", [1, 2], token="token", dry_run=False, state_reason="completed"
+    )
     assert len(dummy_session.patched) == 2
     assert dummy_session.patched[0].url.endswith("/issues/1")
     assert dummy_session.patched[1].url.endswith("/issues/2")
+    assert dummy_session.closed is True

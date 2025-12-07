@@ -16,6 +16,9 @@ import argparse
 import os
 from typing import Iterable, List, Sequence
 
+REPO_SEPARATOR = "/"
+VALID_STATE_REASONS = {"completed", "not_planned"}
+
 import requests
 
 
@@ -36,10 +39,22 @@ def parse_issue_numbers(raw_values: Sequence[str]) -> List[int]:
                 continue
             if not value.isdigit():
                 raise ValueError(f"Invalid issue number: '{value}'")
-            numbers.append(int(value))
+            number = int(value)
+            if number <= 0:
+                raise ValueError(f"Invalid issue number: '{value}' (must be > 0)")
+            numbers.append(number)
     if not numbers:
         raise ValueError("At least one issue number is required")
     return numbers
+
+
+def validate_repo(repo: str) -> str:
+    if REPO_SEPARATOR not in repo:
+        raise ValueError("--repo must be in owner/repo format")
+    owner, name, *extra = repo.split(REPO_SEPARATOR)
+    if not owner or not name or extra:
+        raise ValueError("--repo must be in owner/repo format")
+    return repo
 
 
 def resolve_token(explicit: str | None) -> str:
@@ -68,14 +83,24 @@ def close_issue(
     repo: str,
     issue_number: int,
     dry_run: bool = False,
+    *,
+    state_reason: str | None = None,
 ) -> None:
     if dry_run:
         print(f"[DRY-RUN] Would close issue #{issue_number} in {repo}")
         return
 
+    if state_reason and state_reason not in VALID_STATE_REASONS:
+        raise ValueError(
+            "state_reason must be one of: " + ", ".join(sorted(VALID_STATE_REASONS))
+        )
+
+    payload = {"state": "closed"}
+    if state_reason:
+        payload["state_reason"] = state_reason
     response = session.patch(
         f"https://api.github.com/repos/{repo}/issues/{issue_number}",
-        json={"state": "closed"},
+        json=payload,
         timeout=30,
     )
     if response.status_code == 404:
@@ -90,11 +115,25 @@ def close_issue(
 
 
 def close_issues(
-    repo: str, issue_numbers: Iterable[int], token: str, dry_run: bool
+    repo: str,
+    issue_numbers: Iterable[int],
+    token: str,
+    dry_run: bool,
+    *,
+    state_reason: str | None = None,
 ) -> None:
     session = make_session(token)
-    for number in issue_numbers:
-        close_issue(session, repo, number, dry_run=dry_run)
+    try:
+        for number in issue_numbers:
+            close_issue(
+                session,
+                repo,
+                number,
+                dry_run=dry_run,
+                state_reason=state_reason,
+            )
+    finally:
+        session.close()
 
 
 def parse_args() -> argparse.Namespace:
@@ -112,14 +151,26 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Print intended actions without calling the GitHub API",
     )
+    parser.add_argument(
+        "--state-reason",
+        choices=sorted(VALID_STATE_REASONS),
+        help="Optional GitHub state_reason to record why the issue is closed",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     numbers = parse_issue_numbers(args.issues)
+    repo = validate_repo(args.repo)
     token = resolve_token(args.token)
-    close_issues(args.repo, numbers, token=token, dry_run=args.dry_run)
+    close_issues(
+        repo,
+        numbers,
+        token=token,
+        dry_run=args.dry_run,
+        state_reason=args.state_reason,
+    )
 
 
 if __name__ == "__main__":

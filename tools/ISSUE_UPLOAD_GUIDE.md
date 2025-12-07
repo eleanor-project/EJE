@@ -29,7 +29,7 @@ When tasks are finished, close them directly in the GitHub issue tracker using t
 
 ## Closing completed issues
 
-Run `tools/github_issue_closer.py` to close issues in the tracker once the work is done.
+Run `tools/github_issue_closer.py` to close issues in the tracker once the work is done. Provide the repository in `owner/name` format and only positive issue numbers.
 
 ```bash
 python tools/github_issue_closer.py \
@@ -41,5 +41,6 @@ python tools/github_issue_closer.py \
 Tips:
 
 - Provide `--dry-run` to verify the list before making changes.
+- Supply `--state-reason completed` (or `not_planned`) to record why the issue was closed.
 - Tokens are resolved from `--token`, `GITHUB_TOKEN`, or `GH_TOKEN`.
 - Use this to close the documentation Issue #140 and the Activity 22.x CLI issues once merged.
