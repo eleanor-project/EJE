@@ -29,7 +29,7 @@ When tasks are finished, close them directly in the GitHub issue tracker using t
 
 ## Closing completed issues
 
-Run `tools/github_issue_closer.py` to close issues in the tracker once the work is done.
+Run `tools/github_issue_closer.py` to close issues in the tracker once the work is done. Provide the repository in `owner/name` format and only positive issue numbers.
 
 ```bash
 python tools/github_issue_closer.py \

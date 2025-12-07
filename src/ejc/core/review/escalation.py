@@ -35,6 +35,8 @@ class DissentAnalysis:
     split_ratio: str  # e.g., "3:2:1" for 3 allowed, 2 blocked, 1 review
     disagreement_type: str  # "unanimous", "strong_majority", "split", "deadlock"
     conflicting_principles: List[str] = field(default_factory=list)
+    reasoning_divergence: float = 0.0  # 0.0 (identical) to 1.0 (completely disjoint)
+    summary: Optional[str] = None
 
 
 @dataclass
@@ -73,6 +75,7 @@ class EscalationBundle:
     escalated_at: datetime = field(default_factory=datetime.utcnow)
     review_deadline: Optional[datetime] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
+    rights_impact: List[Dict[str, Any]] = field(default_factory=list)
 
 
 class EscalationBundleBuilder:
@@ -120,8 +123,11 @@ class EscalationBundleBuilder:
         # Convert critic results to votes
         critic_votes = self._extract_votes(critic_results)
 
-        # Analyze dissent
+        # Analyze dissent, including reasoning divergence and conflicts
         dissent_analysis = self._analyze_dissent(critic_votes)
+
+        # Assess rights and risk impact to guide human review focus
+        rights_impact = self._assess_rights_impact(input_data, critic_votes)
 
         # Find similar precedents
         similar_precedents = self._find_similar_precedents(input_data)
@@ -135,7 +141,7 @@ class EscalationBundleBuilder:
 
         # Determine priority if not provided
         if priority is None:
-            priority = self._determine_priority(dissent_analysis, input_data)
+            priority = self._determine_priority(dissent_analysis, input_data, rights_impact)
 
         # Generate bundle ID
         bundle_id = self._generate_bundle_id(case_id)
@@ -152,8 +158,10 @@ class EscalationBundleBuilder:
             metadata={
                 "num_critics": len(critic_votes),
                 "num_similar_precedents": len(similar_precedents),
-                "generated_at": datetime.utcnow().isoformat()
-            }
+                "generated_at": datetime.utcnow().isoformat(),
+                "review_checklist": self._build_review_checklist(dissent_analysis, rights_impact),
+            },
+            rights_impact=rights_impact,
         )
 
     def _extract_votes(self, critic_results: List[Dict]) -> List[CriticVote]:
@@ -220,8 +228,13 @@ class EscalationBundleBuilder:
         # Build split ratio
         split_ratio = ":".join(str(count) for _, count in sorted_verdicts)
 
-        # Identify conflicting principles
+        reasoning_divergence = self._calculate_reasoning_divergence(votes)
         conflicting_principles = self._identify_conflicts(votes)
+        summary = self._summarize_dissent(
+            majority_verdict=majority_verdict,
+            verdict_counts=verdict_counts,
+            reasoning_divergence=reasoning_divergence,
+        )
 
         return DissentAnalysis(
             dissent_index=dissent_index,
@@ -229,7 +242,9 @@ class EscalationBundleBuilder:
             minority_verdicts=minority_verdicts,
             split_ratio=split_ratio,
             disagreement_type=disagreement_type,
-            conflicting_principles=conflicting_principles
+            conflicting_principles=conflicting_principles,
+            reasoning_divergence=reasoning_divergence,
+            summary=summary,
         )
 
     def _calculate_dissent_index(
@@ -334,6 +349,124 @@ class EscalationBundleBuilder:
 
         return sorted(list(conflicts))
 
+    def _calculate_reasoning_divergence(self, votes: List[CriticVote]) -> float:
+        """Approximate divergence in critic reasoning using Jaccard distance."""
+        if len(votes) <= 1:
+            return 0.0
+
+        if len({v.verdict for v in votes}) == 1:
+            return 0.0
+
+        token_sets = [set(v.reasoning.lower().split()) for v in votes]
+        distances: List[float] = []
+
+        for i, tokens_a in enumerate(token_sets):
+            for tokens_b in token_sets[i + 1 :]:
+                if not tokens_a and not tokens_b:
+                    distances.append(0.0)
+                    continue
+                intersection = len(tokens_a.intersection(tokens_b))
+                union = len(tokens_a.union(tokens_b)) or 1
+                distances.append(1.0 - (intersection / union))
+
+        if not distances:
+            return 0.0
+
+        divergence = sum(distances) / len(distances)
+        return max(0.0, min(divergence, 1.0))
+
+    def _summarize_dissent(
+        self,
+        majority_verdict: str,
+        verdict_counts: Dict[str, int],
+        reasoning_divergence: float,
+    ) -> str:
+        """Human readable dissent summary for dashboards and reviewers."""
+        counts = ", ".join(f"{v}:{c}" for v, c in verdict_counts.items())
+        divergence_label = "aligned" if reasoning_divergence < 0.25 else "divergent"
+        return (
+            f"Majority verdict {majority_verdict} with distribution {counts}; "
+            f"critic reasoning appears {divergence_label}"
+        )
+
+    def _assess_rights_impact(
+        self, input_data: Dict[str, Any], votes: List[CriticVote]
+    ) -> List[Dict[str, Any]]:
+        """Derive rights impact flags from critic factors and context."""
+        rights_map = {
+            "privacy": "Privacy and Data Protection",
+            "autonomy": "Autonomy and Agency",
+            "safety": "Safety and Bodily Integrity",
+            "fairness": "Fairness and Non-discrimination",
+            "transparency": "Transparency and Accountability",
+            "legal_compliance": "Legal and Regulatory Compliance",
+        }
+
+        impacts: Dict[str, Dict[str, Any]] = {}
+        safety_critical = input_data.get("context", {}).get("safety_critical", False)
+
+        for vote in votes:
+            severity = "high" if vote.verdict == "blocked" else "medium"
+            if safety_critical:
+                severity = "critical"
+
+            for factor in vote.critical_factors:
+                normalized = factor.lower().replace(" ", "_")
+                right_name = rights_map.get(normalized)
+                if not right_name:
+                    continue
+
+                impact = impacts.setdefault(
+                    right_name,
+                    {
+                        "right": right_name,
+                        "severity": severity,
+                        "sources": set(),
+                        "notes": set(),
+                    },
+                )
+                impact["severity"] = max(impact["severity"], severity, key=self._severity_rank)
+                impact["sources"].add(vote.critic_name)
+                impact["notes"].add(vote.reasoning[:200])
+
+        results = []
+        for impact in impacts.values():
+            results.append(
+                {
+                    "right": impact["right"],
+                    "severity": impact["severity"],
+                    "sources": sorted(impact["sources"]),
+                    "notes": sorted(impact["notes"]),
+                }
+            )
+        return sorted(results, key=lambda i: self._severity_rank(i["severity"]), reverse=True)
+
+    def _build_review_checklist(
+        self, dissent: DissentAnalysis, rights_impact: List[Dict[str, Any]]
+    ) -> List[str]:
+        """Provide a short checklist reviewers can follow during triage."""
+        checklist = ["Confirm majority reasoning and dissent rationale"]
+
+        if dissent.reasoning_divergence >= 0.5:
+            checklist.append("Capture why critic justifications differ materially")
+        if rights_impact:
+            top_right = rights_impact[0]
+            checklist.append(
+                f"Validate mitigation for {top_right['right']} (severity: {top_right['severity']})"
+            )
+        if dissent.conflicting_principles:
+            checklist.append(
+                "Document how conflicting principles were prioritized: "
+                + ", ".join(sorted(dissent.conflicting_principles))
+            )
+
+        return checklist
+
+    @staticmethod
+    def _severity_rank(severity: str) -> int:
+        order = {"low": 0, "medium": 1, "high": 2, "critical": 3}
+        return order.get(severity, 1)
+
     def _find_similar_precedents(
         self,
         input_data: Dict,
@@ -421,7 +554,8 @@ class EscalationBundleBuilder:
     def _determine_priority(
         self,
         dissent: DissentAnalysis,
-        input_data: Dict
+        input_data: Dict,
+        rights_impact: List[Dict[str, Any]],
     ) -> str:
         """
         Determine review priority based on dissent and context.
@@ -441,7 +575,11 @@ class EscalationBundleBuilder:
             context.get("legal_risk", False)
         )
 
-        if dissent.dissent_index >= 0.8 and is_high_stakes:
+        has_critical_rights = any(
+            impact.get("severity") == "critical" for impact in rights_impact
+        )
+
+        if (dissent.dissent_index >= 0.8 and is_high_stakes) or has_critical_rights:
             return "critical"
         elif dissent.dissent_index >= 0.7 or is_high_stakes:
             return "high"
