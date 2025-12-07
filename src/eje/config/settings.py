@@ -43,6 +43,22 @@ class Settings(BaseSettings):
         le=1.0,
         description="Confidence threshold below which cases are escalated.",
     )
+    
+    # Rate limiting configuration (Task 10.5)
+    rate_limit_requests: int = Field(
+        default=100,
+        description="Maximum number of requests per IP within the time window.",
+    )
+    
+    rate_limit_window: int = Field(
+        default=60,
+        description="Time window in seconds for rate limiting.",
+    )
+    
+    rate_limit_backoff_base: float = Field(
+        default=2.0,
+        description="Base duration in seconds for exponential backoff on rate limit violations.",
+    )
 
     class Config:
         env_prefix = "EJE_"
