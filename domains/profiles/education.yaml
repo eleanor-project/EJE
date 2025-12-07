@@ -1,0 +1,101 @@
+# Education Domain Profile
+# Configuration for education governance and compliance
+
+name: education
+domain_type: education
+description: Education domain configuration with FERPA, COPPA, and academic integrity compliance
+version: 1.0.0
+author: EJE Team
+tags:
+  - education
+  - ferpa
+  - coppa
+  - student_data
+  - academic
+
+# Critics to load for this domain
+critics:
+  - EducationFERPAComplianceCritic
+  - EducationCOPPAProtectionCritic
+  - EducationAcademicIntegrityCritic
+  - EducationAccessibilityCritic
+
+# Critic-specific configuration
+critic_config:
+  ferpa_protection:
+    enabled: true
+    education_record_protection: strict
+    directory_information_policy: opt_in
+    parental_consent_required_age: 18
+  coppa_compliance:
+    age_verification: required
+    parental_consent_mechanism: verifiable
+    data_minimization: enforced
+    deletion_on_request: automated
+  academic_integrity:
+    plagiarism_detection: enabled
+    citation_verification: required
+    authorship_validation: active
+    ai_detection: enabled
+
+# Precedent namespaces
+precedent_namespaces:
+  - education.ferpa
+  - education.coppa
+  - education.title_ix
+  - education.accessibility
+  - education.academic_integrity
+
+# Precedent configuration
+precedent_config:
+  case_law_sources:
+    - "Department of Education Guidance"
+    - "FERPA Enforcement Actions"
+    - "OCR Compliance Reviews"
+    - "Academic Integrity Policies"
+  update_frequency: quarterly
+  require_citations: true
+
+# Regulatory frameworks
+regulatory_frameworks:
+  - "Family Educational Rights and Privacy Act (FERPA)"
+  - "Children's Online Privacy Protection Act (COPPA)"
+  - "Protection of Pupil Rights Amendment (PPRA)"
+  - "Title IX of the Education Amendments (1972)"
+  - "Section 504 of the Rehabilitation Act"
+  - "Americans with Disabilities Act (ADA) Title II"
+  - "Individuals with Disabilities Education Act (IDEA)"
+  - "Web Content Accessibility Guidelines (WCAG) 2.1"
+
+# Compliance requirements
+compliance_requirements:
+  student_privacy:
+    education_records_protection: required
+    consent_for_disclosure: explicit
+    directory_information_opt_out: available
+    record_retention_years: 5
+  child_protection:
+    coppa_age_verification: required
+    parental_consent_under_13: verifiable
+    data_collection_minimization: enforced
+    deletion_requests: within_30_days
+  accessibility:
+    wcag_compliance_level: "AA"
+    screen_reader_support: required
+    keyboard_navigation: full
+    alternative_text: mandatory
+  academic_integrity:
+    plagiarism_checking: automated
+    citation_standards: enforced
+    ai_disclosure_policy: required
+    appeal_process: documented
+
+# Feature flags
+features:
+  ferpa_protection: true
+  coppa_compliance: true
+  accessibility_checking: true
+  plagiarism_detection: true
+  parental_consent_management: true
+  data_privacy_dashboard: true
+  academic_integrity_monitoring: true
