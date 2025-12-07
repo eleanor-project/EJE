@@ -172,7 +172,8 @@ class EvidenceNormalizer:
 
     def normalize(
         self,
-        critic_outputs: List[Dict[str, Any]],
+        input_text: Optional[str] = None,
+        critic_outputs: Optional[List[Dict[str, Any]]] = None,
         input_context: Optional[Dict[str, Any]] = None,
         input_text: Optional[str] = None,
         input_metadata: Optional[Dict[str, Any]] = None,
@@ -184,9 +185,11 @@ class EvidenceNormalizer:
         Normalize raw critic outputs into an evidence bundle.
 
         Args:
+            input_text: Explicit text to evaluate (preferred if provided)
             critic_outputs: List of raw critic output dictionaries
             input_context: Optional block containing `text`, `context`, and `metadata`
-            input_text: Explicit text to evaluate; falls back to `input_context['text']`
+                           If both input_text and input_context['text'] are supplied, they
+                           must match.
             input_metadata: Input-level metadata (overrides metadata in input_context)
             correlation_id: Correlation ID for distributed tracing
             precedent_refs: References to precedent cases
@@ -204,13 +207,17 @@ class EvidenceNormalizer:
             raise ValueError("Normalization requires at least one critic output")
 
         # Resolve input text and supporting context/metadata
-        context_block = input_context or {}
+        context_block = input_context if isinstance(input_context, dict) else {}
+
+        if input_text and context_block.get("text") and context_block["text"] != input_text:
+            raise ValueError("Input text conflict between input_text and input_context['text']")
+
         text = input_text or context_block.get("text")
         if text is None:
             raise ValueError("Input text is required for normalization")
 
-        context = context_block.get("context", {}) if isinstance(context_block, dict) else {}
-        metadata = input_metadata or (context_block.get("metadata") if isinstance(context_block, dict) else {}) or {}
+        context = context_block.get("context", {})
+        metadata = input_metadata or context_block.get("metadata") or {}
 
         # Normalize input snapshot
         try:

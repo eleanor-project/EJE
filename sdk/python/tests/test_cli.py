@@ -182,3 +182,83 @@ def test_rejects_invalid_context_json():
     assert "context must be a JSON object" in stderr
     assert client.calls == []
 
+
+def test_loads_context_from_file(tmp_path: pathlib.Path):
+    context_file = tmp_path / "context.json"
+    context_file.write_text(json.dumps({"foo": "bar"}))
+
+    client = _StubClient()
+    exit_code, stdout, stderr = _run(
+        [
+            "--base-url",
+            "https://api",
+            "evaluate",
+            "Prompt",
+            "--context-file",
+            str(context_file),
+        ],
+        client,
+        {},
+    )
+
+    assert exit_code == 0
+    assert stderr == ""
+    payload = json.loads(stdout.strip())
+    assert payload["echo"]["context"] == {"foo": "bar"}
+    assert client.calls[0]["context"] == {"foo": "bar"}
+
+
+def test_rejects_conflicting_context_inputs():
+    client = _StubClient()
+    exit_code, stdout, stderr = _run(
+        [
+            "--base-url",
+            "https://api",
+            "evaluate",
+            "Prompt",
+            "--context",
+            "{\"a\":1}",
+            "--context-file",
+            "context.json",
+        ],
+        client,
+        {},
+    )
+
+    assert exit_code == 2
+    assert stdout == ""
+    assert "Use either --context or --context-file" in stderr
+    assert client.calls == []
+
+
+def test_writes_output_file(tmp_path: pathlib.Path):
+    output_path = tmp_path / "result.json"
+    client = _StubClient()
+
+    exit_code, stdout, stderr = _run(
+        [
+            "--base-url",
+            "https://api",
+            "--output",
+            str(output_path),
+            "health",
+        ],
+        client,
+        {},
+    )
+
+    assert exit_code == 0
+    assert stderr == ""
+    assert json.loads(stdout)["status"] == "ok"
+    assert json.loads(output_path.read_text()) == {"status": "ok"}
+
+
+def test_validates_base_url_scheme():
+    client = _StubClient()
+    exit_code, stdout, stderr = _run(["--base-url", "api", "health"], client, {})
+
+    assert exit_code == 2
+    assert stdout == ""
+    assert "base URL" in stderr
+    assert client.calls == []
+

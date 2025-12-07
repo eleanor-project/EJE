@@ -70,6 +70,9 @@ EJE deployment.
 eje --base-url https://api.example.com --api-key $EJE_API_KEY \
   evaluate "Share user location data" --context '{"jurisdiction": "GDPR"}'
 
+eje --base-url https://api.example.com \
+  evaluate "Share user location data" --context-file ./context.json --output result.json
+
 eje --base-url https://api.example.com search "privacy" --top-k 5
 
 eje --base-url https://api.example.com health
