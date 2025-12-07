@@ -1,0 +1,102 @@
+# Financial Services Domain Profile
+# Configuration for financial services governance and compliance
+
+name: financial
+domain_type: financial
+description: Financial services domain configuration with regulatory compliance for banking, payments, and fintech
+version: 1.0.0
+author: EJE Team
+tags:
+  - financial
+  - banking
+  - payments
+  - fintech
+  - compliance
+
+# Critics to load for this domain
+critics:
+  - FinancialKYCComplianceCritic
+  - FinancialAMLDetectionCritic
+  - FinancialFraudPreventionCritic
+  - FinancialRegulatoryComplianceCritic
+
+# Critic-specific configuration
+critic_config:
+  kyc_validation:
+    enabled: true
+    identity_verification_required: true
+    enhanced_due_diligence_threshold: 10000
+    politically_exposed_persons_check: true
+  aml_detection:
+    transaction_monitoring: true
+    pattern_detection: enabled
+    suspicious_activity_reporting: required
+    risk_scoring: comprehensive
+  fraud_prevention:
+    real_time_monitoring: true
+    anomaly_detection: enabled
+    velocity_checks: true
+    device_fingerprinting: enabled
+
+# Precedent namespaces
+precedent_namespaces:
+  - financial.banking
+  - financial.payments
+  - financial.aml
+  - financial.securities
+  - financial.consumer_protection
+
+# Precedent configuration
+precedent_config:
+  case_law_sources:
+    - "SEC Enforcement Actions"
+    - "FinCEN Rulings"
+    - "CFPB Guidance"
+    - "Banking Regulatory Orders"
+  update_frequency: monthly
+  require_citations: true
+
+# Regulatory frameworks
+regulatory_frameworks:
+  - "Bank Secrecy Act (BSA)"
+  - "USA PATRIOT Act"
+  - "Dodd-Frank Wall Street Reform Act"
+  - "Payment Card Industry Data Security Standard (PCI DSS)"
+  - "Electronic Fund Transfer Act (EFTA/Regulation E)"
+  - "Fair Credit Reporting Act (FCRA)"
+  - "Gramm-Leach-Bliley Act (GLBA)"
+  - "Anti-Money Laundering (AML) Regulations"
+  - "Know Your Customer (KYC) Requirements"
+
+# Compliance requirements
+compliance_requirements:
+  customer_due_diligence:
+    identity_verification: required
+    beneficial_ownership: required
+    ongoing_monitoring: continuous
+    enhanced_due_diligence: risk_based
+  transaction_monitoring:
+    real_time_screening: required
+    suspicious_activity_detection: automated
+    reporting_timeline: 30_days
+    record_retention_years: 5
+  data_protection:
+    encryption_standards: "PCI DSS Level 1"
+    data_residency: jurisdiction_specific
+    access_controls: role_based
+    audit_logging: comprehensive
+  consumer_protection:
+    disclosure_requirements: complete
+    dispute_resolution: required
+    error_resolution_days: 45
+    privacy_notice: annual
+
+# Feature flags
+features:
+  kyc_verification: true
+  aml_monitoring: true
+  fraud_detection: true
+  transaction_screening: true
+  sanctions_screening: true
+  regulatory_reporting: true
+  audit_trail: true

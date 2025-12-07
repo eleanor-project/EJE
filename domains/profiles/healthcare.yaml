@@ -1,0 +1,96 @@
+# Healthcare Domain Profile
+# Configuration for healthcare governance and compliance
+
+name: healthcare
+domain_type: healthcare
+description: Healthcare domain configuration with HIPAA, HITECH, and medical ethics compliance
+version: 1.0.0
+author: EJE Team
+tags:
+  - healthcare
+  - hipaa
+  - medical
+  - phi
+  - clinical
+
+# Critics to load for this domain
+critics:
+  - HealthcareHIPAAComplianceCritic
+  - HealthcarePHIProtectionCritic
+  - HealthcareClinicalValidationCritic
+  - HealthcareMedicalEthicsCritic
+
+# Critic-specific configuration
+critic_config:
+  phi_detection:
+    enabled: true
+    strict_mode: true
+    check_unstructured_text: true
+  hipaa_validation:
+    check_minimum_necessary: true
+    require_business_associate: true
+    audit_logging_required: true
+  clinical_validation:
+    check_medical_accuracy: true
+    require_evidence_based: true
+    flag_experimental_treatments: true
+
+# Precedent namespaces
+precedent_namespaces:
+  - healthcare.hipaa
+  - healthcare.hitech
+  - healthcare.clinical
+  - healthcare.ethics
+  - healthcare.state_regulations
+
+# Precedent configuration
+precedent_config:
+  case_law_sources:
+    - "OCR HIPAA Enforcement"
+    - "State Medical Boards"
+    - "Clinical Practice Guidelines"
+  update_frequency: monthly
+  require_citations: true
+
+# Regulatory frameworks
+regulatory_frameworks:
+  - "HIPAA Privacy Rule (45 CFR Part 160, 164)"
+  - "HIPAA Security Rule (45 CFR Part 164, Subpart C)"
+  - "HITECH Act (2009)"
+  - "21st Century Cures Act (2016)"
+  - "FDA Medical Device Regulations"
+  - "State Medical Practice Acts"
+  - "AMA Code of Medical Ethics"
+
+# Compliance requirements
+compliance_requirements:
+  data_protection:
+    encryption_at_rest: required
+    encryption_in_transit: required
+    access_controls: role_based
+    audit_logging: comprehensive
+  privacy:
+    minimum_necessary_standard: enforced
+    patient_consent_required: true
+    breach_notification_within_hours: 60
+    business_associate_agreements: required
+  security:
+    risk_assessment_frequency: annual
+    security_officer_required: true
+    incident_response_plan: required
+    workforce_training: required
+  clinical:
+    evidence_based_practice: required
+    informed_consent: required
+    clinical_documentation: comprehensive
+    quality_assurance: continuous
+
+# Feature flags
+features:
+  phi_detection: true
+  de_identification: true
+  consent_management: true
+  clinical_decision_support: true
+  regulatory_updates: true
+  audit_trail: true
+  breach_detection: true
