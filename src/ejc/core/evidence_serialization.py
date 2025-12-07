@@ -251,6 +251,8 @@ class EvidenceBundleSerializer:
             EvidenceBundleSerializer.from_json(json_str)
             return True, None
         except (json.JSONDecodeError, ValidationError, ValueError) as e:
+            if isinstance(e, ValidationError):
+                return False, f"Evidence bundle validation failed: {e}"
             return False, str(e)
 
     @staticmethod
@@ -270,7 +272,7 @@ class EvidenceBundleSerializer:
             EvidenceBundleSerializer.from_dict(data)
             return True, None
         except ValidationError as e:
-            return False, str(e)
+            return False, f"Evidence bundle validation failed: {e}"
         except Exception as e:
             return False, f"Unexpected validation error: {str(e)}"
 
@@ -302,7 +304,11 @@ def bundle_from_json(json_str: str) -> EvidenceBundle:
     """
     try:
         return EvidenceBundleSerializer.from_json(json_str)
-    except (json.JSONDecodeError, ValidationError, ValueError) as exc:
+    except json.JSONDecodeError as exc:
+        raise DeserializationError(f"Invalid JSON format: {exc}") from exc
+    except ValidationError as exc:
+        raise DeserializationError(f"Evidence bundle validation failed: {exc}") from exc
+    except ValueError as exc:
         raise DeserializationError(f"Invalid JSON format: {exc}") from exc
 
 
