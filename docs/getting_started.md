@@ -87,3 +87,4 @@ python -m ejc.cli.run_engine --case @examples/case.json
 
 - Explore the OpenAPI docs at `http://localhost:8000/docs` once the server is running.
 - Review `docs/precedent_system.md` and `docs/semantic_precedent_search.md` for advanced precedent configuration.
+- Walk through a full request/response in `docs/examples/sample_decision_run.md` to see how governance policy flags show up in decisions.
