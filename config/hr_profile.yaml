@@ -1,0 +1,227 @@
+# HR Governance Profile for EJE
+# Domain-specific configuration for human resources and employment decisions
+# Emphasizes fairness, non-discrimination, transparency, and employee rights
+
+profile_name: "hr_governance"
+version: "1.0.0"
+description: "Governance profile optimized for HR and employment decisions"
+
+# Critic Configuration - Tuned for HR Ethics
+critics:
+  - name: "fairness"
+    module: "src.ejc.critics.fairness_critic"
+    class: "FairnessCritic"
+    priority: 1  # Highest priority for HR decisions
+    weight: 1.5  # Increased weight
+    
+  - name: "rights"
+    module: "src.ejc.critics.rights_critic"
+    class: "RightsCritic"
+    priority: 1  # Equal highest priority
+    weight: 1.5  # Increased weight for employee rights
+    focus:
+      - dignity
+      - autonomy
+      - non_discrimination
+      - privacy
+      
+  - name: "transparency"
+    module: "src.ejc.critics.transparency_critic"
+    class: "TransparencyCritic"
+    priority: 2
+    weight: 1.3  # Elevated for HR context
+    
+  - name: "precedent"
+    module: "src.ejc.critics.precedent_critic"
+    class: "PrecedentCritic"
+    priority: 2
+    weight: 1.2
+    domain_filter: "hr"  # Only consider HR precedents
+    
+  - name: "safety"
+    module: "src.ejc.critics.safety_critic"
+    class: "SafetyCritic"
+    priority: 3
+    weight: 1.0
+
+# Policy Rules - HR-Specific
+policy_rules:
+  # Anti-Discrimination Rules
+  - name: "no_protected_class_discrimination"
+    description: "Prevent discrimination based on protected characteristics"
+    severity: "critical"
+    protected_attributes:
+      - race
+      - color
+      - religion
+      - sex
+      - national_origin
+      - age
+      - disability
+      - genetic_information
+      - pregnancy
+      - sexual_orientation
+      - gender_identity
+    action: "block"
+    
+  - name: "equal_opportunity"
+    description: "Ensure equal consideration in hiring, promotion, and compensation"
+    severity: "critical"
+    scope:
+      - hiring
+      - promotion
+      - compensation
+      - termination
+    action: "review"
+    
+  - name: "reasonable_accommodation"
+    description: "Require consideration of reasonable accommodations for disabilities"
+    severity: "high"
+    triggers:
+      - disability_mentioned
+      - accommodation_request
+    action: "review"
+    
+  # Fairness Rules
+  - name: "consistent_criteria"
+    description: "Apply consistent evaluation criteria across similar cases"
+    severity: "high"
+    action: "review"
+    
+  - name: "bias_detection"
+    description: "Flag potential unconscious bias in decision rationale"
+    severity: "moderate"
+    bias_indicators:
+      - cultural_fit_only
+      - subjective_without_evidence
+      - pattern_deviation
+    action: "warn"
+    
+  # Transparency Rules  
+  - name: "explainability_required"
+    description: "All HR decisions must have clear, documented rationale"
+    severity: "high"
+    requirements:
+      - decision_factors_listed
+      - evidence_documented
+      - reasoning_clear
+    action: "review"
+    
+  - name: "feedback_right"
+    description: "Employees have right to understand decision factors"
+    severity: "moderate"
+    action: "log"
+
+# Precedent Templates - HR Case Types
+precedent_templates:
+  - template_id: "hiring_decision"
+    category: "hiring"
+    required_fields:
+      - position_requirements
+      - candidate_qualifications
+      - evaluation_criteria
+      - interview_scores
+      - decision_rationale
+    similarity_weight: 1.2
+    
+  - template_id: "promotion_decision"
+    category: "promotion"
+    required_fields:
+      - performance_history
+      - skill_requirements
+      - comparison_pool
+      - evaluation_criteria
+      - decision_rationale
+    similarity_weight: 1.2
+    
+  - template_id: "disciplinary_action"
+    category: "discipline"
+    required_fields:
+      - policy_violated
+      - incident_details
+      - prior_warnings
+      - severity_assessment
+      - action_taken
+      - decision_rationale
+    similarity_weight: 1.3  # Higher weight for consistency
+    
+  - template_id: "termination_decision"
+    category: "termination"
+    required_fields:
+      - termination_reason
+      - documentation
+      - prior_performance_reviews
+      - corrective_actions_taken
+      - decision_rationale
+      - severance_consideration
+    similarity_weight: 1.5  # Highest weight for critical decisions
+    
+  - template_id: "compensation_decision"
+    category: "compensation"
+    required_fields:
+      - role_level
+      - market_data
+      - performance_metrics
+      - internal_equity
+      - decision_rationale
+    similarity_weight: 1.2
+    
+  - template_id: "accommodation_request"
+    category: "accommodation"
+    required_fields:
+      - disability_nature
+      - requested_accommodation
+      - job_essential_functions
+      - feasibility_analysis
+      - undue_hardship_assessment
+      - decision_rationale
+    similarity_weight: 1.3
+
+# Decision Thresholds - More Conservative for HR
+thresholds:
+  block_threshold: 0.40  # Lower threshold (more sensitive)
+  review_threshold: 0.30  # Trigger human review more often
+  ambiguity_threshold: 0.20  # Flag ambiguous cases
+
+# Governance Settings
+governance:
+  moral_mode: "deontological"  # Rule-based ethics for HR compliance
+  require_human_review:
+    - termination
+    - discrimination_flag
+    - high_severity_discipline
+    - protected_class_involved
+  
+  audit_requirements:
+    log_all_decisions: true
+    retain_evidence: true
+    anonymize_for_analysis: true
+    periodic_bias_audit: true
+  
+  appeal_process:
+    enabled: true
+    escalation_path:
+      - hr_manager
+      - hr_director
+      - legal_review
+
+# Reporting and Compliance
+reporting:
+  required_metrics:
+    - decisions_by_category
+    - decisions_by_protected_class
+    - review_trigger_frequency
+    - override_rate
+    - appeal_outcomes
+  
+  compliance_checks:
+    - eeoc_guidelines
+    - ada_compliance
+    - title_vii_compliance
+    - state_employment_law
+  
+  alert_conditions:
+    - disparate_impact_detected
+    - pattern_deviation
+    - high_block_rate
+    - unusual_decision_pattern
