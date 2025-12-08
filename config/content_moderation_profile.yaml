@@ -1,0 +1,390 @@
+# Content Moderation Profile for EJE
+# Optimized for platform content moderation and safety decisions
+# Prioritizes user safety, harm prevention, and risk-first reasoning
+
+profile_name: "content_moderation"
+version: "1.0.0"
+description: "Governance profile for content moderation with safety-first approach"
+
+# Critic Configuration - Safety Emphasis
+critics:
+  - name: "safety"
+    module: "src.ejc.critics.safety_critic"
+    class: "SafetyCritic"
+    priority: 1  # Absolute highest priority
+    weight: 3.0  # Dominant weight - safety overrides other considerations
+    focus:
+      - physical_harm
+      - psychological_harm
+      - child_safety
+      - violence
+      - self_harm
+      - dangerous_content
+    override_authority: true
+    
+  - name: "rights"
+    module: "src.ejc.critics.rights_critic"
+    class: "RightsCritic"
+    priority: 2
+    weight: 1.2  # Important but subordinate to safety
+    focus:
+      - dignity
+      - harassment_protection
+      - hate_speech_prevention
+      
+  - name: "precedent"
+    module: "src.ejc.critics.precedent_critic"
+    class: "PrecedentCritic"
+    priority: 2
+    weight: 1.8  # Strong weight for consistency
+    domain_filter: "content_moderation"
+    harmful_content_focus: true
+    
+  - name: "fairness"
+    module: "src.ejc.critics.fairness_critic"
+    class: "FairnessCritic"
+    priority: 3
+    weight: 1.0  # Standard weight for equitable treatment
+    
+  - name: "transparency"
+    module: "src.ejc.critics.transparency_critic"
+    class: "TransparencyCritic"
+    priority: 4
+    weight: 0.8  # Lower weight - transparency important but not primary
+
+# Content Safety Framework
+content_safety:
+  harm_categories:
+    violence:
+      severity: "critical"
+      subcategories:
+        - graphic_violence
+        - violent_threats
+        - glorification_of_violence
+        - terrorism
+        - organized_crime
+      action: "remove"
+      
+    child_safety:
+      severity: "critical"
+      subcategories:
+        - child_sexual_abuse_material
+        - child_endangerment
+        - child_exploitation
+        - grooming_behavior
+      action: "remove_and_report"
+      mandatory_reporting: true
+      
+    self_harm:
+      severity: "critical"
+      subcategories:
+        - suicide_promotion
+        - self_injury_instruction
+        - eating_disorder_promotion
+      action: "remove"
+      resource_provision: true
+      
+    hate_speech:
+      severity: "high"
+      subcategories:
+        - protected_class_targeting
+        - dehumanization
+        - hate_symbols
+        - slurs
+      action: "remove"
+      
+    harassment:
+      severity: "high"
+      subcategories:
+        - targeted_harassment
+        - doxxing
+        - brigading
+        - stalking
+      action: "remove"
+      
+    misinformation:
+      severity: "moderate"
+      subcategories:
+        - health_misinformation
+        - election_misinformation
+        - manipulated_media
+      action: "label_or_remove"
+      
+    sexual_content:
+      severity: "moderate"
+      subcategories:
+        - non_consensual_intimate_images
+        - sexual_exploitation
+        - adult_content_inappropriate_context
+      action: "age_gate_or_remove"
+      
+    spam:
+      severity: "low"
+      action: "remove"
+
+# Policy Rules - Content Moderation
+policy_rules:
+  # Zero Tolerance
+  - name: "child_safety_absolute"
+    description: "Zero tolerance for child safety violations"
+    severity: "critical"
+    action: "remove_and_report"
+    appeals: false
+    law_enforcement_notification: true
+    
+  - name: "violence_threats"
+    description: "Remove credible threats of violence"
+    severity: "critical"
+    credibility_assessment: true
+    action: "remove"
+    law_enforcement_referral: "conditional"
+    
+  # Harm Prevention
+  - name: "self_harm_intervention"
+    description: "Remove self-harm promotion and provide resources"
+    severity: "critical"
+    action: "remove"
+    provide_crisis_resources: true
+    
+  - name: "dangerous_instructions"
+    description: "Remove instructions for dangerous activities"
+    severity: "high"
+    examples:
+      - bomb_making
+      - weapon_modification
+      - poison_creation
+    action: "remove"
+    
+  # Hate Speech and Harassment
+  - name: "hate_speech_prohibition"
+    description: "Remove hate speech targeting protected classes"
+    severity: "high"
+    protected_attributes:
+      - race
+      - ethnicity
+      - religion
+      - sexual_orientation
+      - gender_identity
+      - disability
+    action: "remove"
+    
+  - name: "targeted_harassment"
+    description: "Remove targeted harassment campaigns"
+    severity: "high"
+    patterns:
+      - coordinated_attacks
+      - doxxing
+      - repeated_unwanted_contact
+    action: "remove"
+    account_action: "conditional_suspension"
+    
+  # Context-Dependent
+  - name: "newsworthy_exception"
+    description: "Allow graphic content if newsworthy with warning"
+    severity: "moderate"
+    conditions:
+      - journalistic_value
+      - public_interest
+      - properly_labeled
+    action: "allow_with_warning"
+    
+  - name: "educational_exception"
+    description: "Allow sensitive content for educational purposes"
+    severity: "moderate"
+    conditions:
+      - educational_context
+      - age_appropriate
+      - proper_framing
+    action: "allow_with_context"
+
+# Risk-First Conflict Resolution
+conflict_resolution:
+  strategy: "risk_first"
+  
+  principles:
+    - safety_overrides_expression
+    - protect_vulnerable_users
+    - err_on_side_of_caution
+    - context_matters
+    
+  decision_hierarchy:
+    1:
+      name: "immediate_harm"
+      weight: 10.0
+      examples:
+        - child_safety
+        - violence_threats
+        - self_harm_promotion
+      resolution: "always_remove"
+      
+    2:
+      name: "severe_harm_risk"
+      weight: 5.0
+      examples:
+        - hate_speech
+        - dangerous_instructions
+        - targeted_harassment
+      resolution: "remove_unless_exception"
+      
+    3:
+      name: "moderate_harm_risk"
+      weight: 2.0
+      examples:
+        - misinformation
+        - bullying
+        - spam
+      resolution: "contextual_assessment"
+      
+    4:
+      name: "low_harm_risk"
+      weight: 1.0
+      examples:
+        - mild_incivility
+        - controversial_opinion
+      resolution: "allow_with_monitoring"
+      
+  tie_breaking:
+    default: "remove"  # When in doubt, remove
+    require_human_review_threshold: 0.4
+
+# Precedent System - Harmful Content Focus
+precedent_retrieval:
+  enabled: true
+  harmful_content_weighting: 2.5
+  
+  similarity_factors:
+    content_type: 0.3
+    harm_category: 0.35
+    context_similarity: 0.2
+    severity_level: 0.15
+    
+  precedent_categories:
+    - violence_threats
+    - child_safety
+    - self_harm
+    - hate_speech
+    - harassment
+    - sexual_content
+    - misinformation
+    - dangerous_content
+    
+  learning_from_precedents:
+    update_thresholds: true
+    identify_edge_cases: true
+    track_evolving_harms: true
+
+# Precedent Templates
+precedent_templates:
+  - template_id: "harmful_content_decision"
+    category: "safety"
+    required_fields:
+      - content_description
+      - harm_category
+      - severity_assessment
+      - context_factors
+      - action_taken
+      - rationale
+    similarity_weight: 2.5
+    
+  - template_id: "harassment_case"
+    category: "harassment"
+    required_fields:
+      - harassment_pattern
+      - target_vulnerability
+      - coordinated_behavior
+      - impact_assessment
+      - action_taken
+    similarity_weight: 2.0
+    
+  - template_id: "misinformation_evaluation"
+    category: "misinformation"
+    required_fields:
+      - claim_content
+      - evidence_assessment
+      - potential_harm
+      - labeling_decision
+      - fact_check_source
+    similarity_weight: 1.5
+    
+  - template_id: "context_exception"
+    category: "exceptions"
+    required_fields:
+      - standard_violation
+      - exception_justification
+      - context_description
+      - safeguards_applied
+      - decision
+    similarity_weight: 1.8
+
+# Decision Thresholds - Highly Sensitive
+thresholds:
+  block_threshold: 0.25  # Very low - err on side of removal
+  review_threshold: 0.15  # Trigger human review readily
+  ambiguity_threshold: 0.10  # Flag any uncertainty
+
+# Governance Settings
+governance:
+  moral_mode: "utilitarian"  # Minimize harm to greatest number
+  
+  require_human_review:
+    - child_safety_flagged
+    - credible_violence_threat
+    - ambiguous_harm_assessment
+    - high_profile_account
+    - viral_content
+    - novel_harm_type
+    
+  escalation_path:
+    - content_moderator
+    - senior_moderator
+    - trust_and_safety_lead
+    - legal_review  # For borderline cases
+    
+  speed_requirements:
+    critical: "<15_minutes"
+    high: "<2_hours"
+    moderate: "<24_hours"
+    low: "<7_days"
+    
+  audit_requirements:
+    log_all_decisions: true
+    preserve_content_evidence: true
+    track_moderator_actions: true
+    quality_assurance_sampling: true
+    
+  appeals_process:
+    enabled: true
+    except_for:
+      - child_safety
+      - violence_threats
+    review_timeline: "7_days"
+    transparency_report: true
+
+# Reporting and Metrics
+reporting:
+  required_metrics:
+    - removal_rate_by_category
+    - false_positive_rate
+    - appeal_overturn_rate
+    - response_time_by_severity
+    - harm_prevented_estimate
+    - emerging_threats
+    
+  transparency_reporting:
+    - enforcement_actions_by_type
+    - government_requests
+    - content_reports_received
+    - automated_vs_human_decisions
+    
+  alert_conditions:
+    - surge_in_harmful_content
+    - coordinated_harassment_campaign
+    - emerging_threat_pattern
+    - critical_content_missed
+    - system_gaming_detected
+    
+  stakeholder_reports:
+    - users: "transparency_report_quarterly"
+    - regulators: "compliance_report_annual"
+    - board: "executive_summary_monthly"
+    - public: "transparency_center_ongoing"
