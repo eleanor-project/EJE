@@ -1,0 +1,364 @@
+# Research Ethics Profile for EJE
+# Based on Belmont principles (Respect for Persons, Beneficence, Justice)
+# Optimized for research ethics review and IRB-style decision making
+
+profile_name: "research_ethics"
+version: "1.0.0"
+description: "Governance profile for research ethics scenarios based on Belmont principles"
+
+# Critic Configuration - Tuned for Research Ethics
+critics:
+  - name: "rights"
+    module: "src.ejc.critics.rights_critic"
+    class: "RightsCritic"
+    priority: 1
+    weight: 2.0  # Highest weight for informed consent and autonomy
+    focus:
+      - autonomy  # Respect for persons
+      - dignity
+      - informed_consent
+      - privacy
+      - data_protection
+    
+  - name: "safety"
+    module: "src.ejc.critics.safety_critic"
+    class: "SafetyCritic"
+    priority: 1
+    weight: 1.8  # High priority for minimizing harm (Beneficence)
+    focus:
+      - participant_safety
+      - physical_harm
+      - psychological_harm
+      - data_security
+      
+  - name: "fairness"
+    module: "src.ejc.critics.fairness_critic"
+    class: "FairnessCritic"
+    priority: 2
+    weight: 1.5  # Justice principle - fair subject selection
+    focus:
+      - subject_selection
+      - vulnerable_populations
+      - benefit_distribution
+      
+  - name: "utilitarian"
+    module: "src.ejc.critics.utilitarian_critic"
+    class: "UtilitarianCritic"
+    priority: 3
+    weight: 1.3  # Risk/benefit analysis
+    
+  - name: "precedent"
+    module: "src.ejc.critics.precedent_critic"
+    class: "PrecedentCritic"
+    priority: 3
+    weight: 1.0
+    domain_filter: "research"
+
+# Belmont Principles Framework
+belmont_principles:
+  respect_for_persons:
+    description: "Autonomy and protection of vulnerable individuals"
+    requirements:
+      - informed_consent_required: true
+      - consent_comprehension_verified: true
+      - right_to_withdraw: true
+      - special_protection_vulnerable: true
+    vulnerable_populations:
+      - children
+      - prisoners
+      - pregnant_women
+      - cognitively_impaired
+      - economically_disadvantaged
+      - terminally_ill
+    weight: 2.0
+    
+  beneficence:
+    description: "Maximize benefits and minimize harms"
+    requirements:
+      - risk_minimization: true
+      - benefit_maximization: true
+      - systematic_assessment: true
+      - risk_benefit_favorable: true
+    assessment_criteria:
+      - severity_of_harm
+      - probability_of_harm
+      - magnitude_of_benefit
+      - likelihood_of_benefit
+    weight: 1.8
+    
+  justice:
+    description: "Fair distribution of research burdens and benefits"
+    requirements:
+      - equitable_selection: true
+      - avoid_exploitation: true
+      - fair_procedures: true
+      - benefit_sharing: true
+    considerations:
+      - selection_criteria_fair
+      - vulnerable_not_targeted
+      - benefits_available_to_participants
+    weight: 1.5
+
+# Policy Rules - Research Ethics Specific
+policy_rules:
+  # Informed Consent
+  - name: "informed_consent_mandatory"
+    description: "All research requires documented informed consent"
+    severity: "critical"
+    exceptions:
+      - minimal_risk_with_waiver
+      - public_data_anonymous
+    action: "block"
+    irb_override: true
+    
+  - name: "consent_comprehension"
+    description: "Verify participant understanding of research"
+    severity: "critical"
+    requirements:
+      - purpose_explained
+      - procedures_described
+      - risks_disclosed
+      - benefits_stated
+      - alternatives_presented
+      - withdrawal_right_stated
+    action: "review"
+    
+  # Vulnerable Populations
+  - name: "vulnerable_population_protection"
+    description: "Enhanced protections for vulnerable groups"
+    severity: "critical"
+    triggers:
+      - children_involved
+      - prisoners_involved
+      - pregnant_involved
+      - cognitive_impairment
+    additional_requirements:
+      - additional_safeguards
+      - assent_if_applicable
+      - guardian_consent
+      - minimal_risk_or_justified
+    action: "review"
+    irb_override: true
+    
+  # Risk/Benefit Assessment
+  - name: "risk_benefit_favorable"
+    description: "Benefits must justify risks"
+    severity: "high"
+    calculation_method: "weighted"
+    thresholds:
+      minimal_risk: 0.3
+      more_than_minimal_risk: 0.7
+    action: "review"
+    
+  - name: "risk_minimization"
+    description: "Use least risky procedures consistent with sound research"
+    severity: "high"
+    considerations:
+      - alternative_methods
+      - established_procedures
+      - monitoring_plans
+    action: "review"
+    
+  # Data Protection & Privacy
+  - name: "data_protection_adequate"
+    description: "Ensure confidentiality and privacy protections"
+    severity: "high"
+    requirements:
+      - identifiers_protected
+      - secure_storage
+      - limited_access
+      - retention_policy
+      - breach_notification
+    action: "review"
+    
+  # Fair Subject Selection
+  - name: "equitable_selection"
+    description: "Subject selection must be fair and not exploitative"
+    severity: "high"
+    concerns:
+      - targeting_vulnerable
+      - excluding_from_benefits
+      - undue_inducement
+    action: "review"
+
+# Risk/Benefit Weighting System
+risk_benefit_analysis:
+  enabled: true
+  
+  risk_categories:
+    minimal:
+      definition: "No greater than everyday life"
+      weight: 1.0
+      threshold: 0.3
+      
+    more_than_minimal:
+      definition: "Greater than everyday but not serious harm"
+      weight: 1.5
+      threshold: 0.5
+      
+    serious:
+      definition: "Potential for serious or permanent harm"
+      weight: 2.5
+      threshold: 0.8
+      
+  benefit_categories:
+    direct_participant:
+      weight: 2.0
+      
+    generalizable_knowledge:
+      weight: 1.0
+      
+    societal:
+      weight: 0.8
+  
+  calculation:
+    method: "weighted_ratio"
+    favorable_threshold: 1.5  # Benefits must outweigh risks by this ratio
+
+# IRB-Style Override Flags
+irb_authority:
+  full_board_required:
+    - more_than_minimal_risk
+    - vulnerable_populations
+    - deception_involved
+    - waiver_of_consent
+    - significant_deviation
+    
+  expedited_eligible:
+    - minimal_risk
+    - categories_listed
+    - no_vulnerable_populations
+    
+  exempt_categories:
+    - educational_research_standard_practice
+    - survey_interview_public_behavior
+    - public_data_anonymous
+    - taste_food_quality_evaluation
+    
+  override_conditions:
+    allow_with_justification:
+      - consent_waiver_minimal_risk
+      - parental_consent_waiver_mature_minor
+      - documentation_waiver_anonymous
+    
+    require_additional_review:
+      - prisoner_research
+      - fetal_research
+      - gene_therapy
+      - reproductive_technology
+
+# Precedent Templates - Research Ethics Cases
+precedent_templates:
+  - template_id: "consent_protocol"
+    category: "informed_consent"
+    required_fields:
+      - consent_process
+      - information_disclosed
+      - comprehension_assessment
+      - voluntary_participation
+      - documentation_method
+    similarity_weight: 1.5
+    
+  - template_id: "risk_assessment"
+    category: "risk_benefit"
+    required_fields:
+      - identified_risks
+      - probability_estimates
+      - mitigation_strategies
+      - anticipated_benefits
+      - ratio_justification
+    similarity_weight: 1.8
+    
+  - template_id: "vulnerable_protection"
+    category: "vulnerable_populations"
+    required_fields:
+      - population_type
+      - special_protections
+      - assent_process
+      - guardian_involvement
+      - justification_for_inclusion
+    similarity_weight: 2.0
+    
+  - template_id: "privacy_plan"
+    category: "data_protection"
+    required_fields:
+      - data_collection_methods
+      - storage_security
+      - access_controls
+      - deidentification_process
+      - retention_destruction
+    similarity_weight: 1.3
+    
+  - template_id: "subject_selection"
+    category: "justice"
+    required_fields:
+      - inclusion_criteria
+      - exclusion_criteria
+      - recruitment_methods
+      - compensation_plan
+      - equity_justification
+    similarity_weight: 1.4
+
+# Decision Thresholds - Very Conservative for Research Ethics
+thresholds:
+  block_threshold: 0.35  # Very sensitive for ethical violations
+  review_threshold: 0.25  # Trigger human review frequently
+  ambiguity_threshold: 0.15  # Flag even slight ambiguity
+
+# Governance Settings
+governance:
+  moral_mode: "deontological"  # Rights-based ethics for research
+  
+  require_irb_review:
+    - more_than_minimal_risk
+    - vulnerable_populations
+    - consent_waiver_requested
+    - deception_involved
+    - international_research
+    - gene_therapy
+    
+  expedited_review_eligible:
+    - minimal_risk_only
+    - no_vulnerable_populations
+    - approved_category
+    
+  continuous_monitoring:
+    - serious_adverse_events
+    - unanticipated_problems
+    - protocol_deviations
+    - enrollment_issues
+  
+  audit_requirements:
+    log_all_reviews: true
+    track_protocol_versions: true
+    document_modifications: true
+    periodic_continuing_review: true
+  
+  reporting_requirements:
+    adverse_events: "immediate"
+    unanticipated_problems: "immediate"
+    protocol_deviations: "prompt"
+    annual_review: "required"
+
+# Compliance and Reporting
+reporting:
+  required_metrics:
+    - reviews_by_risk_level
+    - vulnerable_population_studies
+    - adverse_event_frequency
+    - consent_issues
+    - protocol_deviations
+    
+  compliance_standards:
+    - common_rule_45_cfr_46
+    - fda_regulations_21_cfr_50_56
+    - ich_gcp_guidelines
+    - belmont_principles
+    - declaration_of_helsinki
+    
+  alert_conditions:
+    - serious_adverse_event
+    - unanticipated_problem
+    - pattern_of_noncompliance
+    - vulnerable_population_issue
+    - inadequate_consent
