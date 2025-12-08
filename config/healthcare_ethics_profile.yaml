@@ -1,0 +1,364 @@
+# Healthcare Ethics Profile for EJE
+# Based on medical ethics principles: Autonomy, Beneficence, Non-maleficence, Justice
+# Optimized for clinical and healthcare operational decisions
+
+profile_name: "healthcare_ethics"
+version: "1.0.0"
+description: "Governance profile for healthcare decisions based on medical ethics principles"
+
+# Critic Configuration - Medical Ethics Focus
+critics:
+  - name: "safety"
+    module: "src.ejc.critics.safety_critic"
+    class: "SafetyCritic"
+    priority: 1  # Highest - non-maleficence (do no harm)
+    weight: 2.5
+    focus:
+      - patient_safety
+      - medical_harm_prevention
+      - adverse_events
+      - medication_safety
+      
+  - name: "rights"
+    module: "src.ejc.critics.rights_critic"
+    class: "RightsCritic"
+    priority: 1  # Equally highest - autonomy
+    weight: 2.5
+    focus:
+      - patient_autonomy
+      - informed_consent
+      - privacy_hipaa
+      - confidentiality
+      - decision_capacity
+      
+  - name: "beneficence"
+    module: "src.ejc.critics.utilitarian_critic"
+    class: "UtilitarianCritic"
+    priority: 2
+    weight: 2.0  # Beneficence - maximize patient benefit
+    
+  - name: "fairness"
+    module: "src.ejc.critics.fairness_critic"
+    class: "FairnessCritic"
+    priority: 2
+    weight: 1.8  # Justice principle - equitable care
+    focus:
+      - resource_allocation
+      - care_access
+      - treatment_equity
+      
+  - name: "precedent"
+    module: "src.ejc.critics.precedent_critic"
+    class: "PrecedentCritic"
+    priority: 3
+    weight: 1.5
+    domain_filter: "healthcare"
+
+# Medical Ethics Principles
+medical_ethics_principles:
+  autonomy:
+    description: "Respect for patient self-determination"
+    requirements:
+      - informed_consent
+      - decision_capacity_assessment
+      - voluntary_choice
+      - right_to_refuse
+      - advance_directives_honored
+    weight: 2.5
+    
+  beneficence:
+    description: "Acting in patient's best interest"
+    requirements:
+      - clinical_benefit_demonstrated
+      - evidence_based_care
+      - patient_centered_goals
+      - quality_of_life_considered
+    weight: 2.0
+    
+  non_maleficence:
+    description: "Do no harm - primum non nocere"
+    requirements:
+      - harm_minimization
+      - risk_benefit_favorable
+      - standard_of_care_met
+      - complications_prevented
+    weight: 2.5
+    override_authority: true
+    
+  justice:
+    description: "Fair and equitable distribution of healthcare resources"
+    requirements:
+      - equitable_access
+      - fair_allocation
+      - no_discrimination
+      - social_determinants_considered
+    weight: 1.8
+
+# Policy Rules - Healthcare Specific
+policy_rules:
+  # Patient Safety
+  - name: "patient_safety_paramount"
+    description: "Patient safety takes precedence"
+    severity: "critical"
+    action: "block"
+    triggers:
+      - unsafe_clinical_practice
+      - contraindicated_treatment
+      - inadequate_monitoring
+      
+  - name: "medication_safety_check"
+    description: "Verify medication safety before administration"
+    severity: "critical"
+    checks:
+      - drug_interactions
+      - allergies
+      - dosage_appropriate
+      - contraindications
+    action: "review"
+    
+  # Informed Consent
+  - name: "informed_consent_required"
+    description: "Valid informed consent required for procedures"
+    severity: "critical"
+    requirements:
+      - capacity_assessed
+      - information_disclosed
+      - comprehension_verified
+      - voluntary_agreement
+      - documented
+    exceptions:
+      - emergency_exception
+      - implied_consent_routine
+    action: "review"
+    
+  - name: "surrogate_decision_appropriate"
+    description: "Verify surrogate decision-making authority"
+    severity: "high"
+    when:
+      - patient_lacks_capacity
+      - advance_directive_absent
+    requirements:
+      - legal_authority_verified
+      - best_interest_standard
+      - patient_values_considered
+    action: "review"
+    
+  # Privacy and Confidentiality
+  - name: "hipaa_compliance"
+    description: "Ensure HIPAA privacy and security compliance"
+    severity: "critical"
+    requirements:
+      - minimum_necessary
+      - authorized_disclosure
+      - patient_rights_respected
+      - security_safeguards
+    action: "review"
+    
+  - name: "confidentiality_protection"
+    description: "Protect patient confidentiality"
+    severity: "high"
+    exceptions:
+      - mandatory_reporting
+      - public_health_threat
+      - court_order
+    action: "review"
+    
+  # Resource Allocation
+  - name: "fair_resource_allocation"
+    description: "Allocate scarce resources equitably"
+    severity: "high"
+    principles:
+      - medical_need
+      - likelihood_of_benefit
+      - time_waiting
+      - no_discrimination
+    action: "review"
+    
+  - name: "futility_assessment"
+    description: "Assess medical futility appropriately"
+    severity: "high"
+    criteria:
+      - physiologic_futility
+      - no_reasonable_benefit
+      - consensus_based
+    action: "review"
+    ethics_consult_recommended: true
+    
+  # Standard of Care
+  - name: "standard_of_care_adherence"
+    description: "Adhere to accepted standards of medical care"
+    severity: "high"
+    evidence_sources:
+      - clinical_guidelines
+      - professional_standards
+      - best_practices
+      - peer_reviewed_evidence
+    action: "review"
+    
+  # Vulnerable Populations
+  - name: "vulnerable_population_protection"
+    description: "Enhanced protections for vulnerable patients"
+    severity: "high"
+    populations:
+      - pediatric
+      - cognitively_impaired
+      - incarcerated
+      - terminally_ill
+      - economically_disadvantaged
+    additional_safeguards: true
+    action: "review"
+
+# Clinical Decision Support
+clinical_decision_support:
+  enabled: true
+  
+  alert_types:
+    critical:
+      - drug_allergy
+      - drug_interaction
+      - contraindication
+      - critical_lab_value
+      response: "hard_stop"
+      
+    high:
+      - dosage_concern
+      - duplicate_therapy
+      - renal_adjustment
+      response: "interruptive_alert"
+      
+    moderate:
+      - guideline_deviation
+      - monitoring_needed
+      response: "passive_alert"
+  
+  override_documentation: true
+
+# Precedent Templates - Clinical Cases
+precedent_templates:
+  - template_id: "treatment_decision"
+    category: "clinical"
+    required_fields:
+      - clinical_indication
+      - treatment_options
+      - risks_benefits
+      - patient_preference
+      - consent_status
+      - decision_rationale
+    similarity_weight: 2.0
+    
+  - template_id: "end_of_life_decision"
+    category: "ethics"
+    required_fields:
+      - prognosis
+      - treatment_goals
+      - patient_wishes
+      - surrogate_input
+      - ethics_consultation
+      - decision_rationale
+    similarity_weight: 2.5
+    
+  - template_id: "resource_allocation"
+    category: "operational"
+    required_fields:
+      - resource_type
+      - scarcity_level
+      - allocation_criteria
+      - patient_selection
+      - equity_considerations
+      - rationale
+    similarity_weight: 1.8
+    
+  - template_id: "capacity_assessment"
+    category: "ethics"
+    required_fields:
+      - decision_type
+      - capacity_evaluation
+      - cognitive_factors
+      - surrogate_identified
+      - recommendation
+    similarity_weight: 1.7
+    
+  - template_id: "privacy_disclosure"
+    category: "compliance"
+    required_fields:
+      - disclosure_purpose
+      - hipaa_exception
+      - minimum_necessary
+      - authorization_status
+      - decision
+    similarity_weight: 1.5
+
+# Decision Thresholds - Strong for Patient Safety
+thresholds:
+  block_threshold: 0.30  # Conservative for patient safety
+  review_threshold: 0.20  # Frequent clinical review
+  ambiguity_threshold: 0.15  # Flag clinical uncertainty
+
+# Governance Settings
+governance:
+  moral_mode: "deontological"  # Duty-based medical ethics
+  
+  require_clinical_review:
+    - patient_safety_concern
+    - consent_issue
+    - capacity_question
+    - end_of_life_decision
+    - resource_allocation
+    - standard_deviation
+    
+  require_ethics_consult:
+    - medical_futility
+    - surrogate_disagreement
+    - treatment_refusal_high_risk
+    - pediatric_complex_case
+    - experimental_treatment
+    
+  escalation_path:
+    - attending_physician
+    - department_chair
+    - ethics_committee
+    - risk_management
+    
+  audit_requirements:
+    log_all_clinical_decisions: true
+    adverse_event_tracking: true
+    quality_metrics: true
+    patient_safety_indicators: true
+    
+  peer_review:
+    enabled: true
+    sample_rate: 0.10
+    focus_areas:
+      - high_risk_decisions
+      - adverse_outcomes
+      - standard_deviations
+
+# Reporting and Quality
+reporting:
+  required_metrics:
+    - adverse_events
+    - near_misses
+    - standard_adherence_rate
+    - consent_documentation_rate
+    - ethics_consult_frequency
+    - resource_utilization
+    
+  quality_indicators:
+    - patient_safety_index
+    - clinical_outcomes
+    - readmission_rates
+    - medication_errors
+    - falls_incidents
+    
+  regulatory_reporting:
+    - sentinel_events
+    - never_events
+    - hipaa_breaches
+    - quality_measures
+    
+  alert_conditions:
+    - patient_safety_event
+    - standard_violation
+    - consent_irregularity
+    - resource_crisis
+    - ethics_concern
